@@ -1,0 +1,546 @@
+.layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Form ── */
+.formArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.docHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.typeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  align-self: flex-start;
+}
+
+.titleInput {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--fg);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--border);
+  padding: 0.25rem 0;
+  width: 100%;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+  letter-spacing: -0.02em;
+}
+.titleInput:focus { border-color: var(--brand); }
+
+/* ── Cascade Section ── */
+.cascadeSection {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.125rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.cascadeSectionTitle {
+  font-size: 0.5625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--fg-secondary);
+  margin-bottom: 0.125rem;
+}
+
+.cascadeRow {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr;
+  gap: 0.75rem;
+}
+
+.cascadeField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cascadeLabel {
+  font-size: 0.5625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg-secondary);
+}
+
+.selectWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cascadeSelect,
+.fieldSelect {
+  appearance: none;
+  width: 100%;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 0.5625rem 2rem 0.5625rem 0.75rem;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.cascadeSelect:focus,
+.fieldSelect:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-alpha);
+}
+.cascadeSelect:disabled { opacity: 0.45; cursor: default; }
+
+.selectChevron {
+  position: absolute;
+  right: 0.625rem;
+  color: var(--fg-secondary);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.cascadePills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.pill {
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: var(--brand-alpha);
+  color: var(--brand);
+  border: 1px solid var(--brand-alpha-border);
+}
+
+/* ── Aula list ── */
+.aulaSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.aulaList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.25rem;
+}
+
+.aulaItem {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 7px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+  width: 100%;
+}
+.aulaItem:hover { background: var(--surface-elevated); border-color: var(--border); }
+.aulaItemSelected { background: var(--brand-alpha) !important; border-color: var(--brand) !important; }
+
+.aulaNum {
+  font-size: 0.5625rem;
+  font-weight: 900;
+  color: var(--fg-secondary);
+  width: 20px;
+  flex-shrink: 0;
+  text-align: center;
+  background: var(--surface-elevated);
+  border-radius: 4px;
+  padding: 0.125rem 0.25rem;
+}
+
+.aulaTitulo {
+  flex: 1;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.aulaCode {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  color: var(--fg-secondary);
+  flex-shrink: 0;
+  font-family: monospace;
+}
+
+.aulaCheck { color: var(--brand); flex-shrink: 0; }
+
+/* ── Aula auto-info ── */
+.aulaInfo {
+  background: var(--surface-elevated);
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.aulaInfoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.aulaInfoLabel {
+  font-size: 0.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg-secondary);
+}
+
+.aulaInfoValue {
+  font-size: 0.8125rem;
+  color: var(--fg);
+  line-height: 1.5;
+}
+
+/* ── Auto-filled fields ── */
+.autoField {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--brand-alpha-border);
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.autoFieldLabel {
+  font-size: 0.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.autoTag {
+  font-size: 0.4375rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.1rem 0.375rem;
+  border-radius: 999px;
+  background: var(--brand-alpha);
+  color: var(--brand);
+}
+
+.autoFieldText {
+  font-size: 0.8125rem;
+  color: var(--fg);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ── Checklist ── */
+.checklistSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.checklistTitle {
+  font-size: 0.5625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--fg-secondary);
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+}
+
+.checkItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+  width: 100%;
+}
+.checkItem:hover { background: var(--surface); border-color: var(--border); }
+.checkItemOn { background: var(--brand-alpha) !important; border-color: var(--brand-alpha-border) !important; }
+
+.checkBox {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--brand);
+  transition: background 0.12s, border-color 0.12s;
+  margin-top: 0.125rem;
+}
+.checkItemOn .checkBox { background: var(--brand-alpha); border-color: var(--brand); }
+
+.checkCode {
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: var(--brand);
+  font-family: monospace;
+  flex-shrink: 0;
+  min-width: 32px;
+}
+
+.checkDesc {
+  font-size: 0.8125rem;
+  color: var(--fg);
+  line-height: 1.5;
+}
+
+/* ── PEI picker ── */
+.peiCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+}
+
+.peiRow {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  align-items: baseline;
+}
+
+.peiLbl {
+  font-size: 0.5625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-secondary);
+  min-width: 100px;
+}
+
+.peiDivider {
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Loading / empty msgs ── */
+.loadingMsg, .emptyMsg {
+  font-size: 0.75rem;
+  color: var(--fg-secondary);
+  padding: 0.5rem 0;
+}
+
+/* ── Fields group ── */
+.fieldsGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.groupTitle {
+  font-size: 0.5625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--fg-secondary);
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Regular fields ── */
+.fields { display: flex; flex-direction: column; gap: 1rem; }
+.field  { display: flex; flex-direction: column; gap: 0.375rem; }
+
+.fieldLabel {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.required { color: var(--brand); }
+
+.fieldInput,
+.fieldTextarea {
+  font-size: 0.875rem;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 0.625rem 0.875rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+.fieldInput:focus,
+.fieldTextarea:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-alpha);
+}
+.fieldTextarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+/* ── Sidebar panel ── */
+.sidePanel {
+  width: 260px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidePanelSection {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.sidePanelTitle {
+  font-size: 0.5625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--fg-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  align-self: flex-start;
+}
+.statusDraft { background: rgba(217,119,6,0.1); color: #d97706; }
+.statusFinal { background: rgba(22,163,74,0.1);  color: #16a34a; }
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 0.5625rem;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.actionBtn:hover    { opacity: 0.88; transform: translateY(-1px); }
+.actionBtn:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+.savBtn     { background: var(--brand); color: var(--brand-fg); box-shadow: 0 2px 10px rgba(196,154,0,0.25); }
+.pdfBtn     { background: #2563eb; color: #fff; }
+.delBtn     { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+.cancelBtn  { background: var(--surface-elevated); color: var(--fg-secondary); border: 1px solid var(--border); flex: 1; }
+.delBtnFull { background: #ef4444; color: #fff; flex: 1; }
+
+.deleteConfirm     { display: flex; flex-direction: column; gap: 0.375rem; }
+.deleteConfirmMsg  { font-size: 0.6875rem; font-weight: 600; color: #ef4444; text-align: center; }
+.deleteConfirmBtns { display: flex; gap: 0.375rem; }
+
+.savedMsg        { font-size: 0.6875rem; color: #16a34a; text-align: center; opacity: 0; transition: opacity 0.3s; }
+.savedMsgVisible { opacity: 1; }
+
+/* ── Feedbacks ── */
+.feedbackList { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.feedbackItem {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.625rem 0.75rem;
+}
+.feedbackAuthor { font-size: 0.6875rem; font-weight: 700; color: var(--fg); }
+.feedbackDate   { font-size: 0.5625rem; color: var(--fg-secondary); }
+.feedbackText   { font-size: 0.8125rem; color: var(--fg); margin-top: 0.25rem; line-height: 1.5; }
+
+.noFeedback { font-size: 0.75rem; color: var(--fg-secondary); text-align: center; padding: 0.5rem 0; }
+
+/* ── Error ── */
+.errMsg {
+  font-size: 0.75rem;
+  color: #ef4444;
+  background: rgba(239,68,68,0.07);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: 8px;
+  padding: 0.375rem 0.625rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .layout     { flex-direction: column; }
+  .sidePanel  { width: 100%; border-left: none; border-top: 1px solid var(--border); }
+  .cascadeRow { grid-template-columns: 1fr; }
+}
