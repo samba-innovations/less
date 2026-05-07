@@ -2,13 +2,12 @@
 input, textarea, select, button { font-family: inherit; font-size: inherit; }
 
 :root {
-  /* ── Brand (less = yellow) ── */
-  --brand:              #c49a00;
-  --brand-light:        #fce375;
-  --brand-dark:         #a07d00;
-  --brand-fg:           #1a0f00;
-  --brand-alpha:        rgba(252, 227, 117, 0.1);
-  --brand-alpha-border: rgba(252, 227, 117, 0.3);
+  /* ── Brand (less = golden) ── */
+  --brand:              #b8860b;
+  --brand-light:        #c49a00;
+  --brand-dark:         #8a6500;
+  --brand-alpha:        rgba(184, 134, 11, 0.07);
+  --brand-alpha-border: rgba(184, 134, 11, 0.22);
 
   /* ── Light theme ── */
   --bg:               #ffffff;
@@ -22,13 +21,6 @@ input, textarea, select, button { font-family: inherit; font-size: inherit; }
 }
 
 .dark {
-  --brand:              #fce375;
-  --brand-light:        #ffe89a;
-  --brand-dark:         #d4b83a;
-  --brand-fg:           #1a0f00;
-  --brand-alpha:        rgba(252, 227, 117, 0.1);
-  --brand-alpha-border: rgba(252, 227, 117, 0.25);
-
   --bg:               #0b0b0d;
   --bg-secondary:     #0e0e11;
   --surface:          #131316;
@@ -36,16 +28,14 @@ input, textarea, select, button { font-family: inherit; font-size: inherit; }
   --fg:               #f0f0f5;
   --fg-secondary:     #8a8a9a;
   --border:           #242428;
-  --shadow-card:      0 0 40px rgba(252, 227, 117, 0.05);
+  --shadow-card:      0 0 40px rgba(184, 134, 11, 0.07);
 }
 
-html { color-scheme: light; }
+html { color-scheme: light; font-size: 17px; }
 html.dark { color-scheme: dark; }
 
-html { font-size: 17px; }
-
 body {
-  font-family: var(--font-sans, system-ui), sans-serif;
+  font-family: var(--font-sans, 'Montserrat'), system-ui, sans-serif;
   background: var(--bg);
   color: var(--fg);
   min-height: 100dvh;
@@ -55,3 +45,6 @@ body {
 
 ::selection { background-color: var(--brand-alpha); }
 :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; }

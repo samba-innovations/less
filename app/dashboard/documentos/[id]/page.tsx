@@ -15,16 +15,20 @@ export default async function DocumentoPage({
   if (!session) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
 
   const { id } = await params
-  const school  = await db.school.findUnique({ where: { slug: session.schoolSlug } })
-  if (!school) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
+
+  let school = null
+  if (!session.isAdmin || session.schoolSlug) {
+    school = await db.school.findUnique({ where: { slug: session.schoolSlug } })
+    if (!school) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
+  }
 
   const manager = isManager(session.role)
 
   const doc = await db.lessDocument.findFirst({
     where: {
       id:       Number(id),
-      schoolId: school.id,
-      ...(manager ? {} : { userId: session.userId }),
+      ...(school ? { schoolId: school.id } : {}),
+      ...(manager || session.isAdmin ? {} : { userId: session.userId }),
     },
     include: {
       feedbacks: {
@@ -53,6 +57,7 @@ export default async function DocumentoPage({
           })),
         }}
         canFeedback={manager}
+        isAdmin={session.isAdmin}
       />
     </>
   )

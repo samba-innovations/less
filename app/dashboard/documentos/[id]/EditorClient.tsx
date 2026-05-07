@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { DOC_TYPES, type DocType, type FieldDef } from '@/lib/doc-types'
 import { Save, FileDown, Trash2, CheckCircle, Clock, ChevronDown, Check } from 'lucide-react'
+// ChevronDown still used in renderField selects
 import s from './editor.module.css'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -31,6 +32,10 @@ type PeiStudent = {
   diagnostico?: string; profColaborativo?: string; profAee?: string
 }
 
+type SchoolOption = { id: number; slug: string; name: string }
+
+type TurmasResponse = Turma[] | { needsSchool: true; schools: SchoolOption[] }
+
 type Props = {
   doc: {
     id:        number
@@ -41,6 +46,7 @@ type Props = {
     feedbacks: Feedback[]
   }
   canFeedback: boolean
+  isAdmin?:   boolean
 }
 
 // ─── Curriculum-aware doc types ───────────────────────────────────────────────
@@ -54,15 +60,18 @@ function isPeiType(t: string)        { return PEI_TYPES.includes(t as never) }
 // ─── Hooks ───────────────────────────────────────────────────────────────────
 
 function useFetch<T>(url: string | null) {
-  const [data, setData]     = useState<T | null>(null)
+  const [data, setData]       = useState<T | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!url) { setData(null); return }
     setLoading(true)
     fetch(url)
-      .then(r => r.json())
-      .then(d => setData(d))
+      .then(r => {
+        if (!r.ok) { setData(null); return }
+        return r.json().then((d: T) => setData(d))
+      })
+      .catch(() => setData(null))
       .finally(() => setLoading(false))
   }, [url])
 
@@ -71,7 +80,7 @@ function useFetch<T>(url: string | null) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function EditorClient({ doc, canFeedback }: Props) {
+export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
   const router   = useRouter()
   const docType  = doc.type as DocType
   const meta     = DOC_TYPES[docType]
@@ -89,6 +98,11 @@ export function EditorClient({ doc, canFeedback }: Props) {
   const [feedbacks, setFeedbacks]       = useState<Feedback[]>(doc.feedbacks)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ── Admin: escola selecionada ─────────────────────────────────────────────
+  const [adminSchoolSlug, setAdminSchoolSlug] = useState<string>(
+    fields._school_slug || ''
+  )
 
   // ── Curriculum state ──────────────────────────────────────────────────────
   const [turmaId,      setTurmaId]      = useState<number | null>(Number(fields._turma_id) || null)
@@ -109,7 +123,18 @@ export function EditorClient({ doc, canFeedback }: Props) {
   const [peiStudentId, setPeiStudentId] = useState<number | null>(Number(fields._pei_student_id) || null)
 
   // ── Fetch curriculum data ─────────────────────────────────────────────────
-  const { data: turmas   } = useFetch<Turma[]>('/api/less/turmas')
+  // Admin com escola selecionada usa ?school=slug; sem escola, recebe { needsSchool, schools }
+  const turmasUrl = isAdmin && !adminSchoolSlug
+    ? '/api/less/turmas'
+    : isAdmin && adminSchoolSlug
+      ? `/api/less/turmas?school=${adminSchoolSlug}`
+      : '/api/less/turmas'
+
+  const { data: turmasRaw } = useFetch<TurmasResponse>(turmasUrl)
+  const needsSchool = turmasRaw && !Array.isArray(turmasRaw) && 'needsSchool' in turmasRaw
+  const adminSchools: SchoolOption[] = (needsSchool ? (turmasRaw as { schools: SchoolOption[] }).schools : [])
+  const turmas: Turma[] | null = Array.isArray(turmasRaw) ? turmasRaw : null
+
   const { data: bimestres } = useFetch<Bimestre[]>('/api/less/bimestres')
   const { data: instrumentos } = useFetch<Instrumento[]>('/api/less/instrumentos')
   const { data: peiStudents }  = useFetch<PeiStudent[]>(isPeiType(docType) ? '/api/less/pei-students' : null)
@@ -318,81 +343,115 @@ export function EditorClient({ doc, canFeedback }: Props) {
       <div className={s.cascadeSection}>
         <p className={s.cascadeSectionTitle}>contexto curricular</p>
 
-        <div className={s.cascadeRow}>
-          {/* Turma */}
+        {/* ── Admin: school selector ── */}
+        {isAdmin && needsSchool && (
           <div className={s.cascadeField}>
-            <label className={s.cascadeLabel}>turma</label>
-            <div className={s.selectWrap}>
-              <select
-                className={s.cascadeSelect}
-                value={turmaId ?? ''}
-                onChange={e => handleTurmaChange(Number(e.target.value))}
-              >
-                <option value="">selecionar turma…</option>
-                {(turmas ?? []).map(t => (
-                  <option key={t.id} value={t.id}>{t.name} ({t.grade})</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className={s.selectChevron} />
+            <label className={s.cascadeLabel}>escola</label>
+            <div className={s.optionGrid}>
+              {adminSchools.map(sch => (
+                <button
+                  key={sch.id}
+                  className={`${s.optionChip} ${adminSchoolSlug === sch.slug ? s.optionChipActive : ''}`}
+                  onClick={() => {
+                    setAdminSchoolSlug(sch.slug)
+                    setField('_school_slug', sch.slug)
+                  }}
+                >
+                  {sch.name}
+                </button>
+              ))}
             </div>
           </div>
+        )}
 
-          {/* Disciplina */}
-          <div className={s.cascadeField}>
-            <label className={s.cascadeLabel}>disciplina</label>
-            <div className={s.selectWrap}>
-              <select
-                className={s.cascadeSelect}
-                value={disciplinaId ?? ''}
-                disabled={!turmaId}
-                onChange={e => handleDisciplinaChange(Number(e.target.value))}
-              >
-                <option value="">selecionar disciplina…</option>
-                {(disciplinas ?? []).map(d => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className={s.selectChevron} />
+        {/* ── Turma ── */}
+        <div className={s.cascadeField}>
+          <label className={s.cascadeLabel}>turma</label>
+          {isAdmin && !adminSchoolSlug ? (
+            <p className={s.cascadeLoading}>selecione uma escola acima…</p>
+          ) : !turmas ? (
+            <p className={s.cascadeLoading}>carregando turmas…</p>
+          ) : turmas.length === 0 ? (
+            <p className={s.emptyMsg}>nenhuma turma atribuída</p>
+          ) : (
+            <div className={s.optionGrid}>
+              {turmas.map(t => (
+                <button
+                  key={t.id}
+                  className={`${s.optionChip} ${turmaId === t.id ? s.optionChipActive : ''}`}
+                  onClick={() => handleTurmaChange(t.id)}
+                >
+                  <span>{t.name}</span>
+                  <span className={s.optionChipSub}>{t.grade}</span>
+                </button>
+              ))}
             </div>
-          </div>
-
-          {/* Bimestre */}
-          <div className={s.cascadeField}>
-            <label className={s.cascadeLabel}>bimestre</label>
-            <div className={s.selectWrap}>
-              <select
-                className={s.cascadeSelect}
-                value={bimestreNum ?? ''}
-                onChange={e => handleBimestreChange(Number(e.target.value))}
-              >
-                <option value="">bimestre…</option>
-                {(bimestres ?? []).map(b => (
-                  <option key={b.id} value={b.numero}>{b.label}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className={s.selectChevron} />
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Info pills from selection */}
+        {/* ── Disciplina (aparece após turma selecionada) ── */}
+        {turmaId && (
+          <div className={s.cascadeField}>
+            <label className={s.cascadeLabel}>disciplina</label>
+            {!disciplinas ? (
+              <p className={s.cascadeLoading}>carregando disciplinas…</p>
+            ) : disciplinas.length === 0 ? (
+              <p className={s.emptyMsg}>nenhuma disciplina para esta turma</p>
+            ) : (
+              <div className={s.optionGrid}>
+                {disciplinas.map(d => (
+                  <button
+                    key={d.id}
+                    className={`${s.optionChip} ${disciplinaId === d.id ? s.optionChipActive : ''}`}
+                    onClick={() => handleDisciplinaChange(d.id)}
+                  >
+                    {d.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Bimestre (aparece após disciplina selecionada) ── */}
+        {turmaId && disciplinaId && (
+          <div className={s.cascadeField}>
+            <label className={s.cascadeLabel}>bimestre</label>
+            {!bimestres ? (
+              <p className={s.cascadeLoading}>carregando…</p>
+            ) : (
+              <div className={s.bimRow}>
+                {bimestres.map(b => (
+                  <button
+                    key={b.id}
+                    className={`${s.bimBtn} ${bimestreNum === b.numero ? s.bimBtnActive : ''}`}
+                    onClick={() => handleBimestreChange(b.numero)}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Info pills */}
         {selectedTurma && (
           <div className={s.cascadePills}>
             <span className={s.pill}>
-              {selectedTurma.ciclo === 'fundamental' ? 'Ensino Fundamental' : 'Ensino Médio'}
-              {' · '}{selectedTurma.serie}ª série
+              {selectedTurma.ciclo === 'fundamental' ? 'EF' : 'EM'} · {selectedTurma.serie}ª série
             </span>
             {selectedDisc && <span className={s.pill}>{selectedDisc.name}</span>}
             {selectedBim  && <span className={s.pill}>{selectedBim.label}</span>}
           </div>
         )}
 
-        {/* Aula selector (only for PLANO_AULA) */}
+        {/* ── Aula do currículo (só para PLANO_AULA) ── */}
         {docType === 'PLANO_AULA' && aulaBase && (
           <div className={s.aulaSection}>
             <label className={s.cascadeLabel}>aula do currículo</label>
             {!aulas ? (
-              <p className={s.loadingMsg}>carregando aulas…</p>
+              <p className={s.cascadeLoading}>carregando aulas…</p>
             ) : aulas.length === 0 ? (
               <p className={s.emptyMsg}>nenhuma aula encontrada para este período</p>
             ) : (
@@ -416,7 +475,7 @@ export function EditorClient({ doc, canFeedback }: Props) {
           </div>
         )}
 
-        {/* Auto-filled curriculum info (when aula is selected) */}
+        {/* Info da aula selecionada */}
         {docType === 'PLANO_AULA' && selectedAula && (
           <div className={s.aulaInfo}>
             {fields.unidade_tematica && (
@@ -553,16 +612,48 @@ export function EditorClient({ doc, canFeedback }: Props) {
           <label className={s.fieldLabel}>
             {field.label}{field.required && <span className={s.required}> *</span>}
           </label>
-          <div className={s.selectWrap}>
-            <select
-              className={s.fieldSelect}
-              value={val}
-              onChange={e => setField(field.key, e.target.value)}
-            >
-              <option value="">selecionar…</option>
-              {field.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-            <ChevronDown size={14} className={s.selectChevron} />
+          <div className={s.optionGrid}>
+            {field.options.map(o => (
+              <button
+                key={o.value}
+                className={`${s.optionChip} ${val === o.value ? s.optionChipActive : ''}`}
+                onClick={() => setField(field.key, val === o.value ? '' : o.value)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    if (field.type === 'chips' && field.options) {
+      const selected: string[] = (() => {
+        try { return JSON.parse(val || '[]') } catch { return [] }
+      })()
+      return (
+        <div key={field.key} className={s.field}>
+          <label className={s.fieldLabel}>
+            {field.label}{field.required && <span className={s.required}> *</span>}
+          </label>
+          <div className={s.optionGrid}>
+            {field.options.map(o => {
+              const on = selected.includes(o.value)
+              return (
+                <button
+                  key={o.value}
+                  className={`${s.optionChip} ${on ? s.optionChipActive : ''}`}
+                  onClick={() => {
+                    const next = on
+                      ? selected.filter(x => x !== o.value)
+                      : [...selected, o.value]
+                    setField(field.key, JSON.stringify(next))
+                  }}
+                >
+                  {o.label}
+                </button>
+              )
+            })}
           </div>
         </div>
       )

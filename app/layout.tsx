@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning className={montserrat.variable}>
+    <html lang="pt-BR" className={montserrat.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{
           __html: `

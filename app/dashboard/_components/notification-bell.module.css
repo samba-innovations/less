@@ -1,10 +1,10 @@
-.wrap {
+﻿.wrap {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-/* ── Bell button ── */
+/* â”€â”€ Bell button â”€â”€ */
 .bell {
   position: relative;
   display: flex;
@@ -49,7 +49,7 @@
   pointer-events: none;
 }
 
-/* ── Dropdown panel ── */
+/* â”€â”€ Dropdown panel â”€â”€ */
 .panel {
   position: absolute;
   top: calc(100% + 10px);
@@ -104,7 +104,7 @@
   background: var(--brand-alpha);
 }
 
-/* ── List ── */
+/* â”€â”€ List â”€â”€ */
 .list {
   max-height: 380px;
   overflow-y: auto;
@@ -122,7 +122,7 @@
   opacity: 0.6;
 }
 
-/* ── Notification item ── */
+/* â”€â”€ Notification item â”€â”€ */
 .item {
   display: flex;
   align-items: flex-start;

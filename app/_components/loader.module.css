@@ -1,4 +1,4 @@
-/* ── Splash (initial page load) ── */
+﻿/* â”€â”€ Splash (initial page load) â”€â”€ */
 .splash {
   position: fixed;
   inset: 0;
@@ -42,7 +42,7 @@
   to   { width: 100%; }
 }
 
-/* ── Navigation progress bar (top) ── */
+/* â”€â”€ Navigation progress bar (top) â”€â”€ */
 .navBar {
   position: fixed;
   top: 0;
