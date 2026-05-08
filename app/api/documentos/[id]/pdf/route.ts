@@ -46,7 +46,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     data:  { status: 'FINAL' },
   })
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       'Content-Type':        'application/pdf',
       'Content-Disposition': `attachment; filename="${doc.id}.pdf"`,
