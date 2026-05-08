@@ -120,7 +120,8 @@ function textBlock(
 
   doc.y = y + headerH
 
-  const textH = doc.heightOfString(text, { width: CONTENT_W - 16, fontSize: 8.5 }) + 12
+  doc.fontSize(8.5)
+  const textH = doc.heightOfString(text, { width: CONTENT_W - 16 }) + 12
   ensureSpace(doc, textH)
 
   const bodyY = doc.y
