@@ -4,6 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { DOC_TYPES, type DocType } from '@/lib/doc-types'
 import { FileText, Users, Plus, Trash2, ChevronDown, X, Check } from 'lucide-react'
+import { useNotificationEvent } from '@/lib/useNotificationEvent'
+import { useSchoolEvent } from '@/lib/useSchoolEvent'
 import s from './coordenacao.module.css'
 
 type Doc = {
@@ -21,9 +23,20 @@ type Props = { docs: Doc[]; initialPeiStudents: PeiStudent[] }
 const EMPTY_FORM = { name: '', ra: '', turma: '', diagnostico: '', profColaborativo: '', profAee: '' }
 
 export function CoordenacaoClient({ docs, initialPeiStudents }: Props) {
-  const [tab, setTab] = useState<'docs' | 'pei'>('docs')
+  const [tab, setTab]           = useState<'docs' | 'pei'>('docs')
+  const [docList, setDocList]   = useState<Doc[]>(docs)
   const [students, setStudents] = useState<PeiStudent[]>(initialPeiStudents)
   const [showForm, setShowForm] = useState(false)
+
+  async function refreshDocs() {
+    const res = await fetch('/api/documentos?all=true')
+    if (!res.ok) return
+    const data: Doc[] = await res.json()
+    setDocList(data)
+  }
+
+  useNotificationEvent(['LESS_DOC_FINAL'], refreshDocs)
+  useSchoolEvent(['document_created', 'document_updated'], refreshDocs)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -85,14 +98,14 @@ export function CoordenacaoClient({ docs, initialPeiStudents }: Props) {
 
       {/* Documents tab */}
       {tab === 'docs' && (
-        docs.length === 0 ? (
+        docList.length === 0 ? (
           <div className={s.empty}>
             <FileText size={36} strokeWidth={1.2} />
             <p>Nenhum documento criado pela equipe ainda.</p>
           </div>
         ) : (
           <div className={s.list}>
-            {docs.map(doc => {
+            {docList.map(doc => {
               const meta = DOC_TYPES[doc.type as DocType]
               return (
                 <Link key={doc.id} href={`/dashboard/documentos/${doc.id}`} className={s.docCard}>

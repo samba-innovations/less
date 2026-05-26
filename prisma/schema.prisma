@@ -9,15 +9,6 @@ datasource db {
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-enum Role {
-  PRINCIPAL
-  VICE_PRINCIPAL
-  COORDINATOR
-  TEACHER_COORDINATOR
-  TEACHER
-  SECRETARY
-}
-
 enum SystemSlug {
   mockflow
   occurrences
@@ -43,6 +34,58 @@ enum EnrollmentType {
   ELECTIVE
 }
 
+enum GateEntryType {
+  ENTRY
+  LATE_ENTRY
+  EXIT
+  EARLY_EXIT
+  CALL
+}
+
+enum PhoneType {
+  FIXO
+  CELULAR
+}
+
+enum MultiplicaStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LessDocType {
+  PLANO_AULA
+  GUIA_APRENDIZAGEM
+  PEI
+  PLANO_ELETIVA
+  PLANO_EMA
+  PROJETO
+  PDI
+  ATA
+  DECLARACAO
+  COMUNICADO
+  ATESTADO
+}
+
+enum LessDocStatus {
+  DRAFT
+  FINAL
+}
+
+enum OccurrenceSeverity {
+  LEVE
+  MODERADA
+  GRAVE
+}
+
+enum OccurrenceStatus {
+  RASCUNHO
+  REGISTRADA
+  DEVOLUTIVA
+  ASSINADA
+  ARQUIVADA
+}
+
 // ─── Ecosystem ────────────────────────────────────────────────────────────────
 
 model Ecosystem {
@@ -51,8 +94,43 @@ model Ecosystem {
   label     String
   createdAt DateTime @default(now())
 
-  plans   Plan[]
-  schools School[]
+  plans         Plan[]
+  organizations Organization[]
+}
+
+// ─── Organization ─────────────────────────────────────────────────────────────
+
+model Organization {
+  id           Int      @id @default(autoincrement())
+  ecosystemId  Int
+  slug         String   @unique
+  name         String
+  state        String   @default("")
+  city         String   @default("")
+  isActive     Boolean  @default(true)
+  headerConfig Json?
+  createdAt    DateTime @default(now())
+
+  ecosystem      Ecosystem                 @relation(fields: [ecosystemId], references: [id])
+  subscription   OrganizationSubscription?
+  orgSystems     OrganizationSystem[]
+  orgRoles       UserOrganizationRole[]
+  notifications  Notification[]
+  supportTickets SupportTicket[]
+  school         School?
+}
+
+// ─── OrganizationSystem ───────────────────────────────────────────────────────
+
+model OrganizationSystem {
+  organizationId Int
+  systemId       Int
+  order          Int @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  system       System       @relation(fields: [systemId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, systemId])
 }
 
 // ─── System ───────────────────────────────────────────────────────────────────
@@ -63,6 +141,7 @@ model System {
   label String
 
   planSystems PlanSystem[]
+  orgSystems  OrganizationSystem[]
 }
 
 // ─── Plan ─────────────────────────────────────────────────────────────────────
@@ -74,9 +153,9 @@ model Plan {
   description String?
   createdAt   DateTime @default(now())
 
-  ecosystem     Ecosystem            @relation(fields: [ecosystemId], references: [id])
+  ecosystem     Ecosystem                  @relation(fields: [ecosystemId], references: [id])
   planSystems   PlanSystem[]
-  subscriptions SchoolSubscription[]
+  subscriptions OrganizationSubscription[]
 }
 
 // ─── PlanSystem ───────────────────────────────────────────────────────────────
@@ -94,61 +173,52 @@ model PlanSystem {
 // ─── School ───────────────────────────────────────────────────────────────────
 
 model School {
-  id            Int        @id @default(autoincrement())
-  ecosystemId   Int
-  slug          String     @unique
-  name          String
-  type          SchoolType @default(PUBLIC)
-  state         String     @default("")
-  city          String     @default("")
-  hasTutoria    Boolean    @default(false)
-  hasMultiplica Boolean    @default(false)
-  isActive      Boolean    @default(true)
-  openTime      String?
-  closeTime     String?
-  createdAt     DateTime   @default(now())
+  id             Int        @id @default(autoincrement())
+  organizationId Int        @unique
+  type           SchoolType @default(PUBLIC)
+  hasTutoria     Boolean    @default(false)
+  hasMultiplica  Boolean    @default(false)
+  openTime       String?
+  closeTime      String?
 
-  ecosystem    Ecosystem           @relation(fields: [ecosystemId], references: [id])
-  subscription SchoolSubscription?
-  userRoles    UserSchoolRole[]
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  schoolYears        SchoolYear[]
-  grades             Grade[]
-  disciplines        Discipline[]
-  students           Student[]
-  classes            Class[]
-  teacherAssignments TeacherAssignment[]
-  gateRecords        GateRecord[]
+  schoolYears         SchoolYear[]
+  grades              Grade[]
+  disciplines         Discipline[]
+  students            Student[]
+  classes             Class[]
+  teacherAssignments  TeacherAssignment[]
+  gateRecords         GateRecord[]
   custodyRestrictions CustodyRestriction[]
-  notifications      Notification[]
-  exams              Exam[]
-  examApplications   ExamApplication[]
-  periods            Period[]
-  timetableSlots     TimetableSlot[]
-  spaces             Space[]
-  reservations       Reservation[]
-  occurrences        Occurrence[]
-  classDisciplines   ClassDiscipline[]
-  equipment          Equipment[]
+  exams               Exam[]
+  examApplications    ExamApplication[]
+  periods             Period[]
+  timetableSlots      TimetableSlot[]
+  spaces              Space[]
+  reservations        Reservation[]
+  occurrences         Occurrence[]
+  classDisciplines    ClassDiscipline[]
+  equipment           Equipment[]
   multiplicaSchedules MultiplicaSchedule[]
-  lessonRecords      LessonRecord[]
-  lessDocuments      LessDocument[]
-  lessDocTypes       LessSchoolDocType[]
-  lessPeiStudents    LessPeiStudent[]
+  lessonRecords       LessonRecord[]
+  lessDocuments       LessDocument[]
+  lessDocTypes        LessSchoolDocType[]
+  lessPeiStudents     LessPeiStudent[]
 }
 
-// ─── SchoolSubscription ───────────────────────────────────────────────────────
+// ─── OrganizationSubscription ─────────────────────────────────────────────────
 
-model SchoolSubscription {
-  id        Int                @id @default(autoincrement())
-  schoolId  Int                @unique
-  planId    Int
-  status    SubscriptionStatus @default(ACTIVE)
-  startedAt DateTime           @default(now())
-  expiresAt DateTime?
+model OrganizationSubscription {
+  id             Int                @id @default(autoincrement())
+  organizationId Int                @unique
+  planId         Int
+  status         SubscriptionStatus @default(ACTIVE)
+  startedAt      DateTime           @default(now())
+  expiresAt      DateTime?
 
-  school School @relation(fields: [schoolId], references: [id])
-  plan   Plan   @relation(fields: [planId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  plan         Plan         @relation(fields: [planId], references: [id])
 }
 
 // ─── User ─────────────────────────────────────────────────────────────────────
@@ -164,7 +234,7 @@ model User {
   mustChangePassword Boolean  @default(false)
   createdAt          DateTime @default(now())
 
-  schoolRoles              UserSchoolRole[]
+  orgRoles                 UserOrganizationRole[]
   refreshTokens            RefreshToken[]
   ssoTokens                SsoToken[]
   teacherAssignments       TeacherAssignment[]
@@ -172,31 +242,32 @@ model User {
   notifications            Notification[]
   createdExams             Exam[]
   timetableSlots           TimetableSlot[]
-  reservations             Reservation[]           @relation("UserReservations")
-  approvedReservations     Reservation[]           @relation("ApprovedReservations")
-  reportedOccurrences      Occurrence[]            @relation("OccurrenceReportedBy")
-  handledOccurrences       Occurrence[]            @relation("OccurrenceHandledBy")
-  multiplicaSchedules      MultiplicaSchedule[]    @relation("MultiplicaUser")
-  multiplicaApprovals      MultiplicaSchedule[]    @relation("MultiplicaApprover")
+  reservations             Reservation[]          @relation("UserReservations")
+  approvedReservations     Reservation[]          @relation("ApprovedReservations")
+  reportedOccurrences      Occurrence[]           @relation("OccurrenceReportedBy")
+  handledOccurrences       Occurrence[]           @relation("OccurrenceHandledBy")
+  multiplicaSchedules      MultiplicaSchedule[]   @relation("MultiplicaUser")
+  multiplicaApprovals      MultiplicaSchedule[]   @relation("MultiplicaApprover")
   lessonRecords            LessonRecord[]
   lessDocuments            LessDocument[]
-  lessFeedbacks            LessDocumentFeedback[]  @relation("LessFeedbackCoordinator")
+  lessFeedbacks            LessDocumentFeedback[] @relation("LessFeedbackCoordinator")
+  supportTickets           SupportTicket[]
 
   @@index([email])
   @@index([isActive])
 }
 
-// ─── UserSchoolRole ───────────────────────────────────────────────────────────
+// ─── UserOrganizationRole ─────────────────────────────────────────────────────
 
-model UserSchoolRole {
-  userId   Int
-  schoolId Int
-  role     Role
+model UserOrganizationRole {
+  userId         Int
+  organizationId Int
+  role           String
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@id([userId, schoolId])
+  @@id([userId, organizationId])
 }
 
 // ─── RefreshToken ─────────────────────────────────────────────────────────────
@@ -218,13 +289,13 @@ model RefreshToken {
 // ─── SsoToken ─────────────────────────────────────────────────────────────────
 
 model SsoToken {
-  id        String     @id @default(uuid())
-  userId    Int
-  schoolId  Int
-  system    SystemSlug
-  used      Boolean    @default(false)
-  expiresAt DateTime
-  createdAt DateTime   @default(now())
+  id             String     @id @default(uuid())
+  userId         Int
+  organizationId Int
+  system         SystemSlug
+  used           Boolean    @default(false)
+  expiresAt      DateTime
+  createdAt      DateTime   @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -232,14 +303,6 @@ model SsoToken {
 }
 
 // ─── Gate ─────────────────────────────────────────────────────────────────────
-
-enum GateEntryType {
-  ENTRY
-  LATE_ENTRY
-  EXIT
-  EARLY_EXIT
-  CALL
-}
 
 model GateRecord {
   id          Int           @id @default(autoincrement())
@@ -315,11 +378,11 @@ model Discipline {
   id             Int     @id @default(autoincrement())
   schoolId       Int
   name           String
-  type           String  @default("REGULAR") // REGULAR | TUTORIA | ELETIVA | CLUBE
+  type           String  @default("REGULAR")
   area           String  @default("")
   grau           String  @default("")
   curriculumType String  @default("")
-  aulasNome      String? @map("aulas_nome")  // maps to less_aulas.disciplina_nome
+  aulasNome      String? @map("aulas_nome")
   isActive       Boolean @default(true)
 
   school           School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -354,15 +417,15 @@ model Period {
   id           Int     @id @default(autoincrement())
   schoolId     Int
   schoolYearId Int
-  name         String  // "Aula 01", "Aula 02", …, "Aula 09"
-  startTime    String  // "07:00"
-  endTime      String  // "07:50"
+  name         String
+  startTime    String
+  endTime      String
   order        Int
-  shift        String? // "manhã" | "tarde" | "noite" — null = todos os turnos
+  shift        String?
   isClass      Boolean @default(true)
 
-  school     School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  schoolYear SchoolYear    @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+  school     School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolYear SchoolYear      @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
   slots      TimetableSlot[]
 
   @@unique([schoolId, schoolYearId, order])
@@ -377,8 +440,8 @@ model TimetableSlot {
   userId       Int?
   disciplineId Int
   periodId     Int
-  dayOfWeek    Int // 1=Mon … 5=Fri
-  weekParity   Int @default(0) // 0=toda semana, 1=semana A (ímpares), 2=semana B (pares)
+  dayOfWeek    Int
+  weekParity   Int @default(0)
 
   school     School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   schoolYear SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
@@ -399,13 +462,13 @@ model Class {
   schoolYearId Int
   gradeId      Int
   name         String
-  shift        String?  // "manhã" | "tarde" | "noite"
+  shift        String?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
-  school      School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  schoolYear  SchoolYear  @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
-  grade       Grade       @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  school           School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolYear       SchoolYear        @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+  grade            Grade             @relation(fields: [gradeId], references: [id], onDelete: Cascade)
   enrollments      StudentEnrollment[]
   assignments      TeacherAssignment[]
   examApplications ExamApplication[]
@@ -444,11 +507,6 @@ model Student {
 
 // ─── Responsáveis ─────────────────────────────────────────────────────────────
 
-enum PhoneType {
-  FIXO
-  CELULAR
-}
-
 model Responsible {
   id        Int       @id @default(autoincrement())
   studentId Int
@@ -481,12 +539,6 @@ model Equipment {
 
 // ─── Multiplica SP ────────────────────────────────────────────────────────────
 
-enum MultiplicaStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
 model MultiplicaSchedule {
   id           Int              @id @default(autoincrement())
   userId       Int
@@ -514,7 +566,7 @@ model LessonRecord {
   classId      Int
   disciplineId Int
   userId       Int
-  bimestreId   Int      // FK to Bimestre (not in this schema — control schema has it)
+  bimestreId   Int
   date         String
   content      String
   classesGiven Int      @default(1)
@@ -562,19 +614,19 @@ model StudentEnrollment {
 // ─── Notification ─────────────────────────────────────────────────────────────
 
 model Notification {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  schoolId  Int
-  type      String
-  title     String
-  body      String
-  link      String?
-  read      Boolean  @default(false)
-  system    String?
-  createdAt DateTime @default(now())
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  organizationId Int
+  type           String
+  title          String
+  body           String
+  link           String?
+  read           Boolean  @default(false)
+  system         String?
+  createdAt      DateTime @default(now())
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
   @@index([userId, createdAt(sort: Desc)])
@@ -685,7 +737,7 @@ model StudentResponse {
   score         Int?
   submittedAt   DateTime @default(now())
 
-  application ExamApplication  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application ExamApplication   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   enrollment  StudentEnrollment @relation(fields: [enrollmentId], references: [id])
   answers     StudentAnswer[]
 
@@ -766,19 +818,21 @@ enum TicketStatus {
 }
 
 model SupportTicket {
-  id        Int          @id @default(autoincrement())
-  userId    Int
-  schoolId  Int
-  system    String
-  subject   String
-  status    TicketStatus @default(OPEN)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id             Int          @id @default(autoincrement())
+  userId         Int
+  organizationId Int
+  system         String
+  subject        String
+  status         TicketStatus @default(OPEN)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  messages SupportMessage[]
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  messages     SupportMessage[]
 
   @@index([userId, system])
-  @@index([schoolId, system])
+  @@index([organizationId, system])
 }
 
 model SupportMessage {
@@ -796,25 +850,6 @@ model SupportMessage {
 }
 
 // ─── Less ─────────────────────────────────────────────────────────────────────
-
-enum LessDocType {
-  PLANO_AULA
-  GUIA_APRENDIZAGEM
-  PEI
-  PLANO_ELETIVA
-  PLANO_EMA
-  PROJETO
-  PDI
-  ATA
-  DECLARACAO
-  COMUNICADO
-  ATESTADO
-}
-
-enum LessDocStatus {
-  DRAFT
-  FINAL
-}
 
 model LessSchoolDocType {
   id        Int         @id @default(autoincrement())
@@ -946,20 +981,6 @@ model LessBimestre {
 }
 
 // ─── Occurrences ──────────────────────────────────────────────────────────────
-
-enum OccurrenceSeverity {
-  LEVE
-  MODERADA
-  GRAVE
-}
-
-enum OccurrenceStatus {
-  RASCUNHO
-  REGISTRADA
-  DEVOLUTIVA
-  ASSINADA
-  ARQUIVADA
-}
 
 model OccurrenceCategory {
   id    Int    @id @default(autoincrement())

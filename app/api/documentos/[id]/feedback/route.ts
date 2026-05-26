@@ -8,7 +8,7 @@ async function auth() {
   if (!token) return null
   try {
     const payload = await verifyToken(token)
-    const school  = await db.school.findUnique({ where: { slug: payload.schoolSlug } })
+    const school  = await db.school.findFirst({ where: { organization: { slug: payload.orgSlug } } })
     return school ? { payload, school } : null
   } catch { return null }
 }

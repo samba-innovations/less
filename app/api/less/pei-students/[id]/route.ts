@@ -10,7 +10,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!session || !isManager(session.role))
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
-  const school = await db.school.findUnique({ where: { slug: session.schoolSlug } })
+  const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } } })
   if (!school) return NextResponse.json({ error: 'Escola não encontrada' }, { status: 404 })
 
   const id = Number((await params).id)

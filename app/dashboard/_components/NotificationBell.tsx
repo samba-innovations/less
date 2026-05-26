@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Bell, CheckCheck, BellOff } from 'lucide-react'
+import { playSound } from '@/lib/sounds'
 import s from './notification-bell.module.css'
 
 type Notif = {
@@ -43,6 +44,12 @@ export function NotificationBell() {
       const n = JSON.parse(e.data) as Notif & { system?: string }
       if (n.system && n.system !== 'less') return
       setNotifs(prev => [n, ...prev])
+      playSound('less')
+      window.dispatchEvent(new CustomEvent('samba:notification', { detail: n }))
+    })
+    es.addEventListener('school_event', (e) => {
+      const d = JSON.parse(e.data)
+      window.dispatchEvent(new CustomEvent('samba:live', { detail: d }))
     })
     es.onerror = () => {}
     return () => es.close()

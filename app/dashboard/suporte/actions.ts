@@ -25,7 +25,7 @@ export async function createTicket(subject: string, body: string) {
   const ticket = await db.supportTicket.create({
     data: {
       userId:   user.id,
-      schoolId: school.id,
+      organizationId: school.organizationId,
       system:   SYSTEM,
       subject:  subject.trim(),
       messages: {
@@ -47,7 +47,7 @@ export async function addMessage(ticketId: number, body: string) {
   const { school, user } = await getContext()
 
   const ticket = await db.supportTicket.findFirst({
-    where: { id: ticketId, schoolId: school.id, system: SYSTEM },
+    where: { id: ticketId, organizationId: school.organizationId, system: SYSTEM },
   })
   if (!ticket) throw new Error('Chamado não encontrado')
   if (ticket.status === 'CLOSED') throw new Error('Chamado encerrado')
@@ -74,7 +74,7 @@ export async function closeTicket(ticketId: number) {
   const { school } = await getContext()
 
   await db.supportTicket.updateMany({
-    where: { id: ticketId, schoolId: school.id, system: SYSTEM },
+    where: { id: ticketId, organizationId: school.organizationId, system: SYSTEM },
     data:  { status: 'CLOSED' },
   })
 

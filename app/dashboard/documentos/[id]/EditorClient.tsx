@@ -1,13 +1,17 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { DOC_TYPES, type DocType, type FieldDef } from '@/lib/doc-types'
-import { Save, FileDown, Trash2, CheckCircle, Clock, ChevronDown, Check } from 'lucide-react'
-// ChevronDown still used in renderField selects
+import {
+  Save, FileDown, Trash2, CheckCircle, Clock, ChevronDown, Check, ArrowRight,
+  BookOpen, Monitor, Microscope, Users, Search, Activity, UserCheck, Layers,
+  FileCheck, Zap, type LucideIcon,
+} from 'lucide-react'
+import { Fragment } from 'react'
 import s from './editor.module.css'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Feedback = {
   id:          number
@@ -47,6 +51,299 @@ type Props = {
   }
   canFeedback: boolean
   isAdmin?:   boolean
+}
+
+// ─── PLANO_AULA constants ─────────────────────────────────────────────────────
+
+type TecnicaItem = { id: number; nome: string; descritor: string }
+
+const MOMENTOS_INICIAIS: TecnicaItem[] = [
+  { id:  1, nome: 'Situação-problema contextualizada',  descritor: 'Apresenta problema real para mobilizar conhecimentos prévios e levantar hipóteses.' },
+  { id:  2, nome: 'Pergunta geradora aberta',           descritor: 'Propõe questão ampla que estimula reflexão e revela repertório inicial dos alunos.' },
+  { id:  3, nome: 'Brainstorm estruturado',             descritor: 'Levanta ideias prévias dos alunos para identificar conhecimentos e concepções alternativas.' },
+  { id:  4, nome: 'Mapa conceitual inicial',            descritor: 'Solicita organização de conceitos para diagnosticar relações cognitivas existentes.' },
+  { id:  5, nome: 'Quiz diagnóstico rápido',            descritor: 'Aplica questões objetivas para verificar conhecimentos prévios de forma imediata.' },
+  { id:  6, nome: 'Estudo de caso curto',               descritor: 'Apresenta situação concreta para análise, avaliando interpretação e raciocínio inicial.' },
+  { id:  7, nome: 'Demonstração discrepante',           descritor: 'Exibe fenômeno inesperado para gerar conflito cognitivo e curiosidade investigativa.' },
+  { id:  8, nome: 'Levantamento de hipóteses',          descritor: 'Incentiva previsões dos alunos para avaliar compreensão inicial de causalidade.' },
+  { id:  9, nome: 'Análise de erro',                   descritor: 'Explora resolução incorreta para identificar entendimento e promover pensamento crítico.' },
+  { id: 10, nome: 'Conexão com o cotidiano',            descritor: 'Relaciona o tema à vivência dos alunos para ativar conhecimentos prévios.' },
+  { id: 11, nome: 'Mini desafio imediato',              descritor: 'Propõe problema rápido sem instrução prévia para observar estratégias espontâneas.' },
+  { id: 12, nome: 'Think-Pair-Share',                  descritor: 'Estimula discussão em etapas para favorecer participação e explicitação do pensamento.' },
+  { id: 13, nome: 'Nuvem de palavras',                 descritor: 'Coleta palavras-chave dos alunos para mapear repertório coletivo inicial.' },
+  { id: 14, nome: 'Classificação/organização',         descritor: 'Solicita agrupamento de elementos para diagnosticar critérios de organização mental.' },
+  { id: 15, nome: 'Linha do tempo conceitual',         descritor: 'Organiza eventos ou conceitos em sequência para avaliar noção de processo.' },
+  { id: 16, nome: 'Pergunta com posicionamento',       descritor: 'Solicita opinião justificada para identificar capacidade argumentativa inicial.' },
+  { id: 17, nome: 'Uso de dados reais',                descritor: 'Apresenta dados para interpretação inicial, verificando leitura e análise.' },
+  { id: 18, nome: 'Gamificação inicial',               descritor: 'Introduz narrativa ou desafio para engajar e contextualizar a aprendizagem.' },
+  { id: 19, nome: 'Autoavaliação inicial',             descritor: 'Incentiva o aluno a refletir sobre seu próprio nível de conhecimento.' },
+  { id: 20, nome: 'Integração com tecnologia',         descritor: 'Utiliza recursos tecnológicos para despertar interesse e diagnosticar familiaridade.' },
+]
+
+const DESENVOLVIMENTO_OPTS: TecnicaItem[] = [
+  { id:  1, nome: 'Resolução orientada de problemas',       descritor: 'Desenvolve conceitos por meio da resolução guiada de situações-problema.' },
+  { id:  2, nome: 'Aprendizagem baseada em problemas (PBL)', descritor: 'Investiga problema complexo em grupo, articulando teoria e prática.' },
+  { id:  3, nome: 'Aprendizagem baseada em projetos (PjBL)', descritor: 'Desenvolve produto ou solução ao longo da atividade com aplicação real.' },
+  { id:  4, nome: 'Estudo de caso aprofundado',             descritor: 'Analisa situação detalhada, propondo soluções fundamentadas.' },
+  { id:  5, nome: 'Experimentação prática',                 descritor: 'Realiza experimentos para observar fenômenos e validar hipóteses.' },
+  { id:  6, nome: 'Modelagem matemática/científica',        descritor: 'Representa situações reais por meio de modelos matemáticos ou computacionais.' },
+  { id:  7, nome: 'Programação aplicada',                   descritor: 'Desenvolve algoritmos/códigos para resolver problemas específicos.' },
+  { id:  8, nome: 'Rotação por estações',                   descritor: 'Alterna atividades em diferentes estações com foco em habilidades diversas.' },
+  { id:  9, nome: 'Sala de aula invertida (aplicação)',     descritor: 'Aplica conhecimentos previamente estudados em atividades práticas.' },
+  { id: 10, nome: 'Aprendizagem colaborativa estruturada',  descritor: 'Resolve tarefas em grupo com papéis definidos e interdependência.' },
+  { id: 11, nome: 'Resolução em níveis (progressão)',       descritor: 'Trabalha atividades com dificuldade crescente para consolidar aprendizagem.' },
+  { id: 12, nome: 'Análise e interpretação de dados',       descritor: 'Explora dados reais para extrair padrões, conclusões e inferências.' },
+  { id: 13, nome: 'Simulação (digital ou analógica)',       descritor: 'Utiliza simulações para compreender sistemas complexos.' },
+  { id: 14, nome: 'Construção de protótipos',               descritor: 'Desenvolve artefatos físicos ou digitais para testar ideias.' },
+  { id: 15, nome: 'Debate estruturado',                     descritor: 'Discute ideias com base em evidências e argumentação lógica.' },
+  { id: 16, nome: 'Ensino entre pares (peer instruction)',  descritor: 'Alunos explicam conceitos entre si com mediação do professor.' },
+  { id: 17, nome: 'Resolução comentada (metacognição)',     descritor: 'Explicita o raciocínio durante a resolução de problemas.' },
+  { id: 18, nome: 'Gamificação aplicada',                   descritor: 'Utiliza mecânicas de jogo para engajar na resolução de desafios.' },
+  { id: 19, nome: 'Investigação guiada (inquiry-based)',    descritor: 'Conduz investigação com orientação parcial do professor.' },
+  { id: 20, nome: 'Uso de tecnologias digitais interativas', descritor: 'Utiliza softwares, sensores ou plataformas para exploração ativa.' },
+]
+
+const FECHAMENTO_OPTS: TecnicaItem[] = [
+  { id:  1, nome: 'Síntese coletiva mediada',               descritor: 'Organiza os principais conceitos da aula com participação dos alunos.' },
+  { id:  2, nome: 'Retomada da questão inicial',            descritor: 'Revisa o problema gerador à luz dos conhecimentos construídos.' },
+  { id:  3, nome: 'Construção de mapa conceitual final',    descritor: 'Sistematiza conceitos e relações após a aprendizagem.' },
+  { id:  4, nome: 'Registro estruturado (caderno/portfólio)', descritor: 'Formaliza os aprendizados em formato organizado e pessoal.' },
+  { id:  5, nome: 'Resposta escrita reflexiva',             descritor: 'Elabora síntese individual com base na compreensão adquirida.' },
+  { id:  6, nome: 'Metacognição guiada',                    descritor: 'Reflete sobre o que e como aprendeu durante a aula.' },
+  { id:  7, nome: 'Correção comentada',                     descritor: 'Analisa soluções destacando estratégias e possíveis erros.' },
+  { id:  8, nome: 'Generalização do conceito',              descritor: 'Amplia o conhecimento para outros contextos ou situações.' },
+  { id:  9, nome: 'Aplicação rápida (transferência)',       descritor: 'Resolve novo problema para verificar consolidação do aprendizado.' },
+  { id: 10, nome: 'Autoavaliação final',                    descritor: 'Avalia o próprio desempenho e nível de compreensão.' },
+  { id: 11, nome: 'Exit ticket',                            descritor: 'Responde questão breve para evidenciar aprendizagem imediata.' },
+  { id: 12, nome: 'Socialização de resultados',             descritor: 'Compartilha soluções, produtos ou conclusões com a turma.' },
+  { id: 13, nome: 'Construção de resumo coletivo',          descritor: 'Produz síntese conjunta dos conteúdos abordados.' },
+  { id: 14, nome: "Comparação 'antes e depois'",            descritor: 'Confronta ideias iniciais com o conhecimento atual.' },
+  { id: 15, nome: 'Conexão interdisciplinar',               descritor: 'Relaciona o conteúdo com outras áreas do conhecimento.' },
+  { id: 16, nome: 'Proposição de continuidade (gancho)',    descritor: 'Indica desdobramentos ou próximos passos da aprendizagem.' },
+  { id: 17, nome: 'Elaboração de pergunta final',           descritor: 'Formula novas questões a partir do que foi aprendido.' },
+  { id: 18, nome: 'Checklist de aprendizagem',              descritor: 'Verifica objetivos atingidos durante a aula.' },
+  { id: 19, nome: 'Feedback imediato do professor',         descritor: 'Oferece devolutiva clara sobre o desempenho da turma.' },
+  { id: 20, nome: 'Validação coletiva de conceitos-chave',  descritor: 'Confirma, com a turma, os conhecimentos essenciais construídos.' },
+]
+
+type TipoAula = 'individual' | 'dupla'
+const TIPO_AULA_CFG: Record<TipoAula, { titulo: string; inicio: string; desenv: string; fim: string }> = {
+  individual: { titulo: 'Aula de 50 minutos',          inicio: '0–10 min — Momentos Iniciais',  desenv: '10–40 min — Desenvolvimento',  fim: '40–50 min — Momentos Finais'  },
+  dupla:      { titulo: 'Aula de 1 hora e 40 minutos', inicio: '0–15 min — Momentos Iniciais',  desenv: '15–85 min — Desenvolvimento',  fim: '85–100 min — Momentos Finais' },
+}
+
+type RecursoGrupo = { id: string; label: string; icon: LucideIcon; defaultOpen: boolean; items: string[] }
+
+const RECURSOS_GRUPOS: RecursoGrupo[] = [
+  {
+    id: 'essenciais', label: 'Essenciais', icon: BookOpen, defaultOpen: true,
+    items: ['Slides Oficiais & Livros dos Estudantes', 'Livro didático', 'Quadro branco', 'Caderno de atividades', 'Material impresso / Xerox', 'Material manipulável', 'Projetor / Datashow'],
+  },
+  {
+    id: 'digitais', label: 'Digitais', icon: Monitor, defaultOpen: false,
+    items: ['Computador / Tablet', 'Acesso à internet', 'AVA (Google Classroom / Moodle)', 'Plataforma de quizzes (Kahoot / Quizizz)', 'Simuladores digitais (PhET / Tinkercad)', 'Softwares específicos (Python / GeoGebra / Excel)', 'Mural colaborativo (Padlet / Jamboard)', 'Documentos compartilhados (Google Docs)', 'Inteligência Artificial (apoio à aprendizagem)', 'Vídeo / Recurso audiovisual'],
+  },
+  {
+    id: 'maker', label: 'Experimental / Maker', icon: Microscope, defaultOpen: false,
+    items: ['Kit Arduino / ESP / IoT', 'Sensores e dispositivos eletrônicos', 'Materiais recicláveis (prototipagem)', 'Impressora 3D / prototipagem rápida', 'Laboratório móvel / experimental'],
+  },
+  {
+    id: 'colaborativos', label: 'Colaborativos / Pedagógicos', icon: Users, defaultOpen: false,
+    items: ['Cartões de discussão (flashcards)', 'Jogos educativos', 'Estudos de caso impressos/digitais', 'Roteiros de investigação', 'Sequências didáticas estruturadas', 'Podcast / áudio educativo', 'Infográficos'],
+  },
+]
+
+type AvaliacaoGrupo = { id: string; label: string; icon: LucideIcon; defaultOpen: boolean; items: string[] }
+
+const AVALIACAO_GRUPOS: AvaliacaoGrupo[] = [
+  {
+    id: 'diagnostica', label: 'Diagnóstica', icon: Search, defaultOpen: true,
+    items: ['Observação e participação', 'Avaliação diagnóstica inicial', 'Quiz diagnóstico rápido', 'Levantamento de hipóteses', 'Pergunta inicial / geradora'],
+  },
+  {
+    id: 'formativa', label: 'Formativa', icon: Activity, defaultOpen: false,
+    items: ['Atividade em sala', 'Exercícios no caderno', 'Feedback contínuo', 'Avaliação processual', 'Rubrica avaliativa'],
+  },
+  {
+    id: 'ativa', label: 'Ativa (protagonismo)', icon: UserCheck, defaultOpen: false,
+    items: ['Trabalho em grupo', 'Avaliação por pares', 'Autoavaliação guiada', 'Coavaliação (aluno + professor)', 'Avaliação por participação qualificada'],
+  },
+  {
+    id: 'producao', label: 'Por Produção', icon: Layers, defaultOpen: false,
+    items: ['Projeto / produto final', 'Protótipo funcional', 'Código / programa desenvolvido', 'Relatório científico', 'Portfólio (digital ou físico)', 'Apresentação oral', 'Vídeo produzido pelo aluno', 'Mapa conceitual'],
+  },
+  {
+    id: 'somativa', label: 'Somativa', icon: FileCheck, defaultOpen: false,
+    items: ['Avaliação escrita / Prova', 'Tarefa de casa'],
+  },
+  {
+    id: 'rapida', label: 'Rápida (tempo real)', icon: Zap, defaultOpen: false,
+    items: ['Exit ticket', 'Pergunta-chave ao final da aula', 'Votação interativa', 'Mini quiz diagnóstico contínuo'],
+  },
+]
+
+const PACOTES_PRONTOS = [
+  { id: 'expositiva',  label: 'Expositiva',
+    recursos: ['Livro didático', 'Quadro branco', 'Projetor / Datashow', 'Material impresso / Xerox'],
+    avaliacao: ['Observação e participação', 'Atividade em sala', 'Exercícios no caderno'] },
+  { id: 'tecnologia',  label: 'Tecnologia',
+    recursos: ['Computador / Tablet', 'Acesso à internet', 'Plataforma de quizzes (Kahoot / Quizizz)', 'AVA (Google Classroom / Moodle)'],
+    avaliacao: ['Quiz diagnóstico rápido', 'Exit ticket', 'Avaliação processual'] },
+  { id: 'investigativa', label: 'Investigativa',
+    recursos: ['Roteiros de investigação', 'Material manipulável', 'Caderno de atividades'],
+    avaliacao: ['Levantamento de hipóteses', 'Avaliação processual', 'Relatório científico'] },
+  { id: 'maker',       label: 'Maker',
+    recursos: ['Kit Arduino / ESP / IoT', 'Materiais recicláveis (prototipagem)', 'Laboratório móvel / experimental'],
+    avaliacao: ['Protótipo funcional', 'Projeto / produto final', 'Avaliação por pares'] },
+  { id: 'colaborativa', label: 'Colaborativa',
+    recursos: ['Mural colaborativo (Padlet / Jamboard)', 'Documentos compartilhados (Google Docs)', 'Jogos educativos'],
+    avaliacao: ['Trabalho em grupo', 'Avaliação por pares', 'Coavaliação (aluno + professor)'] },
+]
+
+const DESENVOLVIMENTO_TO_PACOTE: Record<number, string> = {
+  1: 'expositiva', 2: 'investigativa', 3: 'maker',       4: 'investigativa',
+  5: 'maker',      6: 'expositiva',    7: 'tecnologia',   8: 'colaborativa',
+  9: 'tecnologia', 10: 'colaborativa', 11: 'expositiva',  12: 'tecnologia',
+  13: 'tecnologia', 14: 'maker',       15: 'colaborativa', 16: 'colaborativa',
+  17: 'expositiva', 18: 'tecnologia',  19: 'investigativa', 20: 'tecnologia',
+}
+
+const REFERENCIAS_PADRAO = `BRASIL. Base Nacional Comum Curricular. Brasília: Ministério da Educação, 2018. Disponível em: http://basenacionalcomum.mec.gov.br/. Acesso em: 5 jan. 2026.
+BRASIL. Base Nacional Comum Curricular: Ensino Médio. Brasília: Ministério da Educação, 2018.
+SÃO PAULO (Estado). Secretaria da Educação. Currículo Paulista: Ensino Médio. São Paulo: SEDUC-SP, 2020. Disponível em: https://efape.educacao.sp.gov.br/curriculopaulista/. Acesso em: 5 jan. 2026.
+BRASIL. Conselho Nacional de Educação. Resolução CNE/CEB nº 3, de 21 de novembro de 2018. Atualiza as Diretrizes Curriculares Nacionais para o Ensino Médio. Diário Oficial da União: Brasília, DF, 22 nov. 2018.
+BRASIL. Lei nº 9.394, de 20 de dezembro de 1996. Estabelece as diretrizes e bases da educação nacional. Diário Oficial da União: Brasília, DF, 23 dez. 1996.
+BRASIL. Lei nº 13.415, de 16 de fevereiro de 2017. Altera a Lei nº 9.394/1996, que estabelece as bases da educação nacional. Diário Oficial da União: Brasília, DF, 17 fev. 2017.
+BRASIL. Ministério da Educação. Avaliação e aprendizagens: reflexões a partir da BNCC. Brasília: MEC, 2018.
+LUCKESI, Cipriano Carlos. Avaliação da aprendizagem escolar: estudos e proposições. 22. ed. São Paulo: Cortez, 2011.
+PERRENOUD, Philippe. Avaliação: da excelência à regulação das aprendizagens. Porto Alegre: Artmed, 1999.
+ZABALA, Antoni. A prática educativa: como ensinar. Porto Alegre: Artmed, 2010.
+HADJI, Charles. Avaliação desmistificada. Porto Alegre: Artmed, 2001.
+HERNÁNDEZ, Fernando. Transgressão e mudança na educação: os projetos de trabalho. Porto Alegre: Artmed, 1998.
+LIBÂNEO, José Carlos. Didática. São Paulo: Cortez, 2013.
+SAVIANI, Dermeval. Pedagogia histórico-crítica: primeiras aproximações. Campinas: Autores Associados, 2011.
+VASCONCELLOS, Celso dos Santos. Avaliação da aprendizagem: práticas de mudança. São Paulo: Libertad, 2008.
+HOFFMANN, Jussara. Avaliar para promover: as setas do caminho. Porto Alegre: Mediação, 2014.
+FREIRE, Paulo. Pedagogia da autonomia: saberes necessários à prática educativa. São Paulo: Paz e Terra, 1996.
+MORAN, José Manuel. Metodologias ativas para uma educação inovadora. Porto Alegre: Penso, 2018.
+BACICH, Lilian; MORAN, José (org.). Metodologias ativas para uma educação inovadora: uma abordagem teórico-prática. Porto Alegre: Penso, 2018.
+DARLING-HAMMOND, Linda et al. Preparando professores para um mundo em mudança. Porto Alegre: Penso, 2019.
+BLACK, Paul; WILIAM, Dylan. Inside the black box: raising standards through classroom assessment. London: King's College, 1998.
+WOLFF, Natály Rubert. Aprendizagem, avaliação e competência nas três versões da BNCC: conceitos em comparação. Dissertação (Mestrado). Universidade Federal de Mato Grosso do Sul, 2019.`
+
+// ─── Helper Components ────────────────────────────────────────────────────────
+
+function TecnicaBadge({ item, selected, onSelect, disabled = false, disabledReason }: {
+  item: TecnicaItem; selected: boolean; onSelect: (id: number) => void;
+  disabled?: boolean; disabledReason?: string;
+}) {
+  return (
+    <div className={s.tecnicaWrap}>
+      <button
+        type="button"
+        onClick={() => !disabled && onSelect(item.id)}
+        className={`${s.tecnicaBadge} ${selected ? s.tecnicaBadgeActive : ''} ${disabled ? s.tecnicaBadgeDisabled : ''}`}
+      >
+        <span className={s.tecnicaNum}>{String(item.id).padStart(2, '0')}</span>
+        {item.nome}
+      </button>
+      <div className={s.tecnicaTooltip}>
+        <span className={s.tecnicaTooltipTitle}>{item.nome}</span>
+        <span className={s.tecnicaTooltipDesc}>{disabledReason ?? item.descritor}</span>
+      </div>
+    </div>
+  )
+}
+
+function TecnicaDetailPanel({ item }: { item: TecnicaItem }) {
+  return (
+    <div className={s.tecnicaDetail}>
+      <span className={s.tecnicaDetailTitle}>{item.nome}</span>
+      <span className={s.tecnicaDetailDesc}>{item.descritor}</span>
+    </div>
+  )
+}
+
+function GrupoCheckbox({ grupos, value, onChange }: {
+  grupos: RecursoGrupo[] | AvaliacaoGrupo[]; value: string; onChange: (v: string) => void;
+}) {
+  const [openIds, setOpenIds] = useState<Set<string>>(
+    new Set(grupos.filter(g => g.defaultOpen).map(g => g.id))
+  )
+  const selected = new Set(value ? value.split(', ').map(x => x.trim()).filter(Boolean) : [])
+
+  function toggle(item: string) {
+    const nx = new Set(selected)
+    nx.has(item) ? nx.delete(item) : nx.add(item)
+    onChange([...nx].join(', '))
+  }
+
+  function toggleGrupo(id: string) {
+    setOpenIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+
+  return (
+    <div className={s.grupoList}>
+      {grupos.map(g => {
+        const count  = g.items.filter(i => selected.has(i)).length
+        const isOpen = openIds.has(g.id)
+        const Icon   = g.icon
+        return (
+          <div key={g.id} className={s.grupoSection}>
+            <button type="button" className={s.grupoHeader} onClick={() => toggleGrupo(g.id)}>
+              <Icon size={13} />
+              <span className={s.grupoLabel}>{g.label}</span>
+              {count > 0 && <span className={s.grupoCount}>{count}</span>}
+              <ChevronDown size={12} className={`${s.grupoChevron} ${isOpen ? s.grupoChevronOpen : ''}`} />
+            </button>
+            {isOpen && (
+              <div className={s.grupoBody}>
+                {g.items.map(item => (
+                  <label key={item} className={`${s.grupoItem} ${selected.has(item) ? s.grupoItemOn : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(item)}
+                      onChange={() => toggle(item)}
+                      className={s.grupoCheckbox}
+                    />
+                    <span>{item}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function ChipSelect({ options, value, onChange }: {
+  options: string[]; value: string; onChange: (v: string) => void;
+}) {
+  if (options.length === 0) return null
+  const selected = new Set(
+    value ? value.split('\n').map(x => x.trim()).filter(Boolean) : options
+  )
+  function toggle(opt: string) {
+    const nx = new Set(selected)
+    nx.has(opt) ? nx.delete(opt) : nx.add(opt)
+    onChange(options.filter(o => nx.has(o)).join('\n'))
+  }
+  return (
+    <div className={s.chipSelectWrap}>
+      {options.map(opt => (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => toggle(opt)}
+          className={`${s.chipOpt} ${!selected.has(opt) ? s.chipOptOff : ''}`}
+        >
+          {opt}
+        </button>
+      ))}
+    </div>
+  )
 }
 
 // ─── Curriculum-aware doc types ───────────────────────────────────────────────
@@ -104,7 +401,7 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
     fields._school_slug || ''
   )
 
-  // ── Curriculum state ──────────────────────────────────────────────────────
+  // ── Curriculum state (shared) ─────────────────────────────────────────────
   const [turmaId,      setTurmaId]      = useState<number | null>(Number(fields._turma_id) || null)
   const [disciplinaId, setDisciplinaId] = useState<number | null>(Number(fields._disciplina_id) || null)
   const [bimestreNum,  setBimestreNum]  = useState<number | null>(Number(fields._bimestre) || null)
@@ -122,8 +419,53 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
   // ── PEI state ─────────────────────────────────────────────────────────────
   const [peiStudentId, setPeiStudentId] = useState<number | null>(Number(fields._pei_student_id) || null)
 
+  // ── PLANO_AULA state ──────────────────────────────────────────────────────
+  const [planoStep, setPlanoStep] = useState<1|2|3>(() => {
+    if (fields.aula_ids || fields.aula_id) return 3
+    if (fields.disciplina && fields.bimestre) return 2
+    return 1
+  })
+  const [selectedTurmas, setSelectedTurmas] = useState<string[]>(() => {
+    if (fields.turmas) return fields.turmas.split(', ').filter(Boolean)
+    if (fields.turma)  return [fields.turma]
+    return []
+  })
+  const [planoAulaIds, setPlanoAulaIds] = useState<number[]>(() => {
+    if (fields.aula_ids) return fields.aula_ids.split(',').map(Number).filter(Boolean)
+    if (fields.aula_id)  return [Number(fields.aula_id)].filter(Boolean)
+    return []
+  })
+  const [momentoIds,     setMomentoIds]     = useState<number[]>(
+    fields.momento_ids ? fields.momento_ids.split(',').map(Number).filter(Boolean) : []
+  )
+  const [desenvolvP1Ids, setDesenvP1Ids]   = useState<number[]>(
+    fields.desenv_p1_ids ? fields.desenv_p1_ids.split(',').map(Number).filter(Boolean) : []
+  )
+  const [desenvolvP2Ids, setDesenvP2Ids]   = useState<number[]>(
+    fields.desenv_p2_ids ? fields.desenv_p2_ids.split(',').map(Number).filter(Boolean) : []
+  )
+  const [desenvolvP3Ids, setDesenvP3Ids]   = useState<number[]>(
+    fields.desenv_p3_ids ? fields.desenv_p3_ids.split(',').map(Number).filter(Boolean) : []
+  )
+  const [fechamentoIds,  setFechamentoIds]  = useState<number[]>(
+    fields.fechamento_ids ? fields.fechamento_ids.split(',').map(Number).filter(Boolean) : []
+  )
+  const [habilidadeOpcoes, setHabilidadeOpcoes] = useState<string[]>(
+    fields.habilidades ? fields.habilidades.split('\n').filter(Boolean) : []
+  )
+  const [conteudoOpcoes, setConteudoOpcoes] = useState<string[]>(
+    fields.conteudo_opcoes ? fields.conteudo_opcoes.split('\n').filter(Boolean) : []
+  )
+
+  // Auto-fill references on first open
+  useEffect(() => {
+    if (docType === 'PLANO_AULA' && !fields.referencias) {
+      setFields(prev => ({ ...prev, referencias: REFERENCIAS_PADRAO }))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // ── Fetch curriculum data ─────────────────────────────────────────────────
-  // Admin com escola selecionada usa ?school=slug; sem escola, recebe { needsSchool, schools }
   const turmasUrl = isAdmin && !adminSchoolSlug
     ? '/api/less/turmas'
     : isAdmin && adminSchoolSlug
@@ -131,19 +473,19 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
       : '/api/less/turmas'
 
   const { data: turmasRaw } = useFetch<TurmasResponse>(turmasUrl)
-  const needsSchool = turmasRaw && !Array.isArray(turmasRaw) && 'needsSchool' in turmasRaw
+  const needsSchool  = turmasRaw && !Array.isArray(turmasRaw) && 'needsSchool' in turmasRaw
   const adminSchools: SchoolOption[] = (needsSchool ? (turmasRaw as { schools: SchoolOption[] }).schools : [])
   const turmas: Turma[] | null = Array.isArray(turmasRaw) ? turmasRaw : null
 
-  const { data: bimestres } = useFetch<Bimestre[]>('/api/less/bimestres')
+  const { data: bimestres }   = useFetch<Bimestre[]>('/api/less/bimestres')
   const { data: instrumentos } = useFetch<Instrumento[]>('/api/less/instrumentos')
   const { data: peiStudents }  = useFetch<PeiStudent[]>(isPeiType(docType) ? '/api/less/pei-students' : null)
 
   const disciplinasUrl = turmaId ? `/api/less/disciplinas?classId=${turmaId}` : null
   const { data: disciplinas } = useFetch<Disciplina[]>(disciplinasUrl)
 
-  const aulaBase  = (turmaId && disciplinaId && bimestreNum && ciclo && serie && aulasNome)
-  const aulasUrl  = aulaBase ? `/api/less/aulas?disciplina=${encodeURIComponent(aulasNome)}&serie=${serie}&ciclo=${ciclo}&bimestre=${bimestreNum}` : null
+  const aulaBase = (turmaId && disciplinaId && bimestreNum && ciclo && serie && aulasNome)
+  const aulasUrl = aulaBase ? `/api/less/aulas?disciplina=${encodeURIComponent(aulasNome)}&serie=${serie}&ciclo=${ciclo}&bimestre=${bimestreNum}` : null
   const { data: aulas } = useFetch<Aula[]>(aulasUrl)
 
   const aeUrl = aulaBase ? `/api/less/aprendizagens?disciplina=${encodeURIComponent(aulasNome)}&serie=${serie}&ciclo=${ciclo}&bimestre=${bimestreNum}` : null
@@ -189,6 +531,27 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
     setField('_turma_nome', t.name)
   }
 
+  // PLANO_AULA: multi-select turmas
+  function togglePlanoTurma(t: Turma) {
+    const name = t.name
+    setSelectedTurmas(prev => {
+      const next = prev.includes(name)
+        ? prev.filter(x => x !== name)
+        : [...prev, name]
+      const primary = next[0] ?? ''
+      setFields(f => ({ ...f, turma: primary, turmas: next.join(', ') }))
+      scheduleSave({ ...fields, turma: primary, turmas: next.join(', ') })
+      // Update turmaId to primary turma (for disciplina cascade)
+      if (next.length > 0 && !prev.includes(name)) {
+        setTurmaId(t.id)
+        setCiclo(t.ciclo)
+        setSerie(t.serie)
+        setDisciplinaId(null); setAulasNome('')
+      }
+      return next
+    })
+  }
+
   function handleDisciplinaChange(id: number) {
     const d = disciplinas?.find(d => d.id === id)
     if (!d) return
@@ -198,10 +561,24 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
     setField('_disciplina_nome', d.name)
   }
 
+  function handlePlanoDisciplinaChange(id: number) {
+    const d = disciplinas?.find(d => d.id === id)
+    if (!d) return
+    setDisciplinaId(id)
+    setAulasNome(d.aulasNome)
+    setField('disciplina', d.name)
+  }
+
   function handleBimestreChange(num: number) {
     setBimestreNum(num)
     setAulaId(null)
     setField('_bimestre', String(num))
+  }
+
+  function handlePlanoBimestreChange(num: number) {
+    setBimestreNum(num)
+    setFields(f => ({ ...f, bimestre: String(num) }))
+    scheduleSave({ ...fields, bimestre: String(num) })
   }
 
   function handleAulaChange(id: number) {
@@ -210,15 +587,15 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
     setAulaId(id)
     setFields(prev => ({
       ...prev,
-      _aula_id:           String(id),
-      _aula_num:          String(a.aulaNum),
-      _titulo_aula:       a.titulo,
-      habilidade_codigo:  a.habilidadeCodigo ?? '',
-      habilidade_texto:   a.habilidadeTexto ?? '',
-      unidade_tematica:   a.unidadeTematica ?? '',
+      _aula_id:            String(id),
+      _aula_num:           String(a.aulaNum),
+      _titulo_aula:        a.titulo,
+      habilidade_codigo:   a.habilidadeCodigo ?? '',
+      habilidade_texto:    a.habilidadeTexto ?? '',
+      unidade_tematica:    a.unidadeTematica ?? '',
       objeto_conhecimento: a.objetoConhecimento ?? '',
-      conteudo_aula:      a.conteudo ?? '',
-      objetivos_aula:     a.objetivos ?? '',
+      conteudo_aula:       a.conteudo ?? '',
+      objetivos_aula:      a.objetivos ?? '',
     }))
     scheduleSave({
       ...fields,
@@ -228,6 +605,70 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
       conteudo_aula: a.conteudo ?? '',
       objetivos_aula: a.objetivos ?? '',
     })
+  }
+
+  // PLANO_AULA: toggle aula in multi/single select
+  function togglePlanoAula(id: number) {
+    const multiSelect = fields.periodo !== 'por_aula'
+    setPlanoAulaIds(prev =>
+      !multiSelect ? [id] : prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
+
+  // PLANO_AULA: apply selected aulas → fill content fields
+  function applyAulas() {
+    const selected = (aulas ?? []).filter(a => planoAulaIds.includes(a.id))
+    if (selected.length === 0) return
+
+    const parseLines = (raw: string | undefined): string[] =>
+      (raw ?? '').split(/\n/).map(x => x.replace(/^[\s\-•*–]+/, '').trim()).filter(x => x.length > 2)
+
+    const multiSelect = fields.periodo !== 'por_aula'
+
+    if (!multiSelect) {
+      const a = selected[0]
+      const habs   = parseLines(a.habilidadeTexto)
+      const codes  = (a.habilidadeCodigo ?? '').split(',').map(x => x.trim()).filter(Boolean)
+      const habLines = habs.length > 0 ? habs : codes
+      const contItems = parseLines(a.conteudo)
+      setHabilidadeOpcoes(habLines)
+      setConteudoOpcoes(contItems)
+      setFields(prev => ({
+        ...prev,
+        aula_id:             String(a.id),
+        aula_num:            String(a.aulaNum),
+        tema:                a.titulo,
+        eixo:                a.eixo ?? '',
+        unidade_tematica:    a.unidadeTematica ?? '',
+        objeto_conhecimento: a.objetoConhecimento ?? '',
+        bloco:               a.bloco ?? '',
+        objetivo_geral:      a.objetivos ?? '',
+        habilidades:         habLines.join('\n'),
+        conteudo:            contItems.join('\n'),
+        conteudo_opcoes:     contItems.join('\n'),
+      }))
+      scheduleSave({ ...fields, tema: a.titulo, aula_id: String(a.id) })
+    } else {
+      const tema    = selected.map(a => a.titulo).join(' | ')
+      const allHabs = [...new Set(selected.flatMap(a => parseLines(a.habilidadeTexto)))]
+      const allCont = [...new Set(selected.flatMap(a => parseLines(a.conteudo)))]
+      const allObj  = [...new Set(selected.flatMap(a => parseLines(a.objetivos)))]
+      setHabilidadeOpcoes(allHabs)
+      setConteudoOpcoes(allCont)
+      setFields(prev => ({
+        ...prev,
+        aula_ids:       planoAulaIds.join(','),
+        aula_nums:      selected.map(a => String(a.aulaNum)).join(', '),
+        tema,
+        habilidades:    allHabs.join('\n'),
+        conteudo:       allCont.join('\n'),
+        conteudo_opcoes: allCont.join('\n'),
+        objetivo_geral: allObj.join('\n'),
+      }))
+      scheduleSave({ ...fields, tema, aula_ids: planoAulaIds.join(',') })
+    }
+
+    setPlanoStep(3)
   }
 
   function handlePeiStudentChange(id: number) {
@@ -343,7 +784,6 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
       <div className={s.cascadeSection}>
         <p className={s.cascadeSectionTitle}>contexto curricular</p>
 
-        {/* ── Admin: school selector ── */}
         {isAdmin && needsSchool && (
           <div className={s.cascadeField}>
             <label className={s.cascadeLabel}>escola</label>
@@ -352,10 +792,7 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
                 <button
                   key={sch.id}
                   className={`${s.optionChip} ${adminSchoolSlug === sch.slug ? s.optionChipActive : ''}`}
-                  onClick={() => {
-                    setAdminSchoolSlug(sch.slug)
-                    setField('_school_slug', sch.slug)
-                  }}
+                  onClick={() => { setAdminSchoolSlug(sch.slug); setField('_school_slug', sch.slug) }}
                 >
                   {sch.name}
                 </button>
@@ -364,7 +801,6 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
           </div>
         )}
 
-        {/* ── Turma ── */}
         <div className={s.cascadeField}>
           <label className={s.cascadeLabel}>turma</label>
           {isAdmin && !adminSchoolSlug ? (
@@ -389,7 +825,6 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
           )}
         </div>
 
-        {/* ── Disciplina (aparece após turma selecionada) ── */}
         {turmaId && (
           <div className={s.cascadeField}>
             <label className={s.cascadeLabel}>disciplina</label>
@@ -413,7 +848,6 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
           </div>
         )}
 
-        {/* ── Bimestre (aparece após disciplina selecionada) ── */}
         {turmaId && disciplinaId && (
           <div className={s.cascadeField}>
             <label className={s.cascadeLabel}>bimestre</label>
@@ -435,7 +869,6 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
           </div>
         )}
 
-        {/* Info pills */}
         {selectedTurma && (
           <div className={s.cascadePills}>
             <span className={s.pill}>
@@ -446,7 +879,6 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
           </div>
         )}
 
-        {/* ── Aula do currículo (só para PLANO_AULA) ── */}
         {docType === 'PLANO_AULA' && aulaBase && (
           <div className={s.aulaSection}>
             <label className={s.cascadeLabel}>aula do currículo</label>
@@ -475,7 +907,6 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
           </div>
         )}
 
-        {/* Info da aula selecionada */}
         {docType === 'PLANO_AULA' && selectedAula && (
           <div className={s.aulaInfo}>
             {fields.unidade_tematica && (
@@ -498,6 +929,598 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
             )}
           </div>
         )}
+      </div>
+    )
+  }
+
+  function renderPlanoAulaWizard() {
+    const selectedDisc = disciplinas?.find(d => d.id === disciplinaId)
+    const selectedBim  = bimestres?.find(b => b.numero === bimestreNum)
+    const canStep2 = selectedTurmas.length > 0 && !!disciplinaId && !!bimestreNum
+    const canStep3 = planoAulaIds.length > 0
+    const multiSelect = fields.periodo !== 'por_aula'
+    const tipoAula: TipoAula = (fields.tipo_aula as TipoAula) ?? 'individual'
+    const aulaCfg = TIPO_AULA_CFG[tipoAula]
+
+    const STEPS = [
+      { n: 1 as const, label: 'Período' },
+      { n: 2 as const, label: 'Aulas' },
+      { n: 3 as const, label: 'Formulário' },
+    ]
+
+    return (
+      <div className={s.wizard}>
+
+        {/* ── Step indicator ── */}
+        <div className={s.stepIndicator}>
+          {STEPS.map((step, i) => {
+            const done   = planoStep > step.n
+            const active = planoStep === step.n
+            const canGo  = step.n === 1 || (step.n === 2 && canStep2) || (step.n === 3 && canStep3)
+            return (
+              <Fragment key={step.n}>
+                <button
+                  className={`${s.stepBtn} ${active ? s.stepBtnActive : ''} ${done ? s.stepBtnDone : ''}`}
+                  onClick={() => canGo && setPlanoStep(step.n)}
+                  disabled={!canGo}
+                >
+                  <span className={s.stepNum}>{done ? <Check size={9} /> : step.n}</span>
+                  <span className={s.stepName}>{step.label}</span>
+                </button>
+                {i < STEPS.length - 1 && <div className={s.stepLine} />}
+              </Fragment>
+            )
+          })}
+        </div>
+
+        {/* ── Step 1: Período ── */}
+        {planoStep === 1 && (
+          <div className={s.wizardStep}>
+
+            {/* Tipo de plano */}
+            <div className={s.wizardGroup}>
+              <p className={s.subLabel}>tipo de plano</p>
+              <div className={s.pillRow}>
+                {[
+                  { value: 'por_aula',  label: 'Por aula',   desc: 'Uma aula específica do currículo' },
+                  { value: 'semanal',   label: 'Semanal',    desc: 'Plano para as aulas da semana' },
+                  { value: 'quinzenal', label: 'Quinzenal',  desc: 'Plano para duas semanas' },
+                  { value: 'bimestral', label: 'Bimestral',  desc: 'Plano para o bimestre completo' },
+                ].map(o => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    title={o.desc}
+                    className={`${s.pillChip} ${fields.periodo === o.value ? s.pillChipActive : ''}`}
+                    onClick={() => setField('periodo', o.value)}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Turma — multi-select pills */}
+            <div className={s.wizardGroup}>
+              <p className={s.subLabel}>turma(s)</p>
+              {isAdmin && needsSchool && (
+                <div className={s.pillRow} style={{ marginBottom: '0.375rem' }}>
+                  {adminSchools.map(sch => (
+                    <button
+                      key={sch.id}
+                      className={`${s.optionChip} ${adminSchoolSlug === sch.slug ? s.optionChipActive : ''}`}
+                      onClick={() => { setAdminSchoolSlug(sch.slug); setField('_school_slug', sch.slug) }}
+                    >
+                      {sch.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {isAdmin && !adminSchoolSlug ? (
+                <p className={s.cascadeLoading}>selecione uma escola acima…</p>
+              ) : !turmas ? (
+                <p className={s.cascadeLoading}>carregando turmas…</p>
+              ) : turmas.length === 0 ? (
+                <p className={s.emptyMsg}>nenhuma turma atribuída</p>
+              ) : (
+                <div className={s.pillRow}>
+                  {turmas.map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`${s.pillChip} ${selectedTurmas.includes(t.name) ? s.pillChipActive : ''}`}
+                      onClick={() => togglePlanoTurma(t)}
+                    >
+                      {selectedTurmas.includes(t.name) && <Check size={10} />}
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Disciplina + Bimestre + Data */}
+            {turmaId && (
+              <div className={s.disciplineGrid}>
+                <div className={s.wizardSubGroup}>
+                  <p className={s.subLabel}>disciplina</p>
+                  <div className={s.selectWrap}>
+                    <select
+                      className={s.cascadeSelect}
+                      value={disciplinaId ?? ''}
+                      disabled={!disciplinas}
+                      onChange={e => handlePlanoDisciplinaChange(Number(e.target.value))}
+                    >
+                      <option value="">selecionar…</option>
+                      {(disciplinas ?? []).map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className={s.selectChevron} />
+                  </div>
+                </div>
+
+                <div className={s.wizardSubGroup}>
+                  <p className={s.subLabel}>bimestre</p>
+                  <div className={s.bimRow}>
+                    {(bimestres ?? []).map(b => (
+                      <button
+                        key={b.id}
+                        className={`${s.bimBtn} ${bimestreNum === b.numero ? s.bimBtnActive : ''}`}
+                        onClick={() => handlePlanoBimestreChange(b.numero)}
+                      >
+                        {b.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={s.wizardSubGroup}>
+                  <p className={s.subLabel}>data da aula</p>
+                  <input
+                    className={s.fieldInput}
+                    type="date"
+                    value={fields.data ?? ''}
+                    onChange={e => setField('data', e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Advance */}
+            {canStep2 && (
+              <div className={s.wizardAdvRow}>
+                <button className={s.stepAdvBtn} onClick={() => setPlanoStep(2)}>
+                  Ver aulas <ArrowRight size={13} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Step 2: Aulas ── */}
+        {planoStep === 2 && (
+          <div className={s.wizardStep}>
+            <div className={s.cascadePills}>
+              {selectedTurmas.map(t => <span key={t} className={s.pill}>{t}</span>)}
+              {selectedDisc && <span className={s.pill}>{selectedDisc.name}</span>}
+              {selectedBim  && <span className={s.pill}>{selectedBim.label}</span>}
+              {multiSelect && <span className={s.pill}>múltiplas aulas</span>}
+            </div>
+
+            <p className={s.subLabel}>aulas do currículo — clique para selecionar</p>
+
+            {!aulas ? (
+              <p className={s.cascadeLoading}>carregando aulas…</p>
+            ) : aulas.length === 0 ? (
+              <p className={s.emptyMsg}>nenhuma aula encontrada para este período</p>
+            ) : (
+              <div className={s.aulaList}>
+                {aulas.map(a => {
+                  const sel = planoAulaIds.includes(a.id)
+                  return (
+                    <button
+                      key={a.id}
+                      className={`${s.aulaItem} ${sel ? s.aulaItemSelected : ''}`}
+                      onClick={() => {
+                        togglePlanoAula(a.id)
+                        if (!multiSelect) {
+                          setPlanoAulaIds([a.id])
+                          // immediate apply for single select
+                          const parseLines = (raw: string | undefined): string[] =>
+                            (raw ?? '').split(/\n/).map(x => x.replace(/^[\s\-•*–]+/, '').trim()).filter(x => x.length > 2)
+                          const habs = parseLines(a.habilidadeTexto)
+                          const codes = (a.habilidadeCodigo ?? '').split(',').map(x => x.trim()).filter(Boolean)
+                          const habLines = habs.length > 0 ? habs : codes
+                          const contItems = parseLines(a.conteudo)
+                          setHabilidadeOpcoes(habLines)
+                          setConteudoOpcoes(contItems)
+                          setFields(prev => ({
+                            ...prev,
+                            aula_id: String(a.id),
+                            aula_num: String(a.aulaNum),
+                            tema: a.titulo,
+                            eixo: a.eixo ?? '',
+                            unidade_tematica: a.unidadeTematica ?? '',
+                            objeto_conhecimento: a.objetoConhecimento ?? '',
+                            bloco: a.bloco ?? '',
+                            objetivo_geral: a.objetivos ?? '',
+                            habilidades: habLines.join('\n'),
+                            conteudo: contItems.join('\n'),
+                            conteudo_opcoes: contItems.join('\n'),
+                          }))
+                          scheduleSave({ ...fields, tema: a.titulo, aula_id: String(a.id) })
+                          setPlanoStep(3)
+                        }
+                      }}
+                    >
+                      <span className={s.aulaNum}>{a.aulaNum}</span>
+                      <span className={s.aulaTitulo}>{a.titulo}</span>
+                      {a.habilidadeCodigo && (
+                        <span className={s.aulaCode}>{a.habilidadeCodigo.split(',')[0].trim()}</span>
+                      )}
+                      {sel && <Check size={13} className={s.aulaCheck} />}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {multiSelect && canStep3 && (
+              <div className={s.wizardAdvRow}>
+                <button className={s.stepAdvBtn} onClick={applyAulas}>
+                  Usar seleção ({planoAulaIds.length}) <ArrowRight size={13} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Step 3: Formulário ── */}
+        {planoStep === 3 && (
+          <div className={s.wizardStep}>
+
+            {/* Context banner */}
+            <div className={s.cascadePills}>
+              {selectedTurmas.map(t => <span key={t} className={s.pill}>{t}</span>)}
+              {selectedDisc && <span className={s.pill}>{selectedDisc.name}</span>}
+              {selectedBim  && <span className={s.pill}>{selectedBim.label}</span>}
+              {fields.aula_id && <span className={s.pill}>Aula {fields.aula_num || fields.aula_id}</span>}
+            </div>
+
+            {/* ── Seção: Identificação ── */}
+            <div className={s.planoSection}>
+              <div className={s.planoSectionHeader}>
+                <div className={s.planoSectionDot} />
+                <span className={s.planoSectionTitle}>Identificação</span>
+              </div>
+              <div className={s.field}>
+                <label className={s.fieldLabel}>Tema / Título da aula</label>
+                <input
+                  className={s.fieldInput}
+                  type="text"
+                  value={fields.tema ?? ''}
+                  placeholder="Ex: Funções do 1º Grau"
+                  onChange={e => setField('tema', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* ── Seção: Objetivos e Habilidades ── */}
+            <div className={s.planoSection}>
+              <div className={s.planoSectionHeader}>
+                <div className={s.planoSectionDot} />
+                <span className={s.planoSectionTitle}>Objetivos e Habilidades</span>
+              </div>
+              <div className={s.field}>
+                <label className={s.fieldLabel}>Objetivo geral</label>
+                <textarea
+                  className={s.fieldTextarea}
+                  rows={3}
+                  value={fields.objetivo_geral ?? ''}
+                  placeholder="O que o aluno deverá ser capaz de fazer ao final da aula?"
+                  onChange={e => setField('objetivo_geral', e.target.value)}
+                />
+              </div>
+              <div className={s.field}>
+                <label className={s.fieldLabel}>
+                  Habilidades BNCC / Currículo Paulista
+                  <span className={s.autoTag}>preenchido automaticamente</span>
+                </label>
+                {habilidadeOpcoes.length > 0 ? (
+                  <div className={s.habList}>
+                    {habilidadeOpcoes.map((h, i) => (
+                      <div key={i} className={s.habItem}>
+                        <span className={s.habDot} />
+                        <span>{h}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={s.habEmpty}>preenchido ao selecionar a aula</div>
+                )}
+              </div>
+              {fields.objeto_conhecimento && (
+                <div className={s.field}>
+                  <label className={s.fieldLabel}>Objeto de Conhecimento</label>
+                  <input
+                    className={s.fieldInput}
+                    type="text"
+                    value={fields.objeto_conhecimento ?? ''}
+                    onChange={e => setField('objeto_conhecimento', e.target.value)}
+                  />
+                </div>
+              )}
+              {aes && aes.length > 0 && (
+                <div className={s.field}>
+                  <label className={s.fieldLabel}>Aprendizagens Essenciais do Bimestre</label>
+                  <div className={s.aeList}>
+                    {aes.map(ae => (
+                      <div key={ae.codigo} className={s.aeItem}>
+                        <span className={s.aeCode}>{ae.codigo}</span>
+                        <span className={s.aeDesc}>{ae.descricao}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Seção: Conteúdo e Desenvolvimento ── */}
+            <div className={s.planoSection}>
+              <div className={s.planoSectionHeader}>
+                <div className={s.planoSectionDot} />
+                <span className={s.planoSectionTitle}>Conteúdo e Desenvolvimento</span>
+              </div>
+
+              {/* Conteúdo */}
+              <div className={s.field}>
+                <label className={s.fieldLabel}>
+                  Conteúdo
+                  {conteudoOpcoes.length > 0 && <span className={s.autoTag}>clique para incluir/excluir</span>}
+                </label>
+                {conteudoOpcoes.length > 0 ? (
+                  <ChipSelect
+                    options={conteudoOpcoes}
+                    value={fields.conteudo ?? ''}
+                    onChange={v => setField('conteudo', v)}
+                  />
+                ) : (
+                  <textarea
+                    className={s.fieldTextarea}
+                    rows={4}
+                    value={fields.conteudo ?? ''}
+                    placeholder="Conteúdos a serem trabalhados..."
+                    onChange={e => setField('conteudo', e.target.value)}
+                  />
+                )}
+              </div>
+
+              {/* Tipo de aula */}
+              <div className={s.field}>
+                <label className={s.fieldLabel}>Tipo de aula</label>
+                <div className={s.tipoAulaToggle}>
+                  {(['individual', 'dupla'] as TipoAula[]).map(tipo => (
+                    <button
+                      key={tipo}
+                      type="button"
+                      className={`${s.tipoAulaBtn} ${tipoAula === tipo ? s.tipoAulaBtnActive : ''}`}
+                      onClick={() => setField('tipo_aula', tipo)}
+                    >
+                      {tipo === 'individual' ? 'Aula individual (50 min)' : 'Aula dupla (1h 40 min)'}
+                    </button>
+                  ))}
+                </div>
+                <p className={s.tipoAulaLabel}>{aulaCfg.titulo}</p>
+              </div>
+
+              {/* Momentos Iniciais */}
+              <div className={s.seqSection}>
+                <div className={s.seqSectionHeader}>
+                  <span className={s.seqDot} style={{ background: 'var(--brand)' }} />
+                  <span className={s.seqSectionLabel}>{aulaCfg.inicio}</span>
+                  <span className={s.seqCount}>{momentoIds.length}/3</span>
+                </div>
+                <div className={s.seqSectionBody}>
+                  <div className={s.tecnicaGrid}>
+                    {MOMENTOS_INICIAIS.map(m => (
+                      <TecnicaBadge
+                        key={m.id}
+                        item={m}
+                        selected={momentoIds.includes(m.id)}
+                        onSelect={id => {
+                          setMomentoIds(prev => {
+                            const next = prev.includes(id)
+                              ? prev.filter(x => x !== id)
+                              : prev.length < 3 ? [...prev, id] : prev
+                            setField('momento_ids', next.join(','))
+                            setField('desenvolvimento_inicial',
+                              next.map(i => MOMENTOS_INICIAIS.find(x => x.id === i)?.nome ?? '').filter(Boolean).join(' / ')
+                            )
+                            return next
+                          })
+                        }}
+                      />
+                    ))}
+                  </div>
+                  {momentoIds.length > 0 && momentoIds.map(id => {
+                    const item = MOMENTOS_INICIAIS.find(x => x.id === id)
+                    return item ? <TecnicaDetailPanel key={id} item={item} /> : null
+                  })}
+                </div>
+              </div>
+
+              {/* Desenvolvimento — 3 partes */}
+              <div className={s.seqSection}>
+                <div className={`${s.seqSectionHeader} ${s.seqSectionHeaderAmber}`}>
+                  <span className={s.seqDot} style={{ background: '#f59e0b' }} />
+                  <span className={s.seqSectionLabel}>{aulaCfg.desenv}</span>
+                  <span className={s.seqCount}>{desenvolvP1Ids.length + desenvolvP2Ids.length + desenvolvP3Ids.length} de 3–6</span>
+                </div>
+                <div className={s.seqSectionBody}>
+                  {([
+                    { ids: desenvolvP1Ids, setIds: setDesenvP1Ids, key: 'desenv_p1', outros: [...desenvolvP2Ids, ...desenvolvP3Ids], label: 'Parte 1' },
+                    { ids: desenvolvP2Ids, setIds: setDesenvP2Ids, key: 'desenv_p2', outros: [...desenvolvP1Ids, ...desenvolvP3Ids], label: 'Parte 2' },
+                    { ids: desenvolvP3Ids, setIds: setDesenvP3Ids, key: 'desenv_p3', outros: [...desenvolvP1Ids, ...desenvolvP2Ids], label: 'Parte 3' },
+                  ] as const).map(({ ids, setIds, key, outros, label }) => {
+                    const outrosSet = new Set(outros)
+                    return (
+                      <div key={key} className={s.seqPart}>
+                        <div className={s.seqPartHeader}>
+                          <span className={s.seqPartLabel}>{label}</span>
+                          <span className={s.seqCount}>{ids.length}/2</span>
+                        </div>
+                        <div className={s.tecnicaGrid}>
+                          {DESENVOLVIMENTO_OPTS.map(m => {
+                            const usedElsewhere = outrosSet.has(m.id)
+                            const atMax = !ids.includes(m.id) && ids.length >= 2
+                            return (
+                              <TecnicaBadge
+                                key={m.id}
+                                item={m}
+                                selected={ids.includes(m.id)}
+                                disabled={usedElsewhere || atMax}
+                                disabledReason={usedElsewhere ? 'Em outra parte' : undefined}
+                                onSelect={id => {
+                                  if (usedElsewhere) return
+                                  setIds((prev: number[]) => {
+                                    const next = prev.includes(id)
+                                      ? prev.filter(x => x !== id)
+                                      : prev.length < 2 ? [...prev, id] : prev
+                                    setField(key + '_ids', next.join(','))
+                                    setField(key, next.map(i => DESENVOLVIMENTO_OPTS.find(x => x.id === i)?.nome ?? '').filter(Boolean).join(' / '))
+                                    return next
+                                  })
+                                }}
+                              />
+                            )
+                          })}
+                        </div>
+                        {ids.length > 0 && ids.map(id => {
+                          const item = DESENVOLVIMENTO_OPTS.find(x => x.id === id)
+                          return item ? <TecnicaDetailPanel key={id} item={item} /> : null
+                        })}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Momentos Finais */}
+              <div className={s.seqSection}>
+                <div className={`${s.seqSectionHeader} ${s.seqSectionHeaderEmerald}`}>
+                  <span className={s.seqDot} style={{ background: '#10b981' }} />
+                  <span className={s.seqSectionLabel}>{aulaCfg.fim}</span>
+                  <span className={s.seqCount}>{fechamentoIds.length}/3</span>
+                </div>
+                <div className={s.seqSectionBody}>
+                  <div className={s.tecnicaGrid}>
+                    {FECHAMENTO_OPTS.map(m => (
+                      <TecnicaBadge
+                        key={m.id}
+                        item={m}
+                        selected={fechamentoIds.includes(m.id)}
+                        onSelect={id => {
+                          setFechamentoIds(prev => {
+                            const next = prev.includes(id)
+                              ? prev.filter(x => x !== id)
+                              : prev.length < 3 ? [...prev, id] : prev
+                            setField('fechamento_ids', next.join(','))
+                            setField('desenvolvimento_fechamento',
+                              next.map(i => FECHAMENTO_OPTS.find(x => x.id === i)?.nome ?? '').filter(Boolean).join(' / ')
+                            )
+                            return next
+                          })
+                        }}
+                      />
+                    ))}
+                  </div>
+                  {fechamentoIds.length > 0 && fechamentoIds.map(id => {
+                    const item = FECHAMENTO_OPTS.find(x => x.id === id)
+                    return item ? <TecnicaDetailPanel key={id} item={item} /> : null
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Seção: Recursos e Avaliação ── */}
+            <div className={s.planoSection}>
+              <div className={s.planoSectionHeader}>
+                <div className={s.planoSectionDot} />
+                <span className={s.planoSectionTitle}>Recursos e Avaliação</span>
+              </div>
+
+              {/* Pacotes prontos */}
+              <div className={s.field}>
+                <label className={s.fieldLabel}>
+                  Início rápido
+                  {desenvolvP1Ids[0] && DESENVOLVIMENTO_TO_PACOTE[desenvolvP1Ids[0]] && (
+                    <span className={s.autoTag}>sugestão baseada na técnica selecionada</span>
+                  )}
+                </label>
+                <div className={s.pacoteBtns}>
+                  {PACOTES_PRONTOS.map(p => {
+                    const sugerido = desenvolvP1Ids[0] ? DESENVOLVIMENTO_TO_PACOTE[desenvolvP1Ids[0]] === p.id : false
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className={`${s.pacoteBtn} ${sugerido ? s.pacoteBtnSugerido : ''}`}
+                        onClick={() => {
+                          setField('recursos_materiais', p.recursos.join(', '))
+                          setField('avaliacao', p.avaliacao.join(', '))
+                        }}
+                      >
+                        {p.label}{sugerido ? ' ★' : ''}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className={s.field}>
+                <label className={s.fieldLabel}>Recursos e materiais</label>
+                <GrupoCheckbox
+                  grupos={RECURSOS_GRUPOS}
+                  value={fields.recursos_materiais ?? ''}
+                  onChange={v => setField('recursos_materiais', v)}
+                />
+              </div>
+
+              <div className={s.field}>
+                <label className={s.fieldLabel}>Avaliação</label>
+                <GrupoCheckbox
+                  grupos={AVALIACAO_GRUPOS}
+                  value={fields.avaliacao ?? ''}
+                  onChange={v => setField('avaliacao', v)}
+                />
+              </div>
+
+              <div className={s.field}>
+                <label className={s.fieldLabel}>Ajuste(s) por demanda</label>
+                <textarea
+                  className={s.fieldTextarea}
+                  rows={3}
+                  value={fields.ajustes_demanda ?? ''}
+                  placeholder="Registre eventuais ajustes realizados por demanda da coordenação..."
+                  onChange={e => setField('ajustes_demanda', e.target.value)}
+                />
+              </div>
+
+              <div className={s.field}>
+                <label className={s.fieldLabel}>Referências</label>
+                <textarea
+                  className={s.fieldTextarea}
+                  rows={12}
+                  value={fields.referencias ?? ''}
+                  onChange={e => setField('referencias', e.target.value)}
+                />
+              </div>
+            </div>
+
+          </div>
+        )}
+
       </div>
     )
   }
@@ -679,161 +1702,97 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
 
   return (
     <div className={s.layout}>
-      {/* ── Form area ── */}
+
+      {/* ── Scrollable form area ── */}
       <div className={s.formArea}>
-        {/* Doc type badge + title */}
-        <div className={s.docHeader}>
-          <div
-            className={s.typeBadge}
-            style={{ background: (meta?.color ?? '#6b7280') + '20', color: meta?.color ?? '#6b7280' }}
-          >
-            {meta?.label ?? doc.type}
-          </div>
-          <input
-            className={s.titleInput}
-            value={title}
-            placeholder="Título do documento"
-            onChange={e => {
-              setTitle(e.target.value)
-              if (saveTimer.current) clearTimeout(saveTimer.current)
-              saveTimer.current = setTimeout(() => autoSave(e.target.value, buildContent(fields)), 1500)
-            }}
-          />
-        </div>
 
-        {error && <p className={s.errMsg}>{error}</p>}
-
-        {/* ── PEI student picker ── */}
-        {isPeiType(docType) && renderPeiSelector()}
-
-        {/* ── Curriculum cascade ── */}
-        {isCurriculumType(docType) && renderCurriculumCascade()}
-
-        {/* ── Aprendizagens Essenciais checklist (GUIA_APRENDIZAGEM) ── */}
-        {docType === 'GUIA_APRENDIZAGEM' && aulaBase && (
-          <div className={s.fieldsGroup}>
-            {renderAprendizagensChecklist()}
-            {renderInstrumentosChecklist()}
+        {doc.status === 'FINAL' && (
+          <div className={s.finalBanner}>
+            <div className={s.finalBannerLeft}>
+              <CheckCircle size={15} />
+              <span>Documento finalizado — gere o PDF para exportar</span>
+            </div>
           </div>
         )}
 
-        {/* ── PLANO_AULA: show curriculum content read-only then editable dev fields ── */}
-        {docType === 'PLANO_AULA' && aulaId && (
-          <div className={s.fieldsGroup}>
-            {fields.conteudo_aula && (
-              <div className={s.autoField}>
-                <p className={s.autoFieldLabel}>conteúdos da aula <span className={s.autoTag}>currículo</span></p>
-                <div className={s.autoFieldText}>{fields.conteudo_aula}</div>
+        <div className={s.card}>
+
+          <div className={s.docHeader}>
+            <div className={s.docHeaderTop}>
+              <div
+                className={s.typeBadge}
+                style={{ background: (meta?.color ?? '#6b7280') + '20', color: meta?.color ?? '#6b7280' }}
+              >
+                {meta?.label ?? doc.type}
               </div>
-            )}
-            {fields.objetivos_aula && (
-              <div className={s.autoField}>
-                <p className={s.autoFieldLabel}>objetivos da aula <span className={s.autoTag}>currículo</span></p>
-                <div className={s.autoFieldText}>{fields.objetivos_aula}</div>
-              </div>
-            )}
+              <span className={`${s.statusBadge} ${doc.status === 'FINAL' ? s.statusFinal : s.statusDraft}`}>
+                {doc.status === 'FINAL' ? <><CheckCircle size={10} /> finalizado</> : <><Clock size={10} /> rascunho</>}
+              </span>
+            </div>
+            <input
+              className={s.titleInput}
+              value={title}
+              placeholder="Título do documento"
+              onChange={e => {
+                setTitle(e.target.value)
+                if (saveTimer.current) clearTimeout(saveTimer.current)
+                saveTimer.current = setTimeout(() => autoSave(e.target.value, buildContent(fields)), 1500)
+              }}
+            />
           </div>
-        )}
 
-        {/* ── Regular fields (filtered: skip internal _keys and auto-filled keys for curriculum types) ── */}
-        <div className={s.fields}>
-          {meta?.fields
-            .filter(f => {
-              if (isCurriculumType(docType)) {
-                // Skip fields that are replaced by the curriculum cascade
-                const skipKeys = ['turmas','disciplina','bimestre','habilidades','objeto_conhecimento','conteudos']
-                if (skipKeys.includes(f.key)) return false
-              }
-              if (isPeiType(docType)) {
-                // Skip fields auto-filled from PEI student picker
-                const skipKeys = ['aluno','ra','turma']
-                if (skipKeys.includes(f.key)) return false
-              }
-              return true
-            })
-            .map(f => renderField(f))
-          }
-        </div>
+          {error && <p className={s.errMsg}>{error}</p>}
 
-        {/* ── PLANO_AULA: extra development fields ── */}
-        {docType === 'PLANO_AULA' && (
-          <div className={s.fieldsGroup}>
-            <p className={s.groupTitle}>desenvolvimento da aula</p>
-            {[
-              { key: 'desenvolvimento_inicial',    label: 'Início', rows: 4 },
-              { key: 'desenvolvimento_principal',  label: 'Desenvolvimento', rows: 6 },
-              { key: 'desenvolvimento_fechamento', label: 'Fechamento', rows: 3 },
-            ].map(f => (
-              <div key={f.key} className={s.field}>
-                <label className={s.fieldLabel}>{f.label}</label>
-                <textarea
-                  className={s.fieldTextarea}
-                  value={fields[f.key] ?? ''}
-                  rows={f.rows}
-                  onChange={e => setField(f.key, e.target.value)}
-                />
-              </div>
-            ))}
-            <div className={s.field}>
-              <label className={s.fieldLabel}>instrumentos avaliativos</label>
+          {isPeiType(docType) && renderPeiSelector()}
+
+          {docType === 'PLANO_AULA' && renderPlanoAulaWizard()}
+
+          {isCurriculumType(docType) && docType !== 'PLANO_AULA' && renderCurriculumCascade()}
+
+          {docType === 'GUIA_APRENDIZAGEM' && aulaBase && (
+            <div className={s.fieldsGroup}>
+              {renderAprendizagensChecklist()}
               {renderInstrumentosChecklist()}
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Side panel ── */}
-      <div className={s.sidePanel}>
-        {/* Status */}
-        <div className={s.sidePanelSection}>
-          <p className={s.sidePanelTitle}>status</p>
-          <span className={`${s.statusBadge} ${doc.status === 'FINAL' ? s.statusFinal : s.statusDraft}`}>
-            {doc.status === 'FINAL' ? <><CheckCircle size={10} /> finalizado</> : <><Clock size={10} /> rascunho</>}
-          </span>
-          <p className={`${s.savedMsg} ${saved ? s.savedMsgVisible : ''}`}>✓ salvo</p>
-        </div>
-
-        {/* Actions */}
-        <div className={s.sidePanelSection}>
-          <p className={s.sidePanelTitle}>ações</p>
-          <button className={`${s.actionBtn} ${s.savBtn}`} onClick={save} disabled={saving}>
-            <Save size={13} /> {saving ? 'salvando…' : 'salvar'}
-          </button>
-          <button className={`${s.actionBtn} ${s.pdfBtn}`} onClick={generatePdf} disabled={pdfing}>
-            <FileDown size={13} /> {pdfing ? 'gerando…' : 'baixar PDF'}
-          </button>
-          {confirmDelete ? (
-            <div className={s.deleteConfirm}>
-              <p className={s.deleteConfirmMsg}>apagar permanentemente?</p>
-              <div className={s.deleteConfirmBtns}>
-                <button className={`${s.actionBtn} ${s.cancelBtn}`} onClick={() => setConfirmDelete(false)}>não</button>
-                <button className={`${s.actionBtn} ${s.delBtnFull}`} onClick={deletDoc}>sim</button>
-              </div>
-            </div>
-          ) : (
-            <button className={`${s.actionBtn} ${s.delBtn}`} onClick={() => setConfirmDelete(true)}>
-              <Trash2 size={13} /> apagar
-            </button>
           )}
+
+          {docType !== 'PLANO_AULA' && (
+            <div className={s.fields}>
+              {meta?.fields
+                .filter(f => {
+                  if (isCurriculumType(docType)) {
+                    const skipKeys = ['turmas','disciplina','bimestre','habilidades','objeto_conhecimento','conteudos']
+                    if (skipKeys.includes(f.key)) return false
+                  }
+                  if (isPeiType(docType)) {
+                    const skipKeys = ['aluno','ra','turma']
+                    if (skipKeys.includes(f.key)) return false
+                  }
+                  return true
+                })
+                .map(f => renderField(f))
+              }
+            </div>
+          )}
+
         </div>
 
-        {/* Feedbacks */}
-        <div className={s.sidePanelSection} style={{ flex: 1 }}>
-          <p className={s.sidePanelTitle}>devolutivas</p>
+        <div className={s.feedbackCard}>
+          <p className={s.feedbackCardTitle}>devolutivas</p>
           {canFeedback && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            <div className={s.feedbackInputArea}>
               <textarea
                 className={s.fieldTextarea}
                 value={feedbackText}
                 placeholder="Escreva uma devolutiva…"
                 rows={3}
                 onChange={e => setFeedbackText(e.target.value)}
-                style={{ fontSize: '0.8125rem' }}
               />
               <button
                 className={`${s.actionBtn} ${s.savBtn}`}
                 onClick={addFeedback}
                 disabled={!feedbackText.trim()}
+                style={{ alignSelf: 'flex-end', width: 'auto', padding: '0.5rem 1rem' }}
               >
                 enviar
               </button>
@@ -844,7 +1803,7 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
               <p className={s.noFeedback}>nenhuma devolutiva ainda.</p>
             ) : feedbacks.map(fb => (
               <div key={fb.id} className={s.feedbackItem}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className={s.feedbackItemHeader}>
                   <span className={s.feedbackAuthor}>{fb.coordinator.name}</span>
                   <span className={s.feedbackDate}>{new Date(fb.createdAt).toLocaleDateString('pt-BR')}</span>
                 </div>
@@ -853,7 +1812,37 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
             ))}
           </div>
         </div>
+
       </div>
+
+      {/* ── Sticky bottom action bar ── */}
+      <div className={s.bottomBar}>
+        <div className={s.bottomBarLeft}>
+          <p className={`${s.savedMsg} ${saved ? s.savedMsgVisible : ''}`}>
+            <CheckCircle size={11} /> salvo
+          </p>
+        </div>
+        <div className={s.bottomBarRight}>
+          {confirmDelete ? (
+            <div className={s.deleteConfirm}>
+              <p className={s.deleteConfirmMsg}>apagar permanentemente?</p>
+              <button className={`${s.actionBtn} ${s.cancelBtn}`} onClick={() => setConfirmDelete(false)}>não</button>
+              <button className={`${s.actionBtn} ${s.delBtnFull}`} onClick={deletDoc}>sim, apagar</button>
+            </div>
+          ) : (
+            <button className={`${s.actionBtn} ${s.delBtn}`} onClick={() => setConfirmDelete(true)}>
+              <Trash2 size={13} /> apagar
+            </button>
+          )}
+          <button className={`${s.actionBtn} ${s.savBtn}`} onClick={save} disabled={saving}>
+            <Save size={13} /> {saving ? 'salvando…' : 'salvar'}
+          </button>
+          <button className={`${s.actionBtn} ${s.pdfBtn}`} onClick={generatePdf} disabled={pdfing}>
+            <FileDown size={13} /> {pdfing ? 'gerando…' : 'baixar PDF'}
+          </button>
+        </div>
+      </div>
+
     </div>
   )
 }

@@ -28,7 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!body?.trim()) return NextResponse.json({ error: 'Mensagem vazia' }, { status: 400 })
 
   const ticket = await db.supportTicket.findFirst({
-    where: { id: ticketId, schoolId: ctx.school.id, userId: ctx.user.id, system: 'less' },
+    where: { id: ticketId, organizationId: ctx.school.organizationId, userId: ctx.user.id, system: 'less' },
   })
   if (!ticket) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
   if (ticket.status === 'CLOSED') return NextResponse.json({ error: 'Chamado encerrado' }, { status: 400 })

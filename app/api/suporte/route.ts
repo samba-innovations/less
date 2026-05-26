@@ -23,7 +23,7 @@ export async function GET() {
   if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const tickets = await db.supportTicket.findMany({
-    where: { userId: ctx.user.id, schoolId: ctx.school.id, system: 'less' },
+    where: { userId: ctx.user.id, organizationId: ctx.school.organizationId, system: 'less' },
     include: { messages: { orderBy: { createdAt: 'asc' } } },
     orderBy: { updatedAt: 'desc' },
   })
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   const ticket = await db.supportTicket.create({
     data: {
       userId:   ctx.user.id,
-      schoolId: ctx.school.id,
+      organizationId: ctx.school.organizationId,
       system:   'less',
       subject:  subject.trim(),
       messages: {

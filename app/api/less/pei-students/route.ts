@@ -9,7 +9,7 @@ export async function GET() {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-  const school = await db.school.findUnique({ where: { slug: session.schoolSlug } })
+  const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } } })
   if (!school) return NextResponse.json({ error: 'Escola não encontrada' }, { status: 404 })
 
   const students = await db.lessPeiStudent.findMany({
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   if (!session || !isManager(session.role))
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
-  const school = await db.school.findUnique({ where: { slug: session.schoolSlug } })
+  const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } } })
   if (!school) return NextResponse.json({ error: 'Escola não encontrada' }, { status: 404 })
 
   const body = await req.json()

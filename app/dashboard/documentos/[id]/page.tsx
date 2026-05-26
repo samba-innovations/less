@@ -17,8 +17,8 @@ export default async function DocumentoPage({
   const { id } = await params
 
   let school = null
-  if (!session.isAdmin || session.schoolSlug) {
-    school = await db.school.findUnique({ where: { slug: session.schoolSlug } })
+  if (!session.isAdmin || session.orgSlug) {
+    school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } } })
     if (!school) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
   }
 

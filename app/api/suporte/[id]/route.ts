@@ -26,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const ticketId = Number(id)
 
   await db.supportTicket.updateMany({
-    where: { id: ticketId, schoolId: ctx.school.id, userId: ctx.user.id, system: 'less' },
+    where: { id: ticketId, organizationId: ctx.school.organizationId, userId: ctx.user.id, system: 'less' },
     data:  { status: 'CLOSED' },
   })
 

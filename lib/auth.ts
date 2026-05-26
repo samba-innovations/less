@@ -11,7 +11,10 @@ export async function getSession(): Promise<JwtPayload | null> {
 }
 
 export async function getSchoolFromSession(payload: JwtPayload) {
-  return db.school.findUnique({ where: { slug: payload.schoolSlug } })
+  return db.school.findFirst({
+    where: { organization: { slug: payload.orgSlug } },
+    include: { organization: true },
+  })
 }
 
 export async function requireSession(): Promise<JwtPayload> {

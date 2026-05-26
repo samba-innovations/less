@@ -16,7 +16,7 @@ export default async function DocumentosPage({
   const session = await getSession()
   if (!session) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
 
-  const school = await db.school.findUnique({ where: { slug: session.schoolSlug } })
+  const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } } })
   if (!school) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
 
   const { status } = await searchParams

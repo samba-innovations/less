@@ -17,7 +17,7 @@ export default async function SuportePage() {
   if (!school) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
 
   const tickets = await db.supportTicket.findMany({
-    where: { userId: payload.userId, schoolId: school.id, system: 'less' },
+    where: { userId: payload.userId, organizationId: school.organizationId, system: 'less' },
     include: {
       messages: { orderBy: { createdAt: 'asc' } },
     },

@@ -20,11 +20,11 @@ export async function GET(req: NextRequest) {
     const { user } = await res.json()
 
     const jwt = await new SignJWT({
-      userId:    user.id,
-      schoolSlug: user.schoolSlug ?? '',
-      role:      user.role,
-      systems:   user.systems ?? [],
-      isAdmin:   user.isAdmin ?? false,
+      userId:  user.id,
+      orgSlug: user.orgSlug ?? '',
+      role:    user.role,
+      systems: user.systems ?? [],
+      isAdmin: user.isAdmin ?? false,
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setExpirationTime('8h')

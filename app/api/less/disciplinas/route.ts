@@ -8,7 +8,7 @@ export async function GET(req: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-  const school = await db.school.findUnique({ where: { slug: session.schoolSlug } })
+  const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } } })
   if (!school) return NextResponse.json({ error: 'Escola não encontrada' }, { status: 404 })
 
   const { searchParams } = new URL(req.url)

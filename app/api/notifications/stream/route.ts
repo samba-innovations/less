@@ -1,6 +1,7 @@
 import { getAuthCookie } from '@/lib/cookie'
 import { verifyToken } from '@/lib/jwt'
-import { addSubscriber, removeSubscriber } from '@/lib/sse-broadcaster'
+import { db } from '@/lib/db'
+import { addSubscriber, removeSubscriber, addSchoolSubscriber, removeSchoolSubscriber } from '@/lib/sse-broadcaster'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -14,7 +15,10 @@ export async function GET() {
   catch { return new Response('Unauthorized', { status: 401 }) }
 
   const userId = payload.userId
-  const enc    = new TextEncoder()
+  const school = payload.orgSlug
+    ? await db.school.findFirst({ where: { organization: { slug: payload.orgSlug } }, select: { id: true } })
+    : null
+  const enc = new TextEncoder()
 
   let ctrl: ReadableStreamDefaultController<Uint8Array>
 
@@ -22,10 +26,12 @@ export async function GET() {
     start(c) {
       ctrl = c
       addSubscriber(userId, ctrl)
+      if (school) addSchoolSubscriber(school.id, ctrl)
       ctrl.enqueue(enc.encode(': connected\n\n'))
     },
     cancel() {
       removeSubscriber(userId, ctrl)
+      if (school) removeSchoolSubscriber(school.id, ctrl)
     },
   })
 

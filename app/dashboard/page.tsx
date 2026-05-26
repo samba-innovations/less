@@ -1,4 +1,4 @@
-export const metadata = { title: 'início' }
+export const metadata = { title: 'visão geral' }
 export const dynamic  = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
@@ -17,7 +17,7 @@ export default async function DashboardPage() {
   const session = await getSession()
   if (!session) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
 
-  const school = await db.school.findUnique({ where: { slug: session.schoolSlug } })
+  const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } }, include: { organization: true } })
   if (!school) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
 
   const manager = isManager(session.role) || session.isAdmin
@@ -92,7 +92,7 @@ export default async function DashboardPage() {
               </span>
               <span className={s.badgeSystem}>geração de documentos</span>
             </div>
-            <h1 className={s.heroTitle}>{school.name}</h1>
+            <h1 className={s.heroTitle}>{school.organization.name}</h1>
             <p className={s.heroSub}>visão geral dos seus documentos</p>
           </div>
 
@@ -111,7 +111,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Stats ── */}
-      <div className={s.stats} style={{ '--cols': String(stats.length) } as React.CSSProperties}>
+      <div className={s.stats}>
         {stats.map(stat => (
           <Link key={stat.label} href={stat.href} className={`${s.statCard} ${stat.accent ? s.statAccent : ''}`}>
             <div className={s.statTop}>

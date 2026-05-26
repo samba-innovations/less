@@ -10,18 +10,18 @@ export type Role =
 
 export type JwtPayload = {
   userId:    number
-  schoolSlug: string
-  role:      Role
+  orgSlug:   string
+  role:      string
   systems:   string[]
   isAdmin:   boolean
 }
 
-export const MANAGER_ROLES: Role[] = ['PRINCIPAL', 'VICE_PRINCIPAL', 'COORDINATOR']
-export const TEACHER_ROLES:  Role[] = ['TEACHER', 'TEACHER_COORDINATOR']
+export const MANAGER_ROLES = ['PRINCIPAL', 'VICE_PRINCIPAL', 'COORDINATOR']
+export const TEACHER_ROLES = ['TEACHER', 'TEACHER_COORDINATOR']
 
-export function isManager(role: Role) { return MANAGER_ROLES.includes(role) }
-export function isTeacher(role: Role)  { return TEACHER_ROLES.includes(role) }
-export function canCreateDoc(role: Role) {
+export function isManager(role: string) { return MANAGER_ROLES.includes(role) }
+export function isTeacher(role: string)  { return TEACHER_ROLES.includes(role) }
+export function canCreateDoc(role: string) {
   return role !== 'SECRETARY'
 }
 

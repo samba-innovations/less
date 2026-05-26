@@ -4,16 +4,18 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, FileText, FilePlus, Users,
+  LayoutDashboard, FileText, FilePlus, Users, Compass,
   HelpCircle, Sun, Moon, LogOut, PanelLeft, Menu, X,
 } from 'lucide-react'
 import type { JwtPayload } from '@/lib/jwt'
 import { isManager } from '@/lib/jwt'
 import { NotificationBell } from './_components/NotificationBell'
 import { SupportWidget } from './_components/SupportWidget'
+import { SpotlightTour } from './_components/SpotlightTour'
 import s from './shell.module.css'
 
 const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN ?? 'sambainnovations.local'
+const TOUR_KEY = 'samba-less-tour-done'
 
 const ROLE_PT: Record<string, string> = {
   PRINCIPAL:            'Diretor(a)',
@@ -60,9 +62,12 @@ function isActive(pathname: string, href: string) {
 
 export function DashboardShell({ payload, user, children }: Props) {
   const pathname = usePathname()
-  const [dark, setDark]             = useState(false)
-  const [collapsed, setCollapsed]   = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const [dark, setDark]               = useState(false)
+  const [collapsed, setCollapsed]     = useState(false)
+  const [mobileOpen, setMobileOpen]   = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
+  const [tourActive, setTourActive]   = useState(false)
+  const [tourDone,   setTourDone]     = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem('samba-theme')
@@ -71,6 +76,21 @@ export function DashboardShell({ payload, user, children }: Props) {
     document.documentElement.classList.toggle('dark', isDark)
     setCollapsed(localStorage.getItem('samba-sidebar-collapsed') === 'true')
   }, [])
+
+  useEffect(() => {
+    const done = localStorage.getItem(TOUR_KEY) === 'true'
+    setTourDone(done)
+    if (!done) {
+      const id = setTimeout(() => setTourActive(true), 600)
+      return () => clearTimeout(id)
+    }
+  }, [])
+
+  function handleTourEnd() {
+    setTourActive(false)
+    setTourDone(true)
+    localStorage.setItem(TOUR_KEY, 'true')
+  }
 
   function toggleTheme() {
     const next = !dark
@@ -94,9 +114,17 @@ export function DashboardShell({ payload, user, children }: Props) {
     .map(w => w[0].toUpperCase())
     .join('') ?? '?'
 
-  const hubUrl = payload.isAdmin
-    ? `http://admin.${DOMAIN}/painel`
-    : `http://${payload.schoolSlug}.${DOMAIN}/painel`
+  const hubOrigin = payload.isAdmin
+    ? `http://admin.${DOMAIN}`
+    : `http://${payload.orgSlug}.${DOMAIN}`
+
+  const hubUrl = `${hubOrigin}/painel`
+
+  const resolvedAvatarUrl = user?.avatarUrl
+    ? user.avatarUrl.startsWith('/')
+      ? `${hubOrigin}${user.avatarUrl}`
+      : user.avatarUrl
+    : null
 
   function renderSection(items: NavItem[], label: string, col: boolean) {
     return (
@@ -111,6 +139,7 @@ export function DashboardShell({ payload, user, children }: Props) {
               className={`${s.navItem} ${active ? s.navItemActive : ''} ${col ? s.navItemCollapsed : ''}`}
               onClick={() => setMobileOpen(false)}
               title={col ? item.label : undefined}
+              data-tour={item.href.split('/').pop()}
             >
               <item.icon size={18} />
               {!col && <span>{item.label}</span>}
@@ -203,6 +232,11 @@ export function DashboardShell({ payload, user, children }: Props) {
           </div>
 
           <div className={s.topbarRight}>
+            {tourDone && (
+              <button className={s.topbarBtn} onClick={() => setTourActive(true)} title="Explorar sistema" aria-label="Replay tour">
+                <Compass size={18} />
+              </button>
+            )}
             <button className={s.topbarBtn} onClick={toggleTheme} aria-label="Alternar tema">
               {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -217,9 +251,14 @@ export function DashboardShell({ payload, user, children }: Props) {
                 <span className={s.userRole}>{roleLabel}</span>
               </div>
               <div className={s.avatarWrap}>
-                {user?.avatarUrl ? (
+                {resolvedAvatarUrl && !avatarError ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={user.avatarUrl} alt={user.name} className={s.avatarImg} />
+                  <img
+                    src={resolvedAvatarUrl}
+                    alt={user?.name ?? ''}
+                    className={s.avatarImg}
+                    onError={() => setAvatarError(true)}
+                  />
                 ) : (
                   <span className={s.avatarFallback}>{initials}</span>
                 )}
@@ -235,6 +274,7 @@ export function DashboardShell({ payload, user, children }: Props) {
         </main>
 
         <SupportWidget />
+        <SpotlightTour active={tourActive} onEnd={handleTourEnd} />
       </div>
     </div>
   )

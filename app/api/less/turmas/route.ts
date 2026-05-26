@@ -10,20 +10,19 @@ export async function GET(req: Request) {
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   // Admin global sem escola: retorna turmas de todas as escolas com info da escola
-  if (session.isAdmin && !session.schoolSlug) {
+  if (session.isAdmin && !session.orgSlug) {
     const { searchParams } = new URL(req.url)
     const schoolSlug = searchParams.get('school')
 
     if (!schoolSlug) {
-      // Retorna lista de escolas para o admin escolher
       const schools = await db.school.findMany({
-        select: { id: true, slug: true, name: true },
-        orderBy: { name: 'asc' },
+        select: { id: true, organization: { select: { slug: true, name: true } } },
+        orderBy: { organization: { name: 'asc' } },
       })
-      return NextResponse.json({ needsSchool: true, schools })
+      return NextResponse.json({ needsSchool: true, schools: schools.map(s => ({ id: s.id, slug: s.organization.slug, name: s.organization.name })) })
     }
 
-    const school = await db.school.findUnique({ where: { slug: schoolSlug } })
+    const school = await db.school.findFirst({ where: { organization: { slug: schoolSlug } } })
     if (!school) return NextResponse.json([], { status: 200 })
 
     const classes = await db.class.findMany({
@@ -34,7 +33,7 @@ export async function GET(req: Request) {
     return NextResponse.json(classes.map(c => mapClass(c)))
   }
 
-  const school = await db.school.findUnique({ where: { slug: session.schoolSlug } })
+  const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } } })
   if (!school) return NextResponse.json([], { status: 200 })
 
   let classIds: number[]
