@@ -1,0 +1,85 @@
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.1875rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: 0.1875rem;
+  min-width: 0;
+}
+
+.sep {
+  color: var(--fg-secondary);
+  opacity: 0.4;
+  flex-shrink: 0;
+  transition: opacity 0.2s, color 0.2s, transform 0.2s;
+}
+
+/* Chevron right before the current segment gets brand color */
+.crumb:last-child .sep {
+  color: var(--brand);
+  opacity: 0.85;
+  transform: translateX(1px);
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--fg-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 0.25rem 0.5rem;
+  border-radius: 7px;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  text-transform: lowercase;
+  letter-spacing: -0.005em;
+  border: 1px solid transparent;
+  position: relative;
+}
+
+a.label {
+  position: relative;
+}
+
+a.label::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 0.5rem;
+  right: 0.5rem;
+  height: 1px;
+  background: var(--brand);
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: opacity 0.18s, transform 0.18s;
+}
+
+a.label:hover {
+  color: var(--fg);
+}
+
+a.label:hover::after {
+  opacity: 0.6;
+  transform: scaleX(1);
+}
+
+.current {
+  color: var(--brand);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--brand) 8%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 22%, transparent);
+}
+
+/* When only one segment exists, no special styling needed */
+.crumbs > .crumb:only-child .current {
+  background: transparent;
+  border-color: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}

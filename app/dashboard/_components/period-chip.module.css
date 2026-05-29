@@ -1,0 +1,38 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3125rem 0.625rem;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--fg-secondary);
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.chip:hover {
+  background: var(--surface-elevated);
+  color: var(--fg);
+}
+
+.icon {
+  color: var(--brand);
+  flex-shrink: 0;
+}
+
+.year {
+  color: var(--fg);
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+
+.dot {
+  opacity: 0.4;
+}
+
+.bim {
+  text-transform: lowercase;
+}

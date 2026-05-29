@@ -13,8 +13,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
   })
   if (!user) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
 
+  const school = payload.orgSlug
+    ? await db.school.findFirst({ where: { organization: { slug: payload.orgSlug } }, select: { id: true } })
+    : null
+
+  let activeYear: number | null = null
+  if (school) {
+    const sy = await db.schoolYear.findFirst({
+      where: { schoolId: school.id, isActive: true },
+      orderBy: { year: 'desc' },
+      select: { year: true },
+    })
+    if (sy) activeYear = sy.year
+  }
+
   return (
-    <DashboardShell payload={payload} user={user}>
+    <DashboardShell payload={payload} user={user} activeYear={activeYear} currentBimester={null}>
       {children}
     </DashboardShell>
   )

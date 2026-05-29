@@ -12,6 +12,10 @@ import { isManager } from '@/lib/jwt'
 import { NotificationBell } from './_components/NotificationBell'
 import { SupportWidget } from './_components/SupportWidget'
 import { SpotlightTour } from './_components/SpotlightTour'
+import { Breadcrumb } from './_components/Breadcrumb'
+import { PeriodChip } from './_components/PeriodChip'
+import { CommandPaletteTrigger } from './_components/CommandPalette'
+import { StudentLookup } from './_components/StudentLookup'
 import s from './shell.module.css'
 
 const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN ?? 'sambainnovations.local'
@@ -49,6 +53,8 @@ type Props = {
   payload:  JwtPayload
   user:     { name: string; avatarUrl: string | null } | null
   children: React.ReactNode
+  activeYear:      number | null
+  currentBimester: number | null
 }
 
 function isActive(pathname: string, href: string) {
@@ -60,7 +66,7 @@ function isActive(pathname: string, href: string) {
   return pathname.startsWith(href)
 }
 
-export function DashboardShell({ payload, user, children }: Props) {
+export function DashboardShell({ payload, user, children, activeYear, currentBimester }: Props) {
   const pathname = usePathname()
   const [dark, setDark]               = useState(false)
   const [collapsed, setCollapsed]     = useState(false)
@@ -225,13 +231,15 @@ export function DashboardShell({ payload, user, children }: Props) {
             <button className={s.sidebarToggle} onClick={toggleSidebar} aria-label="Alternar sidebar">
               <PanelLeft size={20} />
             </button>
-            <div className={s.systemInfo}>
-              <span className={s.systemName}>samba less</span>
-              <span className={s.systemDesc}>geração de documentos</span>
-            </div>
+            <Breadcrumb />
           </div>
 
+
+          <div className={s.topbarCenter}>
+            <CommandPaletteTrigger />
+          </div>
           <div className={s.topbarRight}>
+            <PeriodChip year={activeYear} bimester={currentBimester} />
             {tourDone && (
               <button className={s.topbarBtn} onClick={() => setTourActive(true)} title="Explorar sistema" aria-label="Replay tour">
                 <Compass size={18} />
@@ -240,8 +248,6 @@ export function DashboardShell({ payload, user, children }: Props) {
             <button className={s.topbarBtn} onClick={toggleTheme} aria-label="Alternar tema">
               {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-
-            <div className={s.topbarDivider} />
 
             <NotificationBell />
 
@@ -272,6 +278,7 @@ export function DashboardShell({ payload, user, children }: Props) {
             {children}
           </div>
         </main>
+        <StudentLookup />
 
         <SupportWidget />
         <SpotlightTour active={tourActive} onEnd={handleTourEnd} />
