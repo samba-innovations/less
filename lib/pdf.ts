@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit'
 import { DOC_TYPES, type DocType, type FieldDef } from './doc-types'
+import { DIMENSOES_PDI } from './pdi-data'
 
 const PAGE_W   = 595.28
 const PAGE_H   = 841.89
@@ -695,6 +696,612 @@ function renderGeneric(
   if (type === 'GUIA_APRENDIZAGEM') renderChecklists(doc, content)
 }
 
+// ─── PEI specialized renderer ────────────────────────────────────────────────
+
+const PEI_LAWS = [
+  { code: 'PNEE/2008',           desc: 'Política Nacional de Educação Especial na Perspectiva da Educação Inclusiva — MEC/SEESP' },
+  { code: 'Lei 13.146/2015',     desc: 'LBI — Lei Brasileira de Inclusão da Pessoa com Deficiência (Estatuto da Pessoa com Deficiência)' },
+  { code: 'Lei 9.394/1996',      desc: 'LDB — Lei de Diretrizes e Bases da Educação Nacional (Art. 58–60: Educação Especial)' },
+  { code: 'Lei 8.069/1990',      desc: 'ECA — Estatuto da Criança e do Adolescente (Art. 53–55: Direito à Educação)' },
+  { code: 'Decreto 7.611/2011',  desc: 'Educação Especial e Atendimento Educacional Especializado — AEE' },
+  { code: 'Res. CNE/CEB 4/2009', desc: 'Diretrizes Operacionais para o AEE na Educação Básica, modalidade Educação Especial' },
+  { code: 'DUA',                 desc: 'Desenho Universal para Aprendizagem — acessibilidade pedagógica, comunicacional e metodológica' },
+  { code: 'Currículo Paulista',  desc: 'SEDUC-SP — orientações para flexibilização curricular e adaptações para inclusão' },
+  { code: 'Delib. CEE 177/2023', desc: 'Deliberação CEE-SP — Educação Especial e Inclusão Escolar no Estado de São Paulo' },
+  { code: 'Res. SE 68/2017',     desc: 'Resolução SE-SP — apoio à escolarização de alunos com deficiência, TGD e altas habilidades' },
+]
+
+const PEI_ESTRAT_PED_MAP = new Map<string, string>([
+  ['Explicar o conteúdo em partes menores', 'Fragmentar conteúdos extensos em etapas menores e progressivas.'],
+  ['Usar exemplos concretos e do cotidiano', 'Relacionar conceitos escolares a experiências reais e contextos familiares.'],
+  ['Oferecer mais tempo para realizar tarefas', 'Garantir tempo ampliado para leitura, organização e execução.'],
+  ['Fazer mediação nas atividades em grupo', 'Auxiliar a participação do estudante nas interações coletivas.'],
+  ['Retomar conteúdos sempre que necessário', 'Revisitar habilidades e conceitos previamente trabalhados.'],
+  ['Garantir previsibilidade (rotina visual, passo a passo)', 'Organizar a rotina com apoio visual e antecipação das atividades.'],
+  ['Dar instruções claras com apoio visual', 'Apresentar orientações curtas e acompanhadas de exemplos.'],
+  ['Antecipar mudanças de rotina e avaliações', 'Informar previamente alterações na rotina ou avaliações.'],
+  ['Utilizar múltiplas formas de apresentação', 'Apresentar conteúdos por oral, visual, concreto, digital e prático.'],
+  ['Relacionar conteúdos aos conhecimentos prévios', 'Ativar aprendizagens anteriores como ponto de partida.'],
+  ['Utilizar organizadores gráficos e mapas mentais', 'Favorecer organização das informações por recursos visuais.'],
+  ['Estabelecer objetivos curtos e metas progressivas', 'Dividir tarefas em metas menores e alcançáveis.'],
+  ['Favorecer aprendizagem colaborativa com pares', 'Promover interação com colegas que auxiliem na participação.'],
+  ['Realizar pausas planejadas em atividades extensas', 'Permitir intervalos organizados para recuperação atencional.'],
+  ['Estimular autonomia por rotinas estruturadas', 'Favorecer independência gradual na organização e tarefas.'],
+  ['Utilizar reforço positivo e devolutivas imediatas', 'Valorizar avanços e oferecer feedback rápido.'],
+  ['Flexibilizar a sequência didática ao ritmo do aluno', 'Adaptar o percurso pedagógico respeitando tempo e necessidade.'],
+  ['Favorecer participação por metodologias investigativas', 'Estimular protagonismo em pesquisas e construção coletiva.'],
+  ['Apresentar modelos resolvidos antes da execução', 'Demonstrar exemplos completos antes da execução independente.'],
+  ['Utilizar linguagem acessível ao nível de compreensão', 'Adequar vocabulário e estrutura às necessidades do estudante.'],
+])
+
+const PEI_INTERV_MAP = new Map<string, string>([
+  ['Apoio individual em atividades mais complexas', 'Acompanhamento próximo em tarefas que exijam maior abstração.'],
+  ['Adaptação de quantidade', 'Reduzir número de exercícios mantendo os objetivos essenciais.'],
+  ['Adaptação de complexidade', 'Simplificar estrutura ou linguagem preservando a habilidade principal.'],
+  ['Ajuste da forma de participação', 'Permitir diferentes formas de resposta: oral, escrita, visual.'],
+  ['Leitura compartilhada e mediação de enunciados', 'Auxiliar compreensão leitora por leitura guiada.'],
+  ['Fragmentação de atividades longas em etapas', 'Dividir tarefas extensas em pequenas partes progressivas.'],
+  ['Oferta de pistas visuais ou palavras-chave', 'Disponibilizar apoios que auxiliem organização do pensamento.'],
+  ['Revisão mediada antes da entrega final', 'Acompanhar a conferência da atividade para identificação de erros.'],
+  ['Ampliação do tempo em avaliações', 'Garantir tempo adicional para processamento e registro.'],
+  ['Substituição parcial da escrita extensa', 'Permitir registros alternativos quando houver dificuldade significativa.'],
+  ['Avaliação diferenciada pelo percurso', 'Valorizar evolução individual, participação e desenvolvimento.'],
+  ['Apoio na organização de materiais e tarefas', 'Auxiliar planejamento e gerenciamento de tempo escolar.'],
+  ['Mediação verbal para manutenção do foco', 'Realizar lembretes e direcionamentos durante atividades.'],
+  ['Priorização de habilidades essenciais do currículo', 'Focar nas aprendizagens fundamentais previstas para o ano.'],
+  ['Planejamento articulado entre equipe e AEE', 'Promover alinhamento entre professores, especialistas e gestão.'],
+])
+
+const PEI_RECURS_MAP = new Map<string, string>([
+  ['Material ampliado, contrastes ou fontes acessíveis', 'Adaptar tamanho, contraste e legibilidade dos materiais.'],
+  ['Figuras, pictogramas ou comunicação alternativa', 'Utilizar apoios visuais e sistemas alternativos de comunicação.'],
+  ['Tablet ou computador para registro de respostas', 'Permitir recursos digitais para facilitar escrita e participação.'],
+  ['Softwares de leitura e síntese de voz', 'Disponibilizar ferramentas digitais de apoio à leitura.'],
+  ['Recursos de comunicação suplementar (CSA)', 'Utilizar pranchas, aplicativos ou símbolos para comunicação.'],
+  ['Áudio para textos e instruções', 'Oferecer materiais em formato sonoro para favorecer compreensão.'],
+  ['Materiais manipuláveis e concretos', 'Favorecer compreensão por experimentação prática e visualização.'],
+  ['Ambiente com redução de estímulos sensoriais', 'Minimizar ruídos e fatores que dificultem concentração.'],
+  ['Vídeos legendados e materiais multimodais', 'Oferecer conteúdos acessíveis em diferentes formatos.'],
+])
+
+function peiItemBlock(doc: InstanceType<typeof PDFDocument>, nome: string, desc: string | undefined) {
+  const pad = 6
+  const blockH = desc ? 36 : 20
+  ensureSpace(doc, blockH + 4)
+  const y0 = doc.y
+
+  doc.rect(MARGIN, y0, 3, blockH).fill(DARK)
+  doc.rect(MARGIN + 3, y0, CONTENT_W - 3, blockH).fill(LIGHT).strokeColor(BORDER).lineWidth(0.3).stroke()
+
+  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(DARK)
+  doc.text(nome, MARGIN + 3 + pad, y0 + 4, { width: CONTENT_W - 3 - pad * 2, lineBreak: false })
+
+  if (desc) {
+    doc.font('Helvetica').fontSize(7.5).fillColor(GRAY)
+    doc.text(desc, MARGIN + 3 + pad, y0 + 17, { width: CONTENT_W - 3 - pad * 2, lineGap: 1 })
+    doc.y = Math.max(doc.y, y0 + blockH) + 3
+  } else {
+    doc.y = y0 + blockH + 3
+  }
+}
+
+function legalBasisBlock(doc: InstanceType<typeof PDFDocument>) {
+  const pad   = 6
+  const codeW = 108
+  const descW = CONTENT_W - codeW - pad * 3
+  const rowH  = 14
+
+  sectionTitle(doc, 'Embasamento Legal e Técnico')
+
+  doc.font('Helvetica').fontSize(7.5).fillColor(GRAY)
+  doc.text(
+    'Estrutura fundamentada em normativas oficiais vigentes, garantindo validade pedagógica, intencionalidade educacional e proteção jurídica ao documento.',
+    MARGIN, doc.y, { width: CONTENT_W }
+  )
+  doc.moveDown(0.5)
+
+  ensureSpace(doc, 14 + PEI_LAWS.length * rowH + 4)
+
+  const hdrY = doc.y
+  doc.rect(MARGIN, hdrY, CONTENT_W, 14).fill(DARK).strokeColor(BORDER).lineWidth(0.3).stroke()
+  doc.font('Helvetica-Bold').fontSize(6.5).fillColor(WHITE)
+  doc.text('NORMATIVA / BASE LEGAL', MARGIN + pad, hdrY + 4, { lineBreak: false })
+  doc.text('REFERÊNCIA', MARGIN + pad + codeW + pad, hdrY + 4, { lineBreak: false })
+  doc.y = hdrY + 14
+
+  PEI_LAWS.forEach((law, i) => {
+    ensureSpace(doc, rowH + 2)
+    const ry = doc.y
+    const bg = i % 2 === 0 ? WHITE : LIGHT
+    doc.rect(MARGIN, ry, CONTENT_W, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.2).stroke()
+    doc.rect(MARGIN + codeW + pad, ry, 0.5, rowH).fill(BORDER)
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(DARK)
+    doc.text(law.code, MARGIN + pad, ry + 3, { width: codeW - pad, lineBreak: false })
+    doc.font('Helvetica').fontSize(7).fillColor(GRAY)
+    doc.text(law.desc, MARGIN + codeW + pad * 2, ry + 3, { width: descW, lineBreak: false })
+    doc.y = ry + rowH
+  })
+  doc.moveDown(0.5)
+}
+
+function renderPei(doc: InstanceType<typeof PDFDocument>, c: Record<string, string>, createdAt?: string) {
+  const dataElab = c.data_elaboracao?.trim() || (createdAt ? new Date(createdAt).toLocaleDateString('pt-BR') : '—')
+
+  sectionTitle(doc, 'Identificação do Aluno')
+  infoRow2col(doc, [
+    { label: 'Aluno',     value: c.aluno ?? '' },
+    { label: 'RA',        value: c.ra ?? '' },
+  ])
+  infoRow2col(doc, [
+    { label: 'Turma',     value: c.turma ?? '' },
+    { label: 'Bimestre',  value: c.bimestre ? `${c.bimestre}º Bimestre` : '—' },
+  ])
+  infoRow2col(doc, [
+    { label: 'Disciplina',       value: c.disciplina ?? '' },
+    { label: 'Data de Elaboração', value: dataElab },
+  ])
+  if (c.diagnostico_cid) infoRow2col(doc, [{ label: 'Diagnóstico / CID', value: c.diagnostico_cid, span: 2 }])
+
+  if (c.habilidades) {
+    sectionTitle(doc, 'Habilidades do Currículo')
+    textBlock(doc, 'Habilidades BNCC', c.habilidades)
+  }
+
+  sectionTitle(doc, 'Diagnóstico Funcional')
+  if (c.diagnostico_funcional) textBlock(doc, 'Diagnóstico Funcional', c.diagnostico_funcional)
+  if (c.diagnostico_obs)       textBlock(doc, 'Observações Diagnósticas', c.diagnostico_obs)
+
+  legalBasisBlock(doc)
+
+  sectionTitle(doc, 'Plano de Ação')
+  if (c.objetivos) textBlock(doc, 'Objetivos Específicos', c.objetivos)
+
+  if (c.estrategias) {
+    const estLines = c.estrategias.split('\n').map(l => l.trim()).filter(Boolean)
+    const ped    = estLines.filter(l => PEI_ESTRAT_PED_MAP.has(l))
+    const interv = estLines.filter(l => PEI_INTERV_MAP.has(l))
+    const recurs = estLines.filter(l => PEI_RECURS_MAP.has(l))
+    const outros = estLines.filter(l => !PEI_ESTRAT_PED_MAP.has(l) && !PEI_INTERV_MAP.has(l) && !PEI_RECURS_MAP.has(l))
+
+    if (ped.length)    { subLabel(doc, 'Estratégias Pedagógicas');    ped.forEach(n    => peiItemBlock(doc, n, PEI_ESTRAT_PED_MAP.get(n))) }
+    if (interv.length) { subLabel(doc, 'Intervenções Pedagógicas');   interv.forEach(n => peiItemBlock(doc, n, PEI_INTERV_MAP.get(n))) }
+    if (recurs.length) { subLabel(doc, 'Recursos de Acessibilidade'); recurs.forEach(n => peiItemBlock(doc, n, PEI_RECURS_MAP.get(n))) }
+    if (outros.length) { subLabel(doc, 'Outras Estratégias');         outros.forEach(n => peiItemBlock(doc, n, undefined)) }
+  }
+
+  if (c.avaliacao) textBlock(doc, 'Avaliação do Processo', c.avaliacao)
+
+  sectionTitle(doc, 'Profissionais e Família')
+  if (c.profissionais) textBlock(doc, 'Profissionais Envolvidos', c.profissionais)
+  if (c.responsaveis || c.proxima_revisao) {
+    infoRow2col(doc, [
+      { label: 'Responsáveis / Família',  value: c.responsaveis ?? '' },
+      { label: 'Data da Próxima Revisão', value: c.proxima_revisao ?? '' },
+    ])
+  }
+}
+
+// ─── GUIA_APRENDIZAGEM specialized renderer ───────────────────────────────────
+
+const BNCC_COMP_MAP = new Map<string, string>([
+  ['Conhecimento',                              'Valorizar e utilizar os conhecimentos historicamente construídos sobre o mundo físico, social, cultural e digital.'],
+  ['Pensamento científico, crítico e criativo', 'Exercitar a curiosidade intelectual e recorrer à abordagem própria das ciências para investigar causas e elaborar hipóteses.'],
+  ['Repertório cultural',                       'Valorizar e fruir as diversas manifestações artísticas e culturais, das locais às mundiais.'],
+  ['Comunicação',                               'Utilizar diferentes linguagens para se expressar e partilhar informações e experiências em diferentes contextos.'],
+  ['Cultura digital',                           'Compreender, utilizar e criar tecnologias digitais de forma crítica, significativa e ética nas diversas práticas sociais.'],
+  ['Trabalho e projeto de vida',                'Valorizar a diversidade de saberes e vivências culturais para entender as relações do mundo do trabalho.'],
+  ['Argumentação',                              'Argumentar com base em fatos, dados e informações confiáveis para formular e defender ideias com posicionamento ético.'],
+  ['Autoconhecimento e autocuidado',            'Conhecer-se, apreciar-se e cuidar de sua saúde física e emocional, compreendendo-se na diversidade humana.'],
+  ['Empatia e cooperação',                      'Exercitar a empatia, o diálogo, a resolução de conflitos e a cooperação, promovendo o respeito ao outro.'],
+  ['Responsabilidade e cidadania',              'Agir pessoal e coletivamente com autonomia, responsabilidade e determinação, com base em princípios éticos e democráticos.'],
+])
+
+function renderGuiaAprendizagem(
+  doc: InstanceType<typeof PDFDocument>,
+  c: Record<string, string>,
+  createdAt?: string,
+  aulas?: AulaSelecionada[],
+  aes?: AprendizagemEssencial[],
+) {
+  const isPV = (c.disciplina ?? '').toLowerCase().includes('projeto de vida')
+  const bimestreLabel = c.bimestre ? `${c.bimestre}º Bimestre` : '—'
+  const anoLetivo = c.ano_letivo || (createdAt ? new Date(createdAt).getFullYear().toString() : '—')
+
+  sectionTitle(doc, 'Identificação')
+  infoRow2col(doc, [
+    { label: 'Turma(s)',    value: c.turmas || c.turma || '—' },
+    { label: 'Disciplina', value: c.disciplina || '—' },
+  ])
+  infoRow2col(doc, [
+    { label: 'Bimestre',   value: bimestreLabel },
+    { label: 'Ano Letivo', value: anoLetivo },
+  ])
+  if (c.data_inicio) infoRow2col(doc, [{ label: 'Data de Início', value: c.data_inicio, span: 2 }])
+  if (c.tema) infoRow2col(doc, [{ label: isPV ? 'Projeto do Bimestre' : 'Tema / Título do Guia', value: c.tema, span: 2 }])
+
+  if (isPV) {
+    sectionTitle(doc, 'Competências Socioemocionais')
+    if (c.competencias) textBlock(doc, 'Competências do Bimestre', c.competencias)
+    if (c.habilidades?.trim()) { doc.moveDown(0.3); habilidadesTable(doc, c.habilidades) }
+  } else {
+    sectionTitle(doc, 'Competências e Habilidades')
+    if (c.competencias) {
+      subLabel(doc, 'Competências Gerais (BNCC)')
+      c.competencias.split('\n').map(l => l.trim()).filter(Boolean).forEach(line => {
+        const nomePart = line.replace(/^\d+\.\s*/, '')
+        const desc = BNCC_COMP_MAP.get(nomePart)
+        ensureSpace(doc, desc ? 30 : 16)
+        const y0 = doc.y
+        doc.circle(MARGIN + 9, y0 + 5, 2).fill(YELLOW)
+        doc.font('Helvetica-Bold').fontSize(8.5).fillColor(DARK)
+        doc.text(nomePart, MARGIN + 16, y0, { width: CONTENT_W - 18, lineBreak: false })
+        if (desc) {
+          doc.font('Helvetica').fontSize(7.5).fillColor(GRAY)
+          doc.text(desc, MARGIN + 16, doc.y + 2, { width: CONTENT_W - 18, lineGap: 1 })
+        }
+        doc.y += 5
+      })
+      doc.y += 4
+    }
+    if (c.habilidades?.trim()) { doc.moveDown(0.3); habilidadesTable(doc, c.habilidades) }
+    if (aes && aes.length > 0) { doc.moveDown(0.3); aesTable(doc, aes) }
+  }
+
+  if (aulas && aulas.length > 0) {
+    sectionTitle(doc, 'Sequência de Aulas')
+    aulasTable(doc, aulas)
+  }
+
+  sectionTitle(doc, 'Metodologia e Avaliação')
+  if (c.estrategias)      textBlock(doc, isPV ? 'Estratégias Socioemocionais' : 'Estratégias Didáticas', c.estrategias)
+  if (c.recursos)         bulletBlock(doc, 'Recursos e Materiais', c.recursos)
+  if (c.avaliacao)        bulletBlock(doc, isPV ? 'Avaliação Socioemocional' : 'Avaliação Bimestral', c.avaliacao)
+  if (c.ajustes_demanda)  textBlock(doc, 'Ajuste(s) por Demanda', c.ajustes_demanda)
+  if (c.composicao_media) textBlock(doc, 'Composição de Média', c.composicao_media)
+  if (c.referencias)      referencesBlock(doc, 'Referências', c.referencias)
+}
+
+// ─── PDI specialized renderer ─────────────────────────────────────────────────
+
+function renderPdiTable(doc: InstanceType<typeof PDFDocument>, atividades: Record<string, string>[]) {
+  if (atividades.length === 0) return
+  const pad = 6
+  const w1 = CONTENT_W * (60 / 315)
+  const w2 = CONTENT_W * (140 / 315)
+  const w3 = CONTENT_W - w1 - w2
+  const headerH = 28
+
+  function drawHeader(y: number) {
+    doc.rect(MARGIN, y, w1, headerH).fill(DARK)
+    doc.rect(MARGIN + w1, y, w2, headerH).fill(DARK)
+    doc.rect(MARGIN + w1 + w2, y, w3, headerH).fill(DARK)
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(WHITE)
+    doc.text('DIMENSÃO', MARGIN + pad, y + 3, { width: w1 - pad * 2, lineBreak: false })
+    doc.text('ATIVIDADE', MARGIN + w1 + pad, y + 3, { width: w2 - pad * 2, lineBreak: false })
+    doc.text('PRAZO / OBJETIVOS / META', MARGIN + w1 + w2 + pad, y + 3, { width: w3 - pad * 2 })
+  }
+
+  ensureSpace(doc, headerH + 80)
+  let rowY = doc.y
+  drawHeader(rowY)
+  rowY += headerH
+
+  atividades.forEach((ativ, i) => {
+    const dimensao = ativ.dimensao || '—'
+    const prazo = ((ativ.prazo_inicio || '') + (ativ.prazo_fim ? ` a ${ativ.prazo_fim}` : '')) || '—'
+    const objetivos = ativ.objetivos?.substring(0, 150) || '—'
+    const meta = ativ.meta?.substring(0, 150) || '—'
+    const rightText = `PRAZO: ${prazo}\n\nOBJETIVOS: ${objetivos}\n\nMETA: ${meta}`
+
+    doc.font('Helvetica').fontSize(8)
+    const dimH = Math.ceil(doc.heightOfString(dimensao, { width: w1 - pad * 2 }))
+    const rightH = Math.ceil(doc.heightOfString(rightText, { width: w3 - pad * 2 }))
+    let rowH = Math.max(dimH, rightH) + pad * 2
+    rowH = Math.max(rowH, 60)
+
+    if (rowY + rowH > PAGE_H - BOTTOM_M) {
+      doc.addPage()
+      rowY = doc.y
+      drawHeader(rowY)
+      rowY += headerH
+    }
+
+    const bg = i % 2 === 0 ? WHITE : LIGHT
+    doc.rect(MARGIN, rowY, w1, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.4).stroke()
+    doc.rect(MARGIN + w1, rowY, w2, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.4).stroke()
+    doc.rect(MARGIN + w1 + w2, rowY, w3, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.4).stroke()
+
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(DARK)
+    doc.text(dimensao, MARGIN + pad, rowY + pad, { width: w1 - pad * 2, align: 'center', lineBreak: false })
+
+    const dimObj = DIMENSOES_PDI[parseInt(dimensao)]
+    const atividadeTitulo = dimObj?.atividades.find(a => a.id === ativ.atividade)?.titulo || '—'
+    doc.font('Helvetica').fontSize(8.5).fillColor(DARK)
+    doc.text(atividadeTitulo, MARGIN + w1 + pad, rowY + pad, { width: w2 - pad * 2, lineGap: 1.5 })
+
+    doc.font('Helvetica').fontSize(7.5).fillColor(DARK)
+    doc.text(rightText, MARGIN + w1 + w2 + pad, rowY + pad, { width: w3 - pad * 2, lineGap: 1.2 })
+
+    rowY += rowH
+  })
+  doc.y = rowY + 4
+}
+
+function renderPdi(doc: InstanceType<typeof PDFDocument>, c: Record<string, string>, createdAt?: string) {
+  const dataElab = c.data_elaboracao?.trim() || (createdAt ? new Date(createdAt).toLocaleDateString('pt-BR') : '—')
+  const periodoRef = c.periodo?.trim() || '—'
+
+  sectionTitle(doc, 'Identificação')
+  infoRow2col(doc, [
+    { label: 'Período de Referência', value: periodoRef },
+    { label: 'Data de Elaboração',    value: dataElab },
+  ])
+
+  sectionTitle(doc, 'Plano de Desenvolvimento Individual — Dimensões')
+  try {
+    const atividades = c.atividades_json ? JSON.parse(c.atividades_json) : []
+    if (atividades.length === 0) {
+      doc.font('Helvetica').fontSize(9.5).fillColor(GRAY).text('Nenhuma atividade registrada.', MARGIN + 8, doc.y + 4)
+      doc.y += 20
+    } else {
+      renderPdiTable(doc, atividades)
+    }
+  } catch {
+    doc.font('Helvetica').fontSize(9.5).fillColor(GRAY).text('Erro ao processar atividades.', MARGIN + 8, doc.y + 4)
+    doc.y += 20
+  }
+}
+
+// ─── Projeto científico renderer ──────────────────────────────────────────────
+
+function sciSection(doc: InstanceType<typeof PDFDocument>, num: string, title: string) {
+  ensureSpace(doc, 50)
+  doc.moveDown(0.5)
+  const y = doc.y
+  doc.font('Helvetica-Bold').fontSize(11).fillColor(DARK)
+  doc.text(`${num}.  ${title.toUpperCase()}`, MARGIN, y, { lineBreak: false })
+  doc.moveDown(0.15)
+  doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + CONTENT_W * 0.35, doc.y).strokeColor(YELLOW).lineWidth(1.2).stroke()
+  doc.moveDown(0.5)
+}
+
+function renderProjeto(doc: InstanceType<typeof PDFDocument>, c: Record<string, string>, createdAt?: string) {
+  const periodo = c.periodo?.trim() || (createdAt
+    ? ((new Date(createdAt).getMonth() + 1) <= 6 ? `1º Semestre ${new Date(createdAt).getFullYear()}` : `2º Semestre ${new Date(createdAt).getFullYear()}`)
+    : '—')
+
+  // Título
+  ensureSpace(doc, 90)
+  doc.moveDown(0.6)
+  doc.font('Helvetica-Bold').fontSize(17).fillColor(DARK)
+  doc.text(c.titulo?.trim() || 'Projeto de Pesquisa', MARGIN, doc.y, { width: CONTENT_W, align: 'center', lineGap: 3 })
+  doc.moveDown(0.4)
+  if (c.tema_sugerido?.trim()) {
+    doc.font('Helvetica').fontSize(10).fillColor(GRAY)
+    doc.text(c.tema_sugerido.trim(), MARGIN, doc.y, { width: CONTENT_W, align: 'center' })
+    doc.moveDown(0.35)
+  }
+  doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + CONTENT_W, doc.y).strokeColor(YELLOW).lineWidth(1.5).stroke()
+  doc.moveDown(0.4)
+
+  // Metadados
+  const meta = [c.grande_area, c.subarea, c.linha_aplicacao, c.tipo_projeto].map(x => x?.trim()).filter(Boolean)
+  if (meta.length > 0) {
+    doc.font('Helvetica').fontSize(7.5).fillColor(GRAY)
+    doc.text(meta.join('  ·  '), MARGIN, doc.y, { width: CONTENT_W, align: 'center', lineBreak: false })
+    doc.moveDown(0.4)
+  }
+  const escopo: string[] = []
+  if (c.turmas?.trim())      escopo.push(`Turmas: ${c.turmas.trim()}`)
+  if (c.disciplinas?.trim()) escopo.push(`Disciplinas: ${c.disciplinas.trim()}`)
+  if (c.acao?.trim())        escopo.push(`Ação: ${c.acao.trim()}`)
+  if (periodo)               escopo.push(`Período: ${periodo}`)
+  if (escopo.length > 0) {
+    doc.font('Helvetica').fontSize(8).fillColor(GRAY)
+    doc.text(escopo.join('   |   '), MARGIN, doc.y, { width: CONTENT_W, align: 'center', lineBreak: false })
+    doc.moveDown(0.8)
+  }
+
+  // Resumo
+  if (c.resumo?.trim()) {
+    ensureSpace(doc, 80)
+    const boxY = doc.y
+    doc.font('Helvetica').fontSize(8.5)
+    const resumoH = doc.heightOfString(c.resumo.trim(), { width: CONTENT_W - 22 })
+    const boxH = resumoH + 28
+    doc.rect(MARGIN, boxY, CONTENT_W, boxH).fill(LIGHT)
+    doc.rect(MARGIN, boxY, 3, boxH).fill(DARK)
+    doc.font('Helvetica-Bold').fontSize(6.5).fillColor(DARK)
+    doc.text('RESUMO', MARGIN + 10, boxY + 8, { characterSpacing: 1.5, lineBreak: false })
+    doc.font('Helvetica').fontSize(8.5).fillColor(DARK)
+    doc.text(c.resumo.trim(), MARGIN + 10, boxY + 18, { width: CONTENT_W - 18, lineGap: 1.5 })
+    doc.y = boxY + boxH + 6
+  }
+  if (c.palavras_chave?.trim()) {
+    doc.font('Helvetica-Bold').fontSize(8).fillColor(GRAY)
+    doc.text('Palavras-chave: ', MARGIN, doc.y, { continued: true, lineBreak: false })
+    doc.font('Helvetica').fontSize(8).fillColor(GRAY).text(c.palavras_chave.trim())
+    doc.moveDown(0.8)
+  }
+  doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + CONTENT_W, doc.y).strokeColor(BORDER).lineWidth(0.5).stroke()
+  doc.moveDown(0.6)
+
+  const para = (txt: string) => { doc.font('Helvetica').fontSize(9.5).fillColor(DARK).text(txt.trim(), MARGIN, doc.y, { width: CONTENT_W, lineGap: 2 }); doc.moveDown(0.6) }
+
+  let n = 1
+  if (c.problema?.trim())      { sciSection(doc, String(n++), 'Problema de Pesquisa'); para(c.problema) }
+  if (c.justificativa?.trim()) { sciSection(doc, String(n++), 'Justificativa'); para(c.justificativa) }
+  if (c.objetivo_geral?.trim() || c.objetivos_especificos?.trim()) {
+    sciSection(doc, String(n++), 'Objetivos')
+    if (c.objetivo_geral?.trim()) {
+      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(GRAY).text('Objetivo Geral', MARGIN, doc.y)
+      para(c.objetivo_geral)
+    }
+    if (c.objetivos_especificos?.trim()) {
+      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(GRAY).text('Objetivos Específicos', MARGIN, doc.y)
+      c.objetivos_especificos.trim().split('\n').filter(Boolean).forEach(item => {
+        ensureSpace(doc, 20)
+        doc.font('Helvetica').fontSize(9.5).fillColor(DARK).text(item.trim(), MARGIN + 10, doc.y, { width: CONTENT_W - 10, lineGap: 1.5 })
+      })
+      doc.moveDown(0.4)
+    }
+  }
+  if (c.metodologia?.trim()) { sciSection(doc, String(n++), 'Metodologia'); para(c.metodologia) }
+  if (c.resultados?.trim())  { sciSection(doc, String(n++), 'Resultados Esperados'); para(c.resultados) }
+  if (c.impacto?.trim())     { sciSection(doc, String(n++), 'Impacto Esperado'); para(c.impacto) }
+  if (c.recursos?.trim())    { sciSection(doc, String(n++), 'Recursos Previstos'); para(c.recursos) }
+  if (c.referencias?.trim()) {
+    sciSection(doc, String(n++), 'Referências')
+    c.referencias.trim().split('\n').filter(Boolean).forEach((ref, i) => {
+      ensureSpace(doc, 22)
+      doc.font('Helvetica').fontSize(8.5).fillColor(DARK).text(`${i + 1}.  ${ref.trim()}`, MARGIN + 14, doc.y, { width: CONTENT_W - 14, lineGap: 1.5 })
+    })
+  }
+}
+
+// ─── Plano de Eletiva renderer ────────────────────────────────────────────────
+
+function cronogramaTable(doc: InstanceType<typeof PDFDocument>, raw: string) {
+  let rows: { date: string; acao: string }[] = []
+  try { rows = raw ? JSON.parse(raw) : [] } catch { return }
+  if (rows.length === 0) return
+
+  const pad = 6
+  const numW = 28
+  const dateW = 70
+  const acaoW = CONTENT_W - numW - dateW
+
+  subLabel(doc, 'Conteúdo Programático')
+  const headerH = 16
+  ensureSpace(doc, headerH + 20)
+  let y0 = doc.y
+  doc.rect(MARGIN, y0, CONTENT_W, headerH).fill(DARK)
+  doc.font('Helvetica-Bold').fontSize(7).fillColor(WHITE)
+  doc.text('#', MARGIN + pad, y0 + 4, { width: numW - pad, lineBreak: false })
+  doc.text('DATA', MARGIN + numW + pad, y0 + 4, { width: dateW - pad, lineBreak: false })
+  doc.text('ATIVIDADE / TEMA', MARGIN + numW + dateW + pad, y0 + 4, { width: acaoW - pad, lineBreak: false })
+  let rowY = y0 + headerH
+
+  rows.forEach((row, i) => {
+    doc.font('Helvetica').fontSize(8)
+    const acaoH = doc.heightOfString(row.acao || '—', { width: acaoW - pad * 2 })
+    const rowH = Math.max(acaoH + pad * 2, 18)
+    if (rowY + rowH > PAGE_H - BOTTOM_M) { doc.addPage(); rowY = doc.y }
+    const bg = i % 2 === 0 ? WHITE : LIGHT
+    doc.rect(MARGIN, rowY, numW, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.3).stroke()
+    doc.rect(MARGIN + numW, rowY, dateW, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.3).stroke()
+    doc.rect(MARGIN + numW + dateW, rowY, acaoW, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.3).stroke()
+    doc.font('Helvetica').fontSize(7.5).fillColor(GRAY).text(String(i + 1).padStart(2, '0'), MARGIN + pad, rowY + pad, { width: numW - pad, lineBreak: false })
+    doc.fillColor(DARK).text(row.date, MARGIN + numW + pad, rowY + pad, { width: dateW - pad, lineBreak: false })
+    doc.text(row.acao || '—', MARGIN + numW + dateW + pad, rowY + pad, { width: acaoW - pad * 2, lineGap: 1 })
+    rowY += rowH
+  })
+  doc.y = rowY + 4
+}
+
+function renderPlanoEletiva(doc: InstanceType<typeof PDFDocument>, c: Record<string, string>, createdAt?: string) {
+  const semestre = c.semestre?.trim() || (createdAt ? ((new Date(createdAt).getMonth() + 1) <= 6 ? '1º Semestre' : '2º Semestre') : '—')
+  const nivelLabel = c.nivel_ensino === 'medio' ? 'Ensino Médio' : c.nivel_ensino === 'fundamental' ? 'Ensino Fundamental' : (c.nivel_ensino ?? '—')
+
+  sectionTitle(doc, 'Identificação')
+  infoRow2col(doc, [{ label: 'Nome da Eletiva', value: c.nome_eletiva ?? '', span: 2 }])
+  infoRow2col(doc, [
+    { label: 'Nível de Ensino', value: nivelLabel },
+    { label: 'Semestre', value: semestre },
+  ])
+  infoRow2col(doc, [
+    { label: 'Carga Horária Semanal', value: c.carga_horaria ?? '' },
+    { label: 'Professor(a) Parceiro(a)', value: c.professor_parceiro || '—' },
+  ])
+
+  sectionTitle(doc, 'Proposta Pedagógica')
+  if (c.ementa)        textBlock(doc, 'Ementa', c.ementa)
+  if (c.habilidades?.trim()) bulletBlock(doc, 'Habilidades BNCC', c.habilidades)
+  if (c.justificativa) textBlock(doc, 'Justificativa', c.justificativa)
+  if (c.objetivos)     textBlock(doc, 'Objetivos', c.objetivos)
+  if (c.cronograma)    cronogramaTable(doc, c.cronograma)
+
+  sectionTitle(doc, 'Metodologia e Avaliação')
+  if (c.metodologia)      textBlock(doc, 'Metodologia', c.metodologia)
+  if (c.avaliacao)        bulletBlock(doc, 'Avaliação', c.avaliacao)
+  if (c.materiais)        bulletBlock(doc, 'Materiais e Recursos', c.materiais)
+  if (c.composicao_media) textBlock(doc, 'Composição de Média', c.composicao_media)
+  if (c.referencias)      referencesBlock(doc, 'Referências', c.referencias)
+}
+
+function renderPlanoEma(doc: InstanceType<typeof PDFDocument>, c: Record<string, string>, createdAt?: string) {
+  const bimestre = c.bimestre?.trim() || (createdAt ? (() => { const m = new Date(createdAt).getMonth() + 1; return m <= 3 ? '1' : m <= 6 ? '2' : m <= 9 ? '3' : '4' })() : '—')
+  sectionTitle(doc, 'Identificação')
+  infoRow2col(doc, [
+    { label: 'Modalidade', value: c.modalidade ?? '' },
+    { label: 'Bimestre', value: bimestre ? `${bimestre}º Bimestre` : '—' },
+  ])
+  infoRow2col(doc, [
+    { label: 'Turmas Atendidas', value: c.turmas ?? '' },
+    { label: 'Carga Horária Semanal', value: c.carga_horaria ?? '' },
+  ])
+  if (c.tema) infoRow2col(doc, [{ label: 'Tema / Projeto do Bimestre', value: c.tema, span: 2 }])
+
+  sectionTitle(doc, 'Planejamento')
+  if (c.objetivos)        textBlock(doc, 'Objetivos', c.objetivos)
+  if (c.conteudos)        textBlock(doc, 'Conteúdos', c.conteudos)
+  if (c.metodologia)      textBlock(doc, 'Metodologia', c.metodologia)
+  if (c.avaliacao)        bulletBlock(doc, 'Avaliação', c.avaliacao)
+  if (c.materiais)        bulletBlock(doc, 'Materiais e Equipamentos', c.materiais)
+  if (c.composicao_media) textBlock(doc, 'Composição de Média', c.composicao_media)
+  if (c.referencias)      referencesBlock(doc, 'Referências', c.referencias)
+}
+
+// ─── Carta Náutica renderer ───────────────────────────────────────────────────
+
+const FAROL_LABEL: Record<string, string> = {
+  para_comecar: 'Para começar', relembre: 'Relembre', foco_conteudo: 'Foco no conteúdo',
+  na_pratica: 'Na prática', encerramento: 'Encerramento',
+}
+
+function renderCartaNautica(doc: InstanceType<typeof PDFDocument>, c: Record<string, string>) {
+  let aulas: { aulaNum: number; titulo: string; conteudo?: string | null; objetivos?: string | null; slides: { slideNum: number; tipo: string }[] }[] = []
+  try { aulas = c.aulas_slides_json ? JSON.parse(c.aulas_slides_json) : [] } catch { aulas = [] }
+
+  sectionTitle(doc, 'Identificação')
+  infoRow2col(doc, [
+    { label: 'Turma(s)',   value: c.turmas || c.turma || '—' },
+    { label: 'Disciplina', value: c.disciplina || '—' },
+  ])
+  infoRow2col(doc, [
+    { label: 'Bimestre', value: c.bimestre ? `${c.bimestre}º Bimestre` : '—' },
+    { label: 'Período',  value: c.periodo || 'por_aula' },
+  ])
+
+  if (aulas.length === 0) {
+    sectionTitle(doc, 'Mapa de Slides')
+    doc.font('Helvetica').fontSize(9.5).fillColor(GRAY).text('Nenhuma aula mapeada.', MARGIN + 8, doc.y + 4)
+    doc.y += 20
+    return
+  }
+
+  for (const aula of aulas) {
+    sectionTitle(doc, `Aula ${aula.aulaNum} — ${aula.titulo}`)
+    if (aula.objetivos) textBlock(doc, 'Objetivos', aula.objetivos)
+
+    // Agrupa slides por farol
+    const byTipo = new Map<string, number[]>()
+    for (const sl of aula.slides) {
+      if (!byTipo.has(sl.tipo)) byTipo.set(sl.tipo, [])
+      byTipo.get(sl.tipo)!.push(sl.slideNum)
+    }
+    const ordem = ['para_comecar', 'relembre', 'foco_conteudo', 'na_pratica', 'encerramento']
+    for (const tipo of ordem) {
+      const nums = byTipo.get(tipo)
+      if (nums && nums.length > 0) {
+        infoRow2col(doc, [{ label: FAROL_LABEL[tipo] ?? tipo, value: nums.sort((a, b) => a - b).map(n => `Slide ${n}`).join(', '), span: 2 }])
+      }
+    }
+  }
+}
+
+// ─── Main entry point ─────────────────────────────────────────────────────────
+
 export function generatePdf(input: PdfInput): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 0, autoFirstPage: true })
@@ -710,7 +1317,7 @@ export function generatePdf(input: PdfInput): Promise<Buffer> {
       miniHeader(doc, input)
     })
 
-    if (input.type === 'PLANO_AULA') {
+    if (input.type === 'PLANO_AULA' || input.type === 'OE_PLANO_AULA') {
       renderPlanoDeAula(
         doc,
         input.content,
@@ -718,6 +1325,26 @@ export function generatePdf(input: PdfInput): Promise<Buffer> {
         input.aprendizagensEssenciais,
         input.aulasSelecionadas,
       )
+    } else if (input.type === 'PEI') {
+      renderPei(doc, input.content, input.createdAt.toISOString())
+    } else if (input.type === 'GUIA_APRENDIZAGEM' || input.type === 'OE_GUIA_APRENDIZAGEM') {
+      renderGuiaAprendizagem(
+        doc,
+        input.content,
+        input.createdAt.toISOString(),
+        input.aulasSelecionadas,
+        input.aprendizagensEssenciais,
+      )
+    } else if (input.type === 'PDI') {
+      renderPdi(doc, input.content, input.createdAt.toISOString())
+    } else if (input.type === 'PROJETO') {
+      renderProjeto(doc, input.content, input.createdAt.toISOString())
+    } else if (input.type === 'PLANO_ELETIVA') {
+      renderPlanoEletiva(doc, input.content, input.createdAt.toISOString())
+    } else if (input.type === 'PLANO_EMA') {
+      renderPlanoEma(doc, input.content, input.createdAt.toISOString())
+    } else if (input.type === 'CARTA_NAUTICA') {
+      renderCartaNautica(doc, input.content)
     } else {
       renderGeneric(doc, input)
     }

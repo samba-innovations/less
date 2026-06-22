@@ -706,6 +706,8 @@
 
 .savedMsg        { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #059669; opacity: 0; transition: opacity 0.3s; }
 .savedMsgVisible { opacity: 1; }
+.savingMsg       { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; font-weight: 600; color: var(--fg-secondary); }
+.saveError       { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #dc2626; max-width: 420px; }
 
 /* ── PLANO_AULA Wizard ─────────────────────────────────── */
 .wizard {

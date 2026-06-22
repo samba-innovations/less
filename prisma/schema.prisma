@@ -67,6 +67,9 @@ enum LessDocType {
   DECLARACAO
   COMUNICADO
   ATESTADO
+  CARTA_NAUTICA
+  OE_PLANO_AULA
+  OE_GUIA_APRENDIZAGEM
 }
 
 enum LessDocStatus {
@@ -877,6 +880,7 @@ model LessDocument {
   status    LessDocStatus @default(DRAFT)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+  deletedAt DateTime?     @map("deleted_at")
 
   school    School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -886,6 +890,7 @@ model LessDocument {
   @@index([userId])
   @@index([schoolId, type])
   @@index([schoolId, status])
+  @@index([schoolId, userId])
 }
 
 model LessDocumentFeedback {
@@ -1030,4 +1035,50 @@ model OccurrenceStudent {
 
   @@id([occurrenceId, studentId])
   @@index([studentId])
+}
+
+// --- OE (Orientacao de Estudos) ---
+
+model LessOeMissao {
+  id                    Int     @id @default(autoincrement())
+  disciplinaTipo        String  @map("disciplina_tipo") @db.VarChar(10)
+  ciclo                 String  @db.VarChar(15)
+  serie                 String  @db.VarChar(10)
+  missaoNum             Int     @map("missao_num")
+  bimestre              Int
+  tema                  String? @db.VarChar(200)
+  semanasLabel          String  @map("semanas_label") @db.VarChar(30)
+  aulasLabel            String  @map("aulas_label") @db.VarChar(30)
+  totalAulas            Int     @map("total_aulas")
+  saebDescritores       String? @map("saeb_descritores") @db.VarChar(200)
+  objetivosAprendizagem String? @map("objetivos_aprendizagem") @db.Text
+  objetosConhecimento   String? @map("objetos_conhecimento") @db.Text
+
+  @@unique([disciplinaTipo, ciclo, serie, missaoNum])
+  @@map("less_oe_missoes")
+}
+
+model LessOeHabilidade {
+  id                 Int     @id @default(autoincrement())
+  disciplinaTipo     String  @map("disciplina_tipo") @db.VarChar(10)
+  ciclo              String  @db.VarChar(15)
+  serie              String  @db.VarChar(10)
+  codigo             String  @db.VarChar(30)
+  descricao          String  @db.Text
+  eixoConhecimento   String  @map("eixo_conhecimento") @db.VarChar(100)
+  eixoCognitivo      Int     @map("eixo_cognitivo")
+  eixoCognitivoLabel String? @map("eixo_cognitivo_label") @db.VarChar(60)
+  bnccCodigo         String? @map("bncc_codigo") @db.VarChar(20)
+
+  @@unique([disciplinaTipo, ciclo, serie, codigo])
+  @@index([disciplinaTipo, ciclo, serie])
+  @@map("less_oe_habilidades")
+}
+
+model LessOeMissaoHabilidade {
+  missaoId     Int @map("missao_id")
+  habilidadeId Int @map("habilidade_id")
+
+  @@id([missaoId, habilidadeId])
+  @@map("less_oe_missao_habilidades")
 }

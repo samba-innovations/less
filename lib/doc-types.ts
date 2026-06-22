@@ -10,6 +10,9 @@ export type DocType =
   | 'DECLARACAO'
   | 'COMUNICADO'
   | 'ATESTADO'
+  | 'CARTA_NAUTICA'
+  | 'OE_PLANO_AULA'
+  | 'OE_GUIA_APRENDIZAGEM'
 
 export type FieldType = 'text' | 'textarea' | 'date' | 'number' | 'select' | 'chips'
 
@@ -292,6 +295,27 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
       { key: 'texto',      label: 'Observações',      type: 'textarea', rows: 3 },
       { key: 'data',       label: 'Data',             type: 'date' },
     ],
+  },
+
+  CARTA_NAUTICA: {
+    label: 'Carta Náutica',
+    description: 'Mapa didático por aulas, slides e momentos pedagógicos',
+    color: '#0e7490',
+    fields: [],
+  },
+
+  OE_PLANO_AULA: {
+    label: 'OE — Plano de Aula',
+    description: 'Plano de aula de Orientação de Estudos',
+    color: '#4f46e5',
+    fields: [],
+  },
+
+  OE_GUIA_APRENDIZAGEM: {
+    label: 'OE — Guia de Aprendizagem',
+    description: 'Guia bimestral de Orientação de Estudos',
+    color: '#4338ca',
+    fields: [],
   },
 }
 

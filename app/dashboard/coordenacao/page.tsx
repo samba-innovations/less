@@ -16,7 +16,7 @@ export default async function CoordenacaoPage() {
 
   const [docs, peiStudents] = await Promise.all([
     db.lessDocument.findMany({
-      where:   { schoolId: school.id },
+      where:   { schoolId: school.id, deletedAt: null },
       orderBy: { updatedAt: 'desc' },
       select: {
         id: true, title: true, type: true, status: true,

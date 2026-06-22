@@ -8,7 +8,7 @@ import {
   ClipboardList, BookOpen, User, Star, Palette,
   FolderOpen, GraduationCap, FileText, FileCheck,
   Bell, Shield, AlignLeft, ToggleLeft, Calendar, Hash, List,
-  Sparkles,
+  Sparkles, Compass,
   type LucideIcon,
 } from 'lucide-react'
 import { type DocType, type FieldType, DOC_TYPES } from '@/lib/doc-types'
@@ -31,6 +31,7 @@ const TYPES: TypeMeta[] = [
   { value: 'PLANO_EMA',         label: 'Plano EMA',             desc: 'Esporte, Música ou Arte',                                   icon: Palette,       color: '#d97706' },
   { value: 'PROJETO',           label: 'Projeto',               desc: 'Template para projetos pedagógicos',                        icon: FolderOpen,    color: '#be185d' },
   { value: 'PDI',               label: 'PDI',                   desc: 'Plano de Desenvolvimento Individual do professor',          icon: GraduationCap, color: '#475569' },
+  { value: 'CARTA_NAUTICA',     label: 'Carta Náutica',         desc: 'Mapa didático por aulas, slides e momentos pedagógicos',     icon: Compass,       color: '#0e7490' },
   { value: 'ATA',               label: 'ATA',                   desc: 'Ata de reunião ou resultado escolar',                       icon: FileText,      color: '#0f766e', managerOnly: true },
   { value: 'DECLARACAO',        label: 'Declaração',            desc: 'Declaração escolar para aluno ou responsável',              icon: FileCheck,     color: '#1d4ed8', managerOnly: true },
   { value: 'COMUNICADO',        label: 'Comunicado',            desc: 'Comunicado para pais, alunos ou comunidade',                icon: Bell,          color: '#c2410c', managerOnly: true },
@@ -68,16 +69,16 @@ export function NovoClient({ isManager, preType }: Props) {
   const [title,        setTitle]        = useState('')
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState<string | null>(null)
+  const [dupWarn,      setDupWarn]      = useState(false)
 
   const meta    = selectedType ? types.find(t => t.value === selectedType) : null
   const docMeta = selectedType ? DOC_TYPES[selectedType] : null
 
   function handleSelect(type: DocType) {
-    if (type !== selectedType) { setSelectedType(type); setTitle(''); setError(null) }
+    if (type !== selectedType) { setSelectedType(type); setTitle(''); setError(null); setDupWarn(false) }
   }
 
-  async function create() {
-    if (!selectedType || !title.trim()) { setError('Preencha o título.'); return }
+  async function doCreate() {
     setLoading(true); setError(null)
     try {
       const res = await fetch('/api/documentos', {
@@ -91,6 +92,21 @@ export function NovoClient({ isManager, preType }: Props) {
     } catch {
       setError('Erro de conexão.')
     } finally { setLoading(false) }
+  }
+
+  async function create() {
+    if (!selectedType || !title.trim()) { setError('Preencha o título.'); return }
+    if (dupWarn) { await doCreate(); return } // segunda confirmação: cria mesmo assim
+
+    setLoading(true); setError(null)
+    // Aviso (não-bloqueante) de documento parecido — mesmo tipo + título
+    try {
+      const existing: { type: string; title: string }[] = await fetch('/api/documentos').then(r => r.ok ? r.json() : [])
+      const dup = existing.some(d => d.type === selectedType && d.title.trim().toLowerCase() === title.trim().toLowerCase())
+      if (dup) { setDupWarn(true); setLoading(false); return }
+    } catch { /* se a checagem falhar, segue criando */ }
+
+    await doCreate()
   }
 
   const infoFields  = docMeta?.fields.filter(f => f.type !== 'textarea' && f.type !== 'chips') ?? []
@@ -164,16 +180,21 @@ export function NovoClient({ isManager, preType }: Props) {
                 placeholder={`Ex: ${meta!.label} — 1º Bimestre`}
                 value={title}
                 autoFocus
-                onChange={e => setTitle(e.target.value)}
+                onChange={e => { setTitle(e.target.value); setDupWarn(false) }}
                 onKeyDown={e => e.key === 'Enter' && !loading && create()}
               />
+              {dupWarn && (
+                <p className={s.dupWarn}>
+                  Já existe um documento deste tipo com esse título. Clique novamente para criar mesmo assim.
+                </p>
+              )}
               <button
                 className={s.submitBtn}
                 onClick={create}
                 disabled={loading || !title.trim()}
               >
                 <ArrowRight size={15} />
-                {loading ? 'Criando…' : 'Criar documento'}
+                {loading ? 'Criando…' : dupWarn ? 'Criar mesmo assim' : 'Criar documento'}
               </button>
               {error && <p className={s.errMsg}>{error}</p>}
               <p className={s.hint}>Você pode alterar o título depois no editor.</p>
