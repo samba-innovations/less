@@ -26,6 +26,7 @@ export default async function DocumentosPage({
     where: {
       schoolId: school.id,
       userId:   session.userId,
+      deletedAt: null,
       ...(statusFilter ? { status: statusFilter } : {}),
     },
     orderBy: { updatedAt: 'desc' },

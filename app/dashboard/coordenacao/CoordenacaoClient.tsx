@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { DOC_TYPES, type DocType } from '@/lib/doc-types'
-import { FileText, Users, Plus, Trash2, ChevronDown, X, Check } from 'lucide-react'
+import { FileText, Users, Plus, Trash2, ChevronDown, X, Check, RotateCcw } from 'lucide-react'
 import { useNotificationEvent } from '@/lib/useNotificationEvent'
 import { useSchoolEvent } from '@/lib/useSchoolEvent'
 import s from './coordenacao.module.css'
@@ -11,6 +11,11 @@ import s from './coordenacao.module.css'
 type Doc = {
   id: number; title: string; type: string; status: string
   updatedAt: string; user: { name: string }
+}
+
+type TrashDoc = {
+  id: number; title: string; type: string; status: string
+  deletedAt: string; user: { name: string }
 }
 
 type PeiStudent = {
@@ -23,10 +28,11 @@ type Props = { docs: Doc[]; initialPeiStudents: PeiStudent[] }
 const EMPTY_FORM = { name: '', ra: '', turma: '', diagnostico: '', profColaborativo: '', profAee: '' }
 
 export function CoordenacaoClient({ docs, initialPeiStudents }: Props) {
-  const [tab, setTab]           = useState<'docs' | 'pei'>('docs')
+  const [tab, setTab]           = useState<'docs' | 'pei' | 'trash'>('docs')
   const [docList, setDocList]   = useState<Doc[]>(docs)
   const [students, setStudents] = useState<PeiStudent[]>(initialPeiStudents)
   const [showForm, setShowForm] = useState(false)
+  const [trashList, setTrashList] = useState<TrashDoc[] | null>(null)
 
   async function refreshDocs() {
     const res = await fetch('/api/documentos?all=true')
@@ -34,6 +40,18 @@ export function CoordenacaoClient({ docs, initialPeiStudents }: Props) {
     const data: Doc[] = await res.json()
     setDocList(data)
   }
+
+  async function loadTrash() {
+    const res = await fetch('/api/documentos?trash=true')
+    setTrashList(res.ok ? await res.json() : [])
+  }
+
+  async function restoreDoc(id: number) {
+    const res = await fetch(`/api/documentos/${id}/restore`, { method: 'POST' })
+    if (res.ok) { setTrashList(prev => (prev ?? []).filter(d => d.id !== id)); refreshDocs() }
+  }
+
+  function openTrash() { setTab('trash'); if (trashList === null) loadTrash() }
 
   useNotificationEvent(['LESS_DOC_FINAL'], refreshDocs)
   useSchoolEvent(['document_created', 'document_updated'], refreshDocs)
@@ -94,7 +112,49 @@ export function CoordenacaoClient({ docs, initialPeiStudents }: Props) {
           <Users size={14} /> Alunos PEI
           <span className={s.tabCount}>{students.filter(s => s.ativo).length}</span>
         </button>
+        <button className={`${s.tab} ${tab === 'trash' ? s.tabActive : ''}`} onClick={openTrash}>
+          <Trash2 size={14} /> Apagados
+        </button>
       </div>
+
+      {/* Trash tab */}
+      {tab === 'trash' && (
+        trashList === null ? (
+          <div className={s.empty}><p>Carregando…</p></div>
+        ) : trashList.length === 0 ? (
+          <div className={s.empty}>
+            <Trash2 size={36} strokeWidth={1.2} />
+            <p>Nenhum documento na lixeira.</p>
+          </div>
+        ) : (
+          <div className={s.list}>
+            {trashList.map(doc => {
+              const meta = DOC_TYPES[doc.type as DocType]
+              return (
+                <div key={doc.id} className={s.docCard}>
+                  <div className={s.docCardAccent} style={{ background: meta?.color ?? '#6b7280' }} />
+                  <div className={s.docIcon} style={{ background: (meta?.color ?? '#6b7280') + '18' }}>
+                    <FileText size={16} color={meta?.color ?? '#6b7280'} />
+                  </div>
+                  <div className={s.docInfo}>
+                    <p className={s.docTitle}>{doc.title}</p>
+                    <div className={s.docMeta}>
+                      <span>{meta?.label ?? doc.type}</span>
+                      <span className={s.separator}>·</span>
+                      <span>{doc.user.name}</span>
+                      <span className={s.separator}>·</span>
+                      <span>apagado em {fmtDate(doc.deletedAt)}</span>
+                    </div>
+                  </div>
+                  <button className={s.restoreBtn} onClick={() => restoreDoc(doc.id)}>
+                    <RotateCcw size={13} /> Restaurar
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )
+      )}
 
       {/* Documents tab */}
       {tab === 'docs' && (

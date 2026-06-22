@@ -24,13 +24,26 @@ export async function GET(req: NextRequest) {
   if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const allDocs = req.nextUrl.searchParams.get('all') === 'true'
+  const trash   = req.nextUrl.searchParams.get('trash') === 'true'
   const canViewAll = isManager(ctx.payload.role) || ctx.payload.isAdmin
+
+  // Lixeira — apenas coordenação/admin, escopada à escola
+  if (trash) {
+    if (!canViewAll) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+    if (!ctx.school) return NextResponse.json([])
+    const trashed = await db.lessDocument.findMany({
+      where:   { schoolId: ctx.school.id, deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
+      select:  { id: true, type: true, title: true, status: true, deletedAt: true, user: { select: { name: true } } },
+    })
+    return NextResponse.json(trashed)
+  }
 
   const where = ctx.school
     ? (allDocs && canViewAll
-        ? { schoolId: ctx.school.id }
-        : { schoolId: ctx.school.id, userId: ctx.payload.userId })
-    : { userId: ctx.payload.userId }
+        ? { schoolId: ctx.school.id, deletedAt: null }
+        : { schoolId: ctx.school.id, userId: ctx.payload.userId, deletedAt: null })
+    : { userId: ctx.payload.userId, deletedAt: null }
 
   const docs = await db.lessDocument.findMany({
     where,
@@ -49,7 +62,7 @@ export async function POST(req: NextRequest) {
   if (ctx.payload.role === 'SECRETARY')
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { type, title } = body
+  const { type, title, content } = body
   if (!ALL_DOC_TYPES.includes(type as DocType))
     return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 })
   if (!title?.trim())
@@ -63,7 +76,7 @@ export async function POST(req: NextRequest) {
       userId:   ctx.payload.userId,
       type:     type as DocType,
       title:    title.trim(),
-      content:  {},
+      content:  (content && typeof content === 'object') ? content : {},
       status:   'DRAFT',
     },
   })

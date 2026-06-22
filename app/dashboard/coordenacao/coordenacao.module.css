@@ -411,3 +411,17 @@
   .formGrid { grid-template-columns: 1fr; }
   .tabs { align-self: stretch; }
 }
+
+.restoreBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--brand-alpha-border);
+  border-radius: 0.5rem;
+  background: var(--brand-alpha);
+  color: var(--brand-dark);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}

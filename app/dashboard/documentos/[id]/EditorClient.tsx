@@ -9,6 +9,14 @@ import {
   FileCheck, Zap, type LucideIcon,
 } from 'lucide-react'
 import { Fragment } from 'react'
+import { PeiEditor } from './PeiEditor'
+import { GuiaEditor } from './GuiaEditor'
+import { PdiEditor } from './PdiEditor'
+import { ProjetoEditor } from './ProjetoEditor'
+import { EletivaEditor } from './EletivaEditor'
+import { EmaEditor } from './EmaEditor'
+import { CartaNauticaEditor } from './CartaNauticaEditor'
+import { AtaEditor } from './AtaEditor'
 import s from './editor.module.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -710,13 +718,21 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
   async function autoSave(t: string, c: Record<string, string>) {
     setSaving(true)
     try {
-      await fetch(`/api/documentos/${doc.id}`, {
+      const res = await fetch(`/api/documentos/${doc.id}`, {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ title: t, content: c }),
       })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setError(d.error ?? 'Falha ao salvar automaticamente — suas alterações podem não ter sido salvas.')
+        return
+      }
+      setError(null)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+    } catch {
+      setError('Sem conexão — alterações não salvas. Verifique sua internet.')
     } finally { setSaving(false) }
   }
 
@@ -738,6 +754,38 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
     setPdfing(true); setError(null)
     try {
       await save()
+
+      // PEI em lote: múltiplos alunos → um PDF por aluno
+      if (docType === 'PEI' && fields._selectedStudentIds) {
+        const ids = fields._selectedStudentIds.split(',').map(Number).filter(Boolean)
+        if (ids.length > 1) {
+          const studentsRes = await fetch('/api/less/pei-students')
+          const allStudents: { id: number; name: string; ra: string; turma: string; diagnostico?: string; profColaborativo?: string; profAee?: string }[] =
+            studentsRes.ok ? await studentsRes.json() : []
+          const students = ids.map(id => allStudents.find(s => s.id === id)).filter(Boolean)
+          const res = await fetch('/api/pei/batch-pdf', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ students, sharedContent: buildContent(fields), title }),
+          })
+          if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Erro ao gerar PDFs.'); return }
+          const { pdfs } = await res.json() as { pdfs: { studentName: string; pdfBase64: string }[] }
+          for (const { studentName, pdfBase64 } of pdfs) {
+            const bytes = atob(pdfBase64)
+            const arr = new Uint8Array(bytes.length)
+            for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i)
+            const blob = new Blob([arr], { type: 'application/pdf' })
+            const url  = URL.createObjectURL(blob)
+            const a    = document.createElement('a')
+            a.href = url; a.download = `PEI - ${studentName}.pdf`; a.click()
+            URL.revokeObjectURL(url)
+            await new Promise(r => setTimeout(r, 250))
+          }
+          router.refresh()
+          return
+        }
+      }
+
       const res = await fetch(`/api/documentos/${doc.id}/pdf`, { method: 'POST' })
       if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Erro ao gerar PDF.'); return }
       const blob = await res.blob()
@@ -1525,90 +1573,6 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
     )
   }
 
-  function renderAprendizagensChecklist() {
-    if (!aes || aes.length === 0) return null
-    return (
-      <div className={s.checklistSection}>
-        <p className={s.checklistTitle}>aprendizagens essenciais</p>
-        <div className={s.checklist}>
-          {aes.map(ae => {
-            const selected = selAEs.includes(ae.descricao)
-            return (
-              <button
-                key={ae.id}
-                className={`${s.checkItem} ${selected ? s.checkItemOn : ''}`}
-                onClick={() => toggleAE(ae.descricao)}
-              >
-                <span className={s.checkBox}>{selected && <Check size={10} />}</span>
-                <span className={s.checkCode}>{ae.codigo}</span>
-                <span className={s.checkDesc}>{ae.descricao}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    )
-  }
-
-  function renderInstrumentosChecklist() {
-    if (!instrumentos || instrumentos.length === 0) return null
-    return (
-      <div className={s.checklistSection}>
-        <p className={s.checklistTitle}>instrumentos avaliativos</p>
-        <div className={s.checklist}>
-          {instrumentos.map(inst => {
-            const selected = selInstr.includes(inst.nome)
-            return (
-              <button
-                key={inst.id}
-                className={`${s.checkItem} ${selected ? s.checkItemOn : ''}`}
-                onClick={() => toggleInstrumento(inst.nome)}
-              >
-                <span className={s.checkBox}>{selected && <Check size={10} />}</span>
-                <span className={s.checkDesc}>{inst.nome}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    )
-  }
-
-  function renderPeiSelector() {
-    const selected = peiStudents?.find(p => p.id === peiStudentId)
-    return (
-      <div className={s.cascadeSection}>
-        <p className={s.cascadeSectionTitle}>aluno PEI</p>
-        <div className={s.selectWrap}>
-          <select
-            className={s.cascadeSelect}
-            style={{ width: '100%', maxWidth: 480 }}
-            value={peiStudentId ?? ''}
-            onChange={e => handlePeiStudentChange(Number(e.target.value))}
-          >
-            <option value="">selecionar aluno…</option>
-            {(peiStudents ?? []).map(p => (
-              <option key={p.id} value={p.id}>
-                {p.turma} — {p.name} {p.diagnostico ? `(${p.diagnostico})` : ''}
-              </option>
-            ))}
-          </select>
-          <ChevronDown size={14} className={s.selectChevron} />
-        </div>
-        {selected && (
-          <div className={s.peiCard}>
-            <div className={s.peiRow}><span className={s.peiLbl}>RA</span><span>{selected.ra}</span></div>
-            <div className={s.peiRow}><span className={s.peiLbl}>Turma</span><span>{selected.turma}</span></div>
-            {selected.diagnostico && <div className={s.peiRow}><span className={s.peiLbl}>Diagnóstico</span><span>{selected.diagnostico}</span></div>}
-            {selected.profColaborativo && <div className={s.peiRow}><span className={s.peiLbl}>Prof. Colaborativo</span><span>{selected.profColaborativo}</span></div>}
-            {selected.profAee && <div className={s.peiRow}><span className={s.peiLbl}>Prof. AEE</span><span>{selected.profAee}</span></div>}
-          </div>
-        )}
-        <div className={s.peiDivider} />
-      </div>
-    )
-  }
-
   function renderField(field: FieldDef) {
     const val = fields[field.key] ?? ''
 
@@ -1700,6 +1664,11 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
+  // ATA tem editor dedicado (4 abas, importação de planilha, 3 PDFs)
+  if (docType === 'ATA') {
+    return <AtaEditor doc={{ id: doc.id, title: doc.title, content: doc.content as Record<string, unknown> }} />
+  }
+
   return (
     <div className={s.layout}>
 
@@ -1743,20 +1712,25 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
 
           {error && <p className={s.errMsg}>{error}</p>}
 
-          {isPeiType(docType) && renderPeiSelector()}
+          {isPeiType(docType) && <PeiEditor fields={fields} setField={setField} isAdmin={isAdmin} />}
 
-          {docType === 'PLANO_AULA' && renderPlanoAulaWizard()}
+          {(docType === 'GUIA_APRENDIZAGEM' || docType === 'OE_GUIA_APRENDIZAGEM') && <GuiaEditor fields={fields} setField={setField} isAdmin={isAdmin} />}
 
-          {isCurriculumType(docType) && docType !== 'PLANO_AULA' && renderCurriculumCascade()}
+          {docType === 'PDI' && <PdiEditor fields={fields} setField={setField} />}
 
-          {docType === 'GUIA_APRENDIZAGEM' && aulaBase && (
-            <div className={s.fieldsGroup}>
-              {renderAprendizagensChecklist()}
-              {renderInstrumentosChecklist()}
-            </div>
-          )}
+          {docType === 'PROJETO' && <ProjetoEditor fields={fields} setField={setField} />}
 
-          {docType !== 'PLANO_AULA' && (
+          {docType === 'PLANO_ELETIVA' && <EletivaEditor fields={fields} setField={setField} />}
+
+          {docType === 'PLANO_EMA' && <EmaEditor fields={fields} setField={setField} />}
+
+          {docType === 'CARTA_NAUTICA' && <CartaNauticaEditor fields={fields} setField={setField} />}
+
+          {(docType === 'PLANO_AULA' || docType === 'OE_PLANO_AULA') && renderPlanoAulaWizard()}
+
+          {isCurriculumType(docType) && docType !== 'PLANO_AULA' && docType !== 'GUIA_APRENDIZAGEM' && docType !== 'PLANO_ELETIVA' && docType !== 'PLANO_EMA' && renderCurriculumCascade()}
+
+          {docType !== 'PLANO_AULA' && docType !== 'OE_PLANO_AULA' && !isPeiType(docType) && docType !== 'GUIA_APRENDIZAGEM' && docType !== 'OE_GUIA_APRENDIZAGEM' && docType !== 'PDI' && docType !== 'PROJETO' && docType !== 'PLANO_ELETIVA' && docType !== 'PLANO_EMA' && docType !== 'CARTA_NAUTICA' && (
             <div className={s.fields}>
               {meta?.fields
                 .filter(f => {
@@ -1818,9 +1792,15 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
       {/* ── Sticky bottom action bar ── */}
       <div className={s.bottomBar}>
         <div className={s.bottomBarLeft}>
-          <p className={`${s.savedMsg} ${saved ? s.savedMsgVisible : ''}`}>
-            <CheckCircle size={11} /> salvo
-          </p>
+          {error ? (
+            <p className={s.saveError}><Clock size={12} /> {error}</p>
+          ) : saving ? (
+            <p className={s.savingMsg}><Clock size={11} /> salvando…</p>
+          ) : (
+            <p className={`${s.savedMsg} ${saved ? s.savedMsgVisible : ''}`}>
+              <CheckCircle size={11} /> salvo
+            </p>
+          )}
         </div>
         <div className={s.bottomBarRight}>
           {confirmDelete ? (

@@ -49,7 +49,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   let aprendizagensEssenciais: AprendizagemEssencial[] | undefined
   let aulasSelecionadas: AulaSelecionada[] | undefined
 
-  if (doc.type === 'PLANO_AULA') {
+  if (doc.type === 'PLANO_AULA' || doc.type === 'OE_PLANO_AULA') {
     const aulaIds = parseIds(content.aula_ids ?? content.aula_id)
 
     if (aulaIds.length > 0) {
@@ -85,6 +85,31 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
           }))
         }
       }
+    }
+  } else if (doc.type === 'GUIA_APRENDIZAGEM' || doc.type === 'OE_GUIA_APRENDIZAGEM') {
+    // Guia: todas as aulas do bimestre + aprendizagens essenciais
+    const bimestreNum    = Number(content.bimestre)
+    const aulasNome      = (content._aulas_nome || content.disciplina || '').trim()
+    const ciclo          = content._ciclo
+    const serie          = content._serie
+
+    if (bimestreNum && aulasNome && ciclo && serie) {
+      const aulas = await db.lessAula.findMany({
+        where:   { disciplinaNome: aulasNome, ciclo, serie, bimestre: bimestreNum },
+        orderBy: { aulaNum: 'asc' },
+      })
+      aulasSelecionadas = aulas.map(a => ({
+        aulaNum:   a.aulaNum,
+        titulo:    a.titulo,
+        conteudo:  a.conteudo,
+        objetivos: a.objetivos,
+      }))
+
+      const aesRaw = await db.lessAprendizagemEssencial.findMany({
+        where:   { disciplinaNome: { contains: aulasNome, mode: 'insensitive' }, bimestre: bimestreNum, ciclo, serie },
+        orderBy: { codigo: 'asc' },
+      })
+      aprendizagensEssenciais = aesRaw.map(ae => ({ codigo: ae.codigo, descricao: ae.descricao }))
     }
   }
 

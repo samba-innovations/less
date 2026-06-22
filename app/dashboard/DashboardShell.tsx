@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, FileText, FilePlus, Users, Compass,
-  HelpCircle, Sun, Moon, LogOut, PanelLeft, Menu, X,
+  HelpCircle, Sun, Moon, LogOut, PanelLeft, Menu, X, MessageSquare, Layers, BookMarked,
 } from 'lucide-react'
 import type { JwtPayload } from '@/lib/jwt'
 import { isManager } from '@/lib/jwt'
@@ -37,12 +37,15 @@ const NAV_PRINCIPAL: NavItem[] = [
 ]
 
 const NAV_DOCUMENTOS: NavItem[] = [
-  { label: 'meus documentos', href: '/dashboard/documentos',        icon: FileText  },
-  { label: 'novo documento',  href: '/dashboard/documentos/novo',   icon: FilePlus  },
+  { label: 'meus documentos', href: '/dashboard/documentos',        icon: FileText      },
+  { label: 'novo documento',  href: '/dashboard/documentos/novo',   icon: FilePlus      },
+  { label: 'devolutivas',     href: '/dashboard/devolutivas',       icon: MessageSquare },
+  { label: 'orient. estudos', href: '/dashboard/oe',                icon: BookMarked    },
 ]
 
 const NAV_COORDENACAO: NavItem[] = [
-  { label: 'equipe',          href: '/dashboard/coordenacao',       icon: Users     },
+  { label: 'equipe',           href: '/dashboard/coordenacao',     icon: Users     },
+  { label: 'considerações',    href: '/dashboard/consideracoes',   icon: Layers    },
 ]
 
 const NAV_SUPORTE: NavItem[] = [

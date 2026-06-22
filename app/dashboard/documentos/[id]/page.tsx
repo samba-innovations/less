@@ -27,6 +27,7 @@ export default async function DocumentoPage({
   const doc = await db.lessDocument.findFirst({
     where: {
       id:       Number(id),
+      deletedAt: null,
       ...(school ? { schoolId: school.id } : {}),
       ...(manager || session.isAdmin ? {} : { userId: session.userId }),
     },

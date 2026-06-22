@@ -21,6 +21,7 @@ async function getDoc(id: number, ctx: Awaited<ReturnType<typeof auth>>) {
     where: {
       id,
       schoolId: ctx.school.id,
+      deletedAt: null,
       ...(manager ? {} : { userId: ctx.payload.userId }),
     },
   })
@@ -43,6 +44,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!doc) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
 
   const body = await req.json()
+
+  // Guards de robustez/segurança
+  if (body.title !== undefined && typeof body.title !== 'string')
+    return NextResponse.json({ error: 'Título inválido' }, { status: 400 })
+  if (body.content !== undefined) {
+    if (typeof body.content !== 'object' || body.content === null)
+      return NextResponse.json({ error: 'Conteúdo inválido' }, { status: 400 })
+    if (JSON.stringify(body.content).length > 500_000)
+      return NextResponse.json({ error: 'Conteúdo muito grande' }, { status: 413 })
+  }
+  if (body.status !== undefined && !['DRAFT', 'FINAL'].includes(body.status))
+    return NextResponse.json({ error: 'Status inválido' }, { status: 400 })
+
   const updated = await db.lessDocument.update({
     where: { id: doc.id },
     data: {
@@ -63,6 +77,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const doc = await getDoc(Number(id), ctx)
   if (!doc) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
 
-  await db.lessDocument.delete({ where: { id: doc.id } })
+  // Soft delete — preserva o registro para auditoria/retenção (ATA/PEI têm valor legal)
+  await db.lessDocument.update({ where: { id: doc.id }, data: { deletedAt: new Date() } })
   return NextResponse.json({ ok: true })
 }

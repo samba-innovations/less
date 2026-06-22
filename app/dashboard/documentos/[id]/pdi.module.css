@@ -1,0 +1,32 @@
+.wrap { display: flex; flex-direction: column; gap: 1.5rem; }
+.section { display: flex; flex-direction: column; gap: 0.875rem; }
+.sectionHead { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; font-weight: 700; color: var(--fg); }
+.dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--brand); flex-shrink: 0; }
+.empty { font-size: 0.8125rem; color: var(--fg-secondary); font-style: italic; margin: 0; }
+
+.field { display: flex; flex-direction: column; gap: 0.4rem; }
+.label { font-size: 0.75rem; font-weight: 600; color: var(--fg); display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+.hint { font-size: 0.6875rem; font-weight: 400; color: var(--fg-secondary); }
+
+.input, .textarea, .select {
+  width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 0.625rem;
+  background: var(--surface); color: var(--fg); font-size: 0.875rem; outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input:focus, .textarea:focus, .select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-alpha); }
+.textarea { resize: vertical; line-height: 1.5; }
+.select { appearance: none; padding-right: 2rem; cursor: pointer; }
+.select:disabled { opacity: 0.5; cursor: not-allowed; }
+.selectWrap { position: relative; }
+.selectChevron { position: absolute; right: 0.625rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--fg-secondary); }
+
+.idGrid, .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 640px) { .idGrid, .grid2 { grid-template-columns: 1fr; } }
+
+.card { display: flex; flex-direction: column; gap: 0.875rem; padding: 1rem; border: 1px solid var(--border); border-radius: 0.875rem; background: var(--surface); }
+.cardHead { display: flex; align-items: center; justify-content: space-between; }
+.cardTitle { font-size: 0.8125rem; font-weight: 700; color: var(--fg); }
+.removeBtn { width: 1.75rem; height: 1.75rem; display: flex; align-items: center; justify-content: center; border-radius: 0.4rem; color: #dc2626; transition: background 0.12s; }
+.removeBtn:hover { background: rgba(220,38,38,0.1); }
+
+.addBtn { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.75rem; border: 2px dashed var(--border); border-radius: 0.75rem; background: var(--bg); color: var(--fg); font-size: 0.875rem; font-weight: 600; transition: all 0.15s; }
+.addBtn:hover { border-color: var(--brand); background: var(--brand-alpha); color: var(--brand-dark); }

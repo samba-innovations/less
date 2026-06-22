@@ -23,11 +23,11 @@ export default async function DashboardPage() {
   const manager = isManager(session.role) || session.isAdmin
 
   const [totalDocs, draftDocs, finalDocs, teamDrafts] = await Promise.all([
-    db.lessDocument.count({ where: { schoolId: school.id, userId: session.userId } }),
-    db.lessDocument.count({ where: { schoolId: school.id, userId: session.userId, status: 'DRAFT' } }),
-    db.lessDocument.count({ where: { schoolId: school.id, userId: session.userId, status: 'FINAL' } }),
+    db.lessDocument.count({ where: { schoolId: school.id, userId: session.userId, deletedAt: null } }),
+    db.lessDocument.count({ where: { schoolId: school.id, userId: session.userId, status: 'DRAFT', deletedAt: null } }),
+    db.lessDocument.count({ where: { schoolId: school.id, userId: session.userId, status: 'FINAL', deletedAt: null } }),
     manager
-      ? db.lessDocument.count({ where: { schoolId: school.id, status: 'DRAFT' } })
+      ? db.lessDocument.count({ where: { schoolId: school.id, status: 'DRAFT', deletedAt: null } })
       : Promise.resolve(0),
   ])
 
