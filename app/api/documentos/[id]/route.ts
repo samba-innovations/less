@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken, isManager } from '@/lib/jwt'
+import { verifyToken, isManager, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { pushToSchool } from '@/lib/sse-broadcaster'
 
@@ -16,7 +16,7 @@ async function auth() {
 
 async function getDoc(id: number, ctx: Awaited<ReturnType<typeof auth>>) {
   if (!ctx) return null
-  const manager = isManager(ctx.payload.role) || ctx.payload.isAdmin
+  const manager = isManager(effectiveRole(ctx.payload))
   return db.lessDocument.findFirst({
     where: {
       id,

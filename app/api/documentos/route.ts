@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken, isManager } from '@/lib/jwt'
+import { verifyToken, isManager, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { ALL_DOC_TYPES, type DocType } from '@/lib/doc-types'
 import { pushToSchool } from '@/lib/sse-broadcaster'
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
   const allDocs = req.nextUrl.searchParams.get('all') === 'true'
   const trash   = req.nextUrl.searchParams.get('trash') === 'true'
-  const canViewAll = isManager(ctx.payload.role) || ctx.payload.isAdmin
+  const canViewAll = isManager(effectiveRole(ctx.payload))
 
   // Lixeira — apenas coordenação/admin, escopada à escola
   if (trash) {

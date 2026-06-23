@@ -1,8 +1,21 @@
 import { NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
+
+// Aprendizagens essenciais (SED) — compartilhadas e quase estáticas, sem PII.
+const getAprendizagens = unstable_cache(
+  (disciplina: string, serie: string, ciclo: string, bimestre: number) =>
+    db.lessAprendizagemEssencial.findMany({
+      where:   { disciplinaNome: disciplina, serie, ciclo, bimestre },
+      select:  { id: true, codigo: true, descricao: true },
+      orderBy: { codigo: 'asc' },
+    }),
+  ['less-aprendizagens'],
+  { revalidate: 3600, tags: ['less-curriculum'] },
+)
 
 export async function GET(req: Request) {
   const session = await getSession()
@@ -18,11 +31,5 @@ export async function GET(req: Request) {
     return NextResponse.json([])
   }
 
-  const aes = await db.lessAprendizagemEssencial.findMany({
-    where: { disciplinaNome: disciplina, serie, ciclo, bimestre },
-    select: { id: true, codigo: true, descricao: true },
-    orderBy: { codigo: 'asc' },
-  })
-
-  return NextResponse.json(aes)
+  return NextResponse.json(await getAprendizagens(disciplina, serie, ciclo, bimestre))
 }

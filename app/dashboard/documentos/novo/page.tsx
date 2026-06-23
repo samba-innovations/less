@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
-import { isManager } from '@/lib/jwt'
+import { isManager, effectiveRole } from '@/lib/jwt'
 import { DOC_TYPES, type DocType } from '@/lib/doc-types'
 import { NovoClient } from './NovoClient'
 
@@ -16,6 +16,6 @@ export default async function NovoPage({
   const preType = type && type in DOC_TYPES ? type as DocType : undefined
 
   return (
-    <NovoClient isManager={isManager(session.role) || session.isAdmin} preType={preType} />
+    <NovoClient isManager={isManager(effectiveRole(session))} preType={preType} />
   )
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken, isManager } from '@/lib/jwt'
+import { verifyToken, isManager, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 
 async function auth() {
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const ctx = await auth()
   if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!isManager(ctx.payload.role) && !ctx.payload.isAdmin)
+  if (!isManager(effectiveRole(ctx.payload)))
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { id } = await params

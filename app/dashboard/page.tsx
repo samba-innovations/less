@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { isManager } from '@/lib/jwt'
+import { isManager, effectiveRole } from '@/lib/jwt'
 import { DOC_TYPES, type DocType } from '@/lib/doc-types'
 import {
   FileText, CheckCircle2, Clock, Users, FilePlus,
@@ -20,7 +20,7 @@ export default async function DashboardPage() {
   const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } }, include: { organization: true } })
   if (!school) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
 
-  const manager = isManager(session.role) || session.isAdmin
+  const manager = isManager(effectiveRole(session))
 
   const [totalDocs, draftDocs, finalDocs, teamDrafts] = await Promise.all([
     db.lessDocument.count({ where: { schoolId: school.id, userId: session.userId, deletedAt: null } }),

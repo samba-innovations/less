@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken, isManager } from '@/lib/jwt'
+import { verifyToken, isManager, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 
 // Restaura um documento soft-deleted (apenas coordenação/admin, escopado à escola)
@@ -9,7 +9,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   let payload: Awaited<ReturnType<typeof verifyToken>>
   try { payload = await verifyToken(token) } catch { return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
-  if (!isManager(payload.role) && !payload.isAdmin) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+  if (!isManager(effectiveRole(payload))) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
   const { id } = await params
   const school = payload.isAdmin && !payload.orgSlug ? null

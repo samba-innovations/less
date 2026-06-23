@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken, canCreateAta } from '@/lib/jwt'
+import { verifyToken, canCreateAta, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { buildAtaPdf } from '@/lib/ata-pdf'
 import type { AtaCsvData } from '@/lib/ata'
@@ -10,7 +10,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!token) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   let payload: Awaited<ReturnType<typeof verifyToken>>
   try { payload = await verifyToken(token) } catch { return NextResponse.json({ error: 'Não autenticado' }, { status: 401 }) }
-  if (!canCreateAta(payload.role) && !payload.isAdmin) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+  if (!canCreateAta(effectiveRole(payload))) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
   const { id } = await params
   const school = payload.isAdmin && !payload.orgSlug ? null

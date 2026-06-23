@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { isManager } from '@/lib/jwt'
+import { isManager, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -38,7 +38,7 @@ export async function GET(req: Request) {
 
   let classIds: number[]
 
-  if (isManager(session.role) || session.isAdmin) {
+  if (isManager(effectiveRole(session))) {
     const allClasses = await db.class.findMany({
       where:  { schoolId: school.id, isActive: true },
       select: { id: true },

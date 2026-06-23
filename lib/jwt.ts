@@ -16,12 +16,22 @@ export type JwtPayload = {
   isAdmin:   boolean
 }
 
-export const MANAGER_ROLES = ['PRINCIPAL', 'VICE_PRINCIPAL', 'COORDINATOR']
+export const MANAGER_ROLES = ['ADMIN', 'PRINCIPAL', 'VICE_PRINCIPAL', 'COORDINATOR']
 export const TEACHER_ROLES = ['TEACHER', 'TEACHER_COORDINATOR']
+
+/**
+ * Role efetivo de uma sessão. Um admin global de plataforma (isAdmin) não tem
+ * vínculo por-organização, então o tratamos como o topo da hierarquia ('ADMIN').
+ * Use SEMPRE este resolver nas checagens de permissão — assim a autoridade fica
+ * num único ponto e nunca depende de lembrar do `|| isAdmin` em cada call site.
+ */
+export function effectiveRole(s: { role: string; isAdmin?: boolean }): string {
+  return s.isAdmin ? 'ADMIN' : s.role
+}
 
 export function isManager(role: string) { return MANAGER_ROLES.includes(role) }
 export function isTeacher(role: string)  { return TEACHER_ROLES.includes(role) }
-export function canCreateDoc(role: string) { return role !== 'SECRETARY' }
+export function canCreateDoc(role: string) { return role === 'ADMIN' || role !== 'SECRETARY' }
 
 /** Pode criar/editar documentos próprios */
 export function canWrite(role: string) {
@@ -30,22 +40,22 @@ export function canWrite(role: string) {
 
 /** Pode criar, visualizar e exportar ATAs */
 export function canCreateAta(role: string) {
-  return ['COORDINATOR', 'TEACHER_COORDINATOR', 'PRINCIPAL', 'VICE_PRINCIPAL'].includes(role)
+  return ['ADMIN', 'COORDINATOR', 'TEACHER_COORDINATOR', 'PRINCIPAL', 'VICE_PRINCIPAL'].includes(role)
 }
 
 /** Pode ver documentos de todos e dar devolutivas */
 export function canAdmin(role: string) {
-  return ['COORDINATOR', 'TEACHER_COORDINATOR', 'PRINCIPAL', 'VICE_PRINCIPAL'].includes(role)
+  return ['ADMIN', 'COORDINATOR', 'TEACHER_COORDINATOR', 'PRINCIPAL', 'VICE_PRINCIPAL'].includes(role)
 }
 
 /** Pode ver o card de Produção OE */
 export function canAccessOECard(role: string) {
-  return ['TEACHER', 'TEACHER_COORDINATOR', 'COORDINATOR', 'PRINCIPAL', 'VICE_PRINCIPAL'].includes(role)
+  return ['ADMIN', 'TEACHER', 'TEACHER_COORDINATOR', 'COORDINATOR', 'PRINCIPAL', 'VICE_PRINCIPAL'].includes(role)
 }
 
 /** Pode produzir documentos OE */
 export function canProduceOEDocuments(role: string) {
-  return ['TEACHER', 'TEACHER_COORDINATOR', 'COORDINATOR'].includes(role)
+  return ['ADMIN', 'TEACHER', 'TEACHER_COORDINATOR', 'COORDINATOR'].includes(role)
 }
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET!)

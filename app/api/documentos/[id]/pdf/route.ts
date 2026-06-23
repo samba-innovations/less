@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken, isManager } from '@/lib/jwt'
+import { verifyToken, isManager, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { generatePdf } from '@/lib/pdf'
 import type { AprendizagemEssencial, AulaSelecionada } from '@/lib/pdf'
@@ -32,7 +32,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const manager = isManager(ctx.payload.role) || ctx.payload.isAdmin
+  const manager = isManager(effectiveRole(ctx.payload))
 
   const doc = await db.lessDocument.findFirst({
     where: {

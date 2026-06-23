@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken, canCreateAta } from '@/lib/jwt'
+import { verifyToken, canCreateAta, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { generateConsideracoesDocx, type ConsideracoesInput } from '@/lib/docx-consideracoes'
 
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   let payload: Awaited<ReturnType<typeof verifyToken>>
   try { payload = await verifyToken(token) } catch { return NextResponse.json({ error: 'Não autenticado' }, { status: 401 }) }
 
-  if (!canCreateAta(payload.role) && !payload.isAdmin) {
+  if (!canCreateAta(effectiveRole(payload))) {
     return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
   }
 

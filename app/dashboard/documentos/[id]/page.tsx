@@ -1,7 +1,7 @@
 import { redirect, notFound } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { isManager } from '@/lib/jwt'
+import { isManager, effectiveRole } from '@/lib/jwt'
 import { EditorClient } from './EditorClient'
 
 export const dynamic = 'force-dynamic'
@@ -22,14 +22,14 @@ export default async function DocumentoPage({
     if (!school) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
   }
 
-  const manager = isManager(session.role) || session.isAdmin
+  const manager = isManager(effectiveRole(session))
 
   const doc = await db.lessDocument.findFirst({
     where: {
       id:       Number(id),
       deletedAt: null,
       ...(school ? { schoolId: school.id } : {}),
-      ...(manager || session.isAdmin ? {} : { userId: session.userId }),
+      ...(manager ? {} : { userId: session.userId }),
     },
     include: {
       feedbacks: {

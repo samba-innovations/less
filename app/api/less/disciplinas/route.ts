@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { isManager } from '@/lib/jwt'
+import { isManager, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -13,7 +13,7 @@ export async function GET(req: Request) {
   const classId = Number(searchParams.get('classId'))
   if (!classId) return NextResponse.json({ error: 'classId obrigatório' }, { status: 400 })
 
-  const manager = isManager(session.role) || session.isAdmin
+  const manager = isManager(effectiveRole(session))
 
   // Gestor/admin: todas as disciplinas vinculadas à turma.
   // Professor: apenas as disciplinas que leciona naquela turma.

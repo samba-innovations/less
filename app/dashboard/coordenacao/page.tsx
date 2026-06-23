@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { isManager } from '@/lib/jwt'
+import { isManager, effectiveRole } from '@/lib/jwt'
 import { CoordenacaoClient } from './CoordenacaoClient'
 
 export const dynamic = 'force-dynamic'
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 export default async function CoordenacaoPage() {
   const session = await getSession()
   if (!session) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
-  if (!isManager(session.role) && !session.isAdmin) redirect('/dashboard')
+  if (!isManager(effectiveRole(session))) redirect('/dashboard')
 
   const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } } })
   if (!school) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')

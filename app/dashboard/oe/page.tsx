@@ -4,14 +4,14 @@ export const dynamic  = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { canAccessOECard } from '@/lib/jwt'
+import { canAccessOECard, effectiveRole } from '@/lib/jwt'
 import { OEClient } from './OEClient'
 
 export default async function OEPage() {
   const session = await getSession()
   if (!session) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
 
-  if (!canAccessOECard(session.role) && !session.isAdmin) {
+  if (!canAccessOECard(effectiveRole(session))) {
     redirect('/dashboard')
   }
 

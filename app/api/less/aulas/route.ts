@@ -1,8 +1,34 @@
 import { NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
+
+// Currículo SED é compartilhado e quase estático (sem PII) → cacheado no servidor.
+// A autenticação fica FORA do cache (roda por request); só o dado é cacheado.
+const getAulas = unstable_cache(
+  (disciplina: string, serie: string, ciclo: string, bimestre: number) =>
+    db.lessAula.findMany({
+      where: { disciplinaNome: disciplina, serie, ciclo, bimestre },
+      select: {
+        id:                 true,
+        aulaNum:            true,
+        titulo:             true,
+        eixo:               true,
+        unidadeTematica:    true,
+        habilidadeCodigo:   true,
+        habilidadeTexto:    true,
+        objetoConhecimento: true,
+        conteudo:           true,
+        objetivos:          true,
+        bloco:              true,
+      },
+      orderBy: { aulaNum: 'asc' },
+    }),
+  ['less-aulas'],
+  { revalidate: 3600, tags: ['less-curriculum'] },
+)
 
 export async function GET(req: Request) {
   const session = await getSession()
@@ -18,28 +44,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Parâmetros incompletos' }, { status: 400 })
   }
 
-  const aulas = await db.lessAula.findMany({
-    where: {
-      disciplinaNome: disciplina,
-      serie,
-      ciclo,
-      bimestre,
-    },
-    select: {
-      id:                 true,
-      aulaNum:            true,
-      titulo:             true,
-      eixo:               true,
-      unidadeTematica:    true,
-      habilidadeCodigo:   true,
-      habilidadeTexto:    true,
-      objetoConhecimento: true,
-      conteudo:           true,
-      objetivos:          true,
-      bloco:              true,
-    },
-    orderBy: { aulaNum: 'asc' },
-  })
-
-  return NextResponse.json(aulas)
+  return NextResponse.json(await getAulas(disciplina, serie, ciclo, bimestre))
 }

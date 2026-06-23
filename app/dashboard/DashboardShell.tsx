@@ -8,7 +8,7 @@ import {
   HelpCircle, Sun, Moon, LogOut, PanelLeft, Menu, X, MessageSquare, Layers, BookMarked,
 } from 'lucide-react'
 import type { JwtPayload } from '@/lib/jwt'
-import { isManager } from '@/lib/jwt'
+import { isManager, effectiveRole } from '@/lib/jwt'
 import { NotificationBell } from './_components/NotificationBell'
 import { SupportWidget } from './_components/SupportWidget'
 import { SpotlightTour } from './_components/SpotlightTour'
@@ -114,7 +114,7 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
     localStorage.setItem('samba-sidebar-collapsed', String(next))
   }
 
-  const isManagerUser = isManager(payload.role) || payload.isAdmin
+  const isManagerUser = isManager(effectiveRole(payload))
   const roleLabel     = payload.isAdmin ? 'Administrador(a)' : (ROLE_PT[payload.role] ?? payload.role)
   const initials      = user?.name
     ?.split(' ')

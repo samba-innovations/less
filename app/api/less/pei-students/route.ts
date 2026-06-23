@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { isManager } from '@/lib/jwt'
+import { isManager, effectiveRole } from '@/lib/jwt'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,7 +31,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const session = await getSession()
-  if (!session || (!isManager(session.role) && !session.isAdmin))
+  if (!session || (!isManager(effectiveRole(session))))
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
   const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } } })
