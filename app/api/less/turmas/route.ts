@@ -68,5 +68,7 @@ function mapClass(c: { id: number; name: string; grade: { name: string; level: s
   const isEF = c.grade.level === 'EF2' || c.grade.level === 'EF1'
   const ciclo = isEF ? 'fundamental' : 'medio'
   const serie = String(isEF ? c.grade.order : c.grade.order - 9)
-  return { id: c.id, name: c.name, grade: c.grade.name, ciclo, serie }
+  // Rótulo completo "série + turma" (ex.: 6ªA, 1ªC) — igual ao samba-paper v1.
+  // c.name no banco guarda só a letra da turma; a série vem do grade.
+  return { id: c.id, name: `${serie}ª${c.name}`, section: c.name, grade: c.grade.name, ciclo, serie }
 }
