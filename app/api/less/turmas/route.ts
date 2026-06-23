@@ -69,6 +69,8 @@ function mapClass(c: { id: number; name: string; grade: { name: string; level: s
   const ciclo = isEF ? 'fundamental' : 'medio'
   const serie = String(isEF ? c.grade.order : c.grade.order - 9)
   // Rótulo completo "série + turma" (ex.: 6ªA, 1ªC) — igual ao samba-paper v1.
-  // c.name no banco guarda só a letra da turma; a série vem do grade.
-  return { id: c.id, name: `${serie}ª${c.name}`, section: c.name, grade: c.grade.name, ciclo, serie }
+  // Em produção c.name guarda só a letra; se já vier completo (começa com dígito),
+  // usa como está para não duplicar (ex.: evitar "6ª6ªA").
+  const label = /^\d/.test(c.name) ? c.name : `${serie}ª${c.name}`
+  return { id: c.id, name: label, section: c.name, grade: c.grade.name, ciclo, serie }
 }
