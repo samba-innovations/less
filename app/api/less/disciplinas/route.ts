@@ -15,19 +15,31 @@ export async function GET(req: Request) {
 
   const manager = isManager(effectiveRole(session))
 
-  // Gestor/admin: todas as disciplinas vinculadas à turma.
-  // Professor: apenas as disciplinas que leciona naquela turma.
+  type Disc = { id: number; name: string; aulasNome: string | null }
+
+  // Gestor/admin: todas as disciplinas da turma. Fonte = união de ClassDiscipline
+  // (vínculo oficial) + TeacherAssignment (disciplinas com professor). Em produção
+  // ClassDiscipline pode estar vazia, então o TeacherAssignment garante a lista.
   if (manager) {
-    const cds = await db.classDiscipline.findMany({
-      where:   { classId },
-      select:  { discipline: { select: { id: true, name: true, aulasNome: true } } },
-      orderBy: { discipline: { name: 'asc' } },
-    })
-    return NextResponse.json(cds.map(cd => ({
-      id:        cd.discipline.id,
-      name:      cd.discipline.name,
-      aulasNome: cd.discipline.aulasNome ?? cd.discipline.name,
-    })))
+    const [cds, tas] = await Promise.all([
+      db.classDiscipline.findMany({
+        where:  { classId },
+        select: { discipline: { select: { id: true, name: true, aulasNome: true } } },
+      }),
+      db.teacherAssignment.findMany({
+        where:  { classId },
+        select: { discipline: { select: { id: true, name: true, aulasNome: true } } },
+      }),
+    ])
+
+    const byId = new Map<number, Disc>()
+    for (const x of [...cds, ...tas]) byId.set(x.discipline.id, x.discipline)
+
+    const disciplines = [...byId.values()]
+      .map(d => ({ id: d.id, name: d.name, aulasNome: d.aulasNome ?? d.name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+
+    return NextResponse.json(disciplines)
   }
 
   const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } } })
