@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 export default async function CoordenacaoPage() {
   const session = await getSession()
   if (!session) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
-  if (!isManager(session.role)) redirect('/dashboard')
+  if (!isManager(session.role) && !session.isAdmin) redirect('/dashboard')
 
   const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } } })
   if (!school) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')

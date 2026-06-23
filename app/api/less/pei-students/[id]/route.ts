@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession()
-  if (!session || !isManager(session.role))
+  if (!session || (!isManager(session.role) && !session.isAdmin))
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
   const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } } })

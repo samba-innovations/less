@@ -22,7 +22,7 @@ export default async function DocumentoPage({
     if (!school) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
   }
 
-  const manager = isManager(session.role)
+  const manager = isManager(session.role) || session.isAdmin
 
   const doc = await db.lessDocument.findFirst({
     where: {

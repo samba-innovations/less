@@ -16,6 +16,6 @@ export default async function NovoPage({
   const preType = type && type in DOC_TYPES ? type as DocType : undefined
 
   return (
-    <NovoClient isManager={isManager(session.role)} preType={preType} />
+    <NovoClient isManager={isManager(session.role) || session.isAdmin} preType={preType} />
   )
 }

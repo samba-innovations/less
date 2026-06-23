@@ -38,7 +38,7 @@ export async function GET(req: Request) {
 
   let classIds: number[]
 
-  if (isManager(session.role)) {
+  if (isManager(session.role) || session.isAdmin) {
     const allClasses = await db.class.findMany({
       where:  { schoolId: school.id, isActive: true },
       select: { id: true },

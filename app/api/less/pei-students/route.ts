@@ -31,7 +31,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const session = await getSession()
-  if (!session || !isManager(session.role))
+  if (!session || (!isManager(session.role) && !session.isAdmin))
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
   const school = await db.school.findFirst({ where: { organization: { slug: session.orgSlug } } })
