@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, FileText, FilePlus, Users, Compass,
-  HelpCircle, Sun, Moon, LogOut, PanelLeft, Menu, X, MessageSquare, Layers, BookMarked,
+  HelpCircle, Sun, Moon, LogOut, PanelLeft, Menu, X, MessageSquare, Layers, BookMarked, FileBarChart2,
 } from 'lucide-react'
 import type { JwtPayload } from '@/lib/jwt'
 import { isManager, effectiveRole } from '@/lib/jwt'
@@ -41,6 +41,7 @@ const NAV_DOCUMENTOS: NavItem[] = [
   { label: 'novo documento',  href: '/dashboard/documentos/novo',   icon: FilePlus      },
   { label: 'devolutivas',     href: '/dashboard/devolutivas',       icon: MessageSquare },
   { label: 'orient. estudos', href: '/dashboard/oe',                icon: BookMarked    },
+  { label: 'relatório-síntese', href: '/dashboard/relatorio-sintese', icon: FileBarChart2 },
 ]
 
 const NAV_COORDENACAO: NavItem[] = [
