@@ -70,6 +70,8 @@ enum LessDocType {
   CARTA_NAUTICA
   OE_PLANO_AULA
   OE_GUIA_APRENDIZAGEM
+  RELATORIO_SINTESE
+  DIAGNOSTICO_TURMA
 }
 
 enum LessDocStatus {
@@ -961,10 +963,65 @@ model LessAprendizagemEssencial {
   ciclo          String @db.VarChar(30)
   serie          String @db.VarChar(10)
   bimestre       Int
+  descritores          String[] @default([])
+  habilidadePriorizada String?  @db.VarChar(20) @map("habilidade_priorizada")
 
   @@unique([codigo, disciplinaNome, ciclo, serie, bimestre])
   @@index([disciplinaNome, ciclo, serie, bimestre])
   @@map("less_aprendizagens_essenciais")
+}
+
+// ─── Relatório-Síntese (dados de referência, globais) ───
+model RsCategoria {
+  id    String @id @db.VarChar(8)
+  nome  String @db.VarChar(60)
+  cor   String @db.VarChar(9)
+  icone String @db.VarChar(40)
+  @@map("rs_categoria")
+}
+
+model RsDificuldade {
+  id                    String   @id @db.VarChar(20)
+  categoriaId           String   @map("categoria_id") @db.VarChar(8)
+  titulo                String   @db.VarChar(160)
+  descricaoCurta        String   @map("descricao_curta")
+  descricaoCompleta     String   @map("descricao_completa")
+  textoRelatorio        String   @map("texto_relatorio")
+  nivel                 String?
+  indicadores           String[] @default([])
+  possiveisCausas       String[] @default([]) @map("possiveis_causas")
+  intervencoesSugeridas String[] @default([]) @map("intervencoes_sugeridas")
+  competencias          String[] @default([])
+  cor                   String   @db.VarChar(9)
+  icone                 String   @db.VarChar(40)
+  ativo                 Boolean  @default(true)
+  versao                Int      @default(1)
+  @@index([categoriaId])
+  @@map("rs_dificuldade")
+}
+
+model RsIntervencao {
+  id             String   @id @db.VarChar(20)
+  categoria      String   @db.VarChar(40)
+  titulo         String   @db.VarChar(160)
+  objetivo       String
+  textoRelatorio String   @map("texto_relatorio")
+  indicadaPara   String[] @default([]) @map("indicada_para")
+  ativo          Boolean  @default(true)
+  @@map("rs_intervencao")
+}
+
+model RsRecomposicaoUnlock {
+  id        Int      @id @default(autoincrement())
+  schoolId  Int      @map("school_id")
+  ano       Int
+  bimestre  Int
+  gradeId   Int      @map("grade_id")
+  enabledBy Int      @map("enabled_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@unique([ano, bimestre, gradeId])
+  @@index([schoolId])
+  @@map("rs_recomposicao_unlock")
 }
 
 model LessInstrumentoAvaliativo {
