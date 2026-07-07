@@ -799,6 +799,23 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
     } finally { setPdfing(false) }
   }
 
+  const [docxing, setDocxing] = useState(false)
+  async function generateDocx() {
+    setDocxing(true)
+    try {
+      await save()
+      const res = await fetch(`/api/documentos/${doc.id}/docx`, { method: 'POST' })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error ?? 'Erro ao gerar Word.'); return }
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.docx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally { setDocxing(false) }
+  }
+
   async function deletDoc() {
     setConfirmDelete(false)
     const res = await fetch(`/api/documentos/${doc.id}`, { method: 'DELETE' })
@@ -1820,6 +1837,11 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
           <button className={`${s.actionBtn} ${s.pdfBtn}`} onClick={generatePdf} disabled={pdfing}>
             <FileDown size={13} /> {pdfing ? 'gerando…' : 'baixar PDF'}
           </button>
+          {docType === 'PROJETO' && (
+            <button className={`${s.actionBtn} ${s.pdfBtn}`} onClick={generateDocx} disabled={docxing} title="Word ABNT do Projeto de Pesquisa">
+              <FileDown size={13} /> {docxing ? 'gerando…' : 'baixar Word'}
+            </button>
+          )}
         </div>
       </div>
 

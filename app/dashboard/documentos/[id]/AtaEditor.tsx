@@ -146,6 +146,20 @@ export function AtaEditor({ doc }: Props) {
     } finally { setPdfing(null) }
   }
 
+  const [excelBusy, setExcelBusy] = useState(false)
+  async function genExcel() {
+    if (!csvData) return
+    setExcelBusy(true)
+    try {
+      await save()
+      const body = { csvData, teachers, bimestre, notas, topicos, csvData2 }
+      const res = await fetch(`/api/ata/${doc.id}/export`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); setImportError(d.error ?? 'Erro ao gerar Excel'); return }
+      const blob = await res.blob(); const url = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = url; a.download = `ata_${csvData.meta.turma.replace(/\s+/g, '_')}_${bimestre}.xlsx`; a.click(); URL.revokeObjectURL(url)
+    } finally { setExcelBusy(false) }
+  }
+
   const stats = useMemo(() => csvData ? calcStats(csvData) : null, [csvData])
   const setupDone = turmaId && bimestre
 
@@ -356,6 +370,11 @@ export function AtaEditor({ doc }: Props) {
                 </div>
               )}
             </div>
+          )}
+          {csvData && (
+            <button className={s.pdfBtn} onClick={genExcel} disabled={excelBusy} title="Excel oficial: Resumo · Dados · Mapão · Assinaturas · ATA (5º)">
+              {excelBusy ? <Loader2 size={13} className={s.spin} /> : <FileSpreadsheet size={13} />} {excelBusy ? 'gerando…' : 'gerar Excel'}
+            </button>
           )}
         </div>
       </div>
