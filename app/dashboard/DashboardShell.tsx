@@ -13,6 +13,7 @@ import { NotificationBell } from './_components/NotificationBell'
 import { SupportWidget } from './_components/SupportWidget'
 import { SpotlightTour } from './_components/SpotlightTour'
 import { Breadcrumb } from './_components/Breadcrumb'
+import { BreadcrumbProvider } from './_components/BreadcrumbContext'
 import { PeriodChip } from './_components/PeriodChip'
 import { CommandPaletteTrigger } from './_components/CommandPalette'
 import { StudentLookup } from './_components/StudentLookup'
@@ -190,6 +191,7 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
   }
 
   return (
+    <BreadcrumbProvider>
     <div className={s.shell}>
 
       {/* ── Desktop sidebar ── */}
@@ -289,5 +291,6 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
         <SpotlightTour active={tourActive} onEnd={handleTourEnd} />
       </div>
     </div>
+    </BreadcrumbProvider>
   )
 }

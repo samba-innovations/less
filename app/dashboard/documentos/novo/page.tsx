@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { isManager, effectiveRole } from '@/lib/jwt'
+
+export const metadata = { title: 'novo documento' }
 import { DOC_TYPES, type DocType } from '@/lib/doc-types'
 import { NovoClient } from './NovoClient'
 

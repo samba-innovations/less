@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle2, Layers, ChevronDown, ArrowUpDown } from 'lucide-react'
 import type { ConsideracoesInput, StudentRow, AreaData } from '@/lib/docx-consideracoes'
 import s from './consideracoes.module.css'
+import { ChipSelector } from '../_components/Selector'
 
 // ── CSV parser ────────────────────────────────────────────────────────────────
 
@@ -208,12 +209,12 @@ export function ConsideracoesClient() {
           {sheets.length > 1 && (
             <div className={s.card}>
               <p className={s.cardLabel}>Turma / Aba</p>
-              <div className={s.selectWrap}>
-                <select className={s.select} value={selected} onChange={e => selectSheet(Number(e.target.value))}>
-                  {sheets.map((sh, i) => <option key={i} value={i}>{sh.name}</option>)}
-                </select>
-                <ChevronDown size={14} className={s.selectChevron} />
-              </div>
+              <ChipSelector
+                size="sm"
+                value={String(selected)}
+                onChange={v => selectSheet(Number(v))}
+                options={sheets.map((sh, i) => ({ value: String(i), label: sh.name }))}
+              />
             </div>
           )}
 

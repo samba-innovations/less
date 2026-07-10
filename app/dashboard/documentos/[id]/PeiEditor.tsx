@@ -8,6 +8,7 @@ import {
   parseClassCode, type PeiCard,
 } from '@/lib/pei-data'
 import { useFetch } from '@/lib/use-fetch'
+import { GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
 import s from './pei.module.css'
 
 type PeiStudent = {
@@ -303,31 +304,16 @@ export function PeiEditor({ fields, setField, isAdmin }: Props) {
       <section className={s.section}>
         <div className={s.sectionHead}><span className={s.sectionDot} />Diagnóstico Funcional</div>
         <p className={s.hint}>Expanda cada eixo e selecione as necessidades observadas</p>
-        <div className={s.eixoList}>
-          {DIAGNOSTICO_FUNCIONAL.map(eixo => {
-            const count = eixo.necessidades.filter(n => diagNomes.has(n)).length
-            const open = openEixos.has(eixo.id)
-            return (
-              <div key={eixo.id} className={s.eixo}>
-                <button className={s.eixoHead} onClick={() => toggleEixo(eixo.id)}>
-                  <span className={s.eixoNome}>{eixo.nome}</span>
-                  {count > 0 && <span className={s.eixoCount}>{count}</span>}
-                  <ChevronDown size={13} className={`${s.eixoChevron} ${open ? s.eixoChevronOpen : ''}`} />
-                </button>
-                {open && (
-                  <div className={s.eixoBody}>
-                    {eixo.necessidades.map(nec => (
-                      <label key={nec} className={`${s.necItem} ${diagNomes.has(nec) ? s.necOn : ''}`}>
-                        <input type="checkbox" checked={diagNomes.has(nec)} onChange={() => toggleDiag(nec)} />
-                        <span>{nec}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+        <GroupedChipSelector
+          groups={DIAGNOSTICO_FUNCIONAL.map<SelectorGroup>(eixo => ({
+            id: String(eixo.id), label: eixo.nome, items: eixo.necessidades,
+          }))}
+          value={[...diagNomes].join(', ')}
+          onChange={v => {
+            const arr = v.split(',').map(x => x.trim()).filter(Boolean)
+            setField('diagnostico_funcional', arr.join('\n'))
+          }}
+        />
         <div className={s.field}>
           <label className={s.label}>Observações diagnósticas</label>
           <textarea className={s.textarea} rows={3} value={fields.diagnostico_obs ?? ''}

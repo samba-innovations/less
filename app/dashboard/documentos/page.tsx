@@ -1,9 +1,12 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getSession } from '@/lib/auth'
+
+export const metadata = { title: 'documentos' }
 import { db } from '@/lib/db'
 import { DOC_TYPES, type DocType } from '@/lib/doc-types'
 import { FileText, Plus } from 'lucide-react'
+import { Badge } from '../_components/Badge'
 import s from './documentos.module.css'
 
 export const dynamic = 'force-dynamic'
@@ -81,9 +84,9 @@ export default async function DocumentosPage({
                       <span>{meta?.label ?? doc.type}</span>
                     </div>
                   </div>
-                  <span className={`${s.badge} ${doc.status === 'FINAL' ? s.badgeFinal : s.badgeDraft}`}>
+                  <Badge tone={doc.status === 'FINAL' ? 'success' : 'amber'} withDot>
                     {doc.status === 'FINAL' ? 'final' : 'rascunho'}
-                  </span>
+                  </Badge>
                   <span className={s.docDate}>{fmtDate(doc.updatedAt)}</span>
                 </Link>
               )

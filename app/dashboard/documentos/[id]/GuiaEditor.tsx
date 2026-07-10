@@ -8,6 +8,7 @@ import {
   BIMESTRE_DATAS, REFERENCIAS_PADRAO, modelToText, type Tecnica, type Grupo,
 } from '@/lib/guia-data'
 import { useFetch } from '@/lib/use-fetch'
+import { GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
 import s from './guia.module.css'
 
 type Turma = { id: number; name: string; grade: string; ciclo: string; serie: string }
@@ -43,54 +44,14 @@ function TecnicaBadge({ item, selected, disabled, onToggle }: {
   )
 }
 
-// ─── Grupo checkbox (recursos / avaliação) ────────────────────────────────────
+// ─── Grupo checkbox (recursos / avaliação) — usa GroupedChipSelector unificado
 function GrupoCheckbox({ grupos, value, onChange, lockedItems }: {
   grupos: Grupo[]; value: string; onChange: (v: string) => void; lockedItems?: string[]
 }) {
-  const [open, setOpen] = useState<Set<string>>(new Set(grupos.filter(g => g.defaultOpen).map(g => g.id)))
-  const selected = new Set(value ? value.split(', ').map(x => x.trim()).filter(Boolean) : [])
-  const locked = new Set(lockedItems ?? [])
-
-  function toggle(item: string) {
-    if (locked.has(item)) return
-    const nx = new Set(selected)
-    nx.has(item) ? nx.delete(item) : nx.add(item)
-    onChange([...nx].join(', '))
-  }
-  function toggleGrupo(id: string) {
-    setOpen(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
-  }
-
-  return (
-    <div className={s.grupoList}>
-      {grupos.map(g => {
-        const count = g.items.filter(i => selected.has(i)).length
-        const isOpen = open.has(g.id)
-        return (
-          <div key={g.id} className={s.grupo}>
-            <button type="button" className={s.grupoHead} onClick={() => toggleGrupo(g.id)}>
-              <span className={s.grupoLabel}>{g.label}</span>
-              {count > 0 && <span className={s.grupoCount}>{count}</span>}
-              <ChevronDown size={12} className={`${s.grupoChevron} ${isOpen ? s.grupoChevronOpen : ''}`} />
-            </button>
-            {isOpen && (
-              <div className={s.grupoBody}>
-                {g.items.map(item => {
-                  const on = selected.has(item) || locked.has(item)
-                  return (
-                    <label key={item} className={`${s.grupoItem} ${on ? s.grupoItemOn : ''} ${locked.has(item) ? s.grupoItemLocked : ''}`}>
-                      <input type="checkbox" checked={on} disabled={locked.has(item)} onChange={() => toggle(item)} />
-                      <span>{item}</span>
-                    </label>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
+  const groups: SelectorGroup[] = grupos.map(g => ({
+    id: g.id, label: g.label, items: g.items, defaultOpen: g.defaultOpen,
+  }))
+  return <GroupedChipSelector groups={groups} value={value} onChange={onChange} lockedItems={lockedItems} />
 }
 
 export function GuiaEditor({ fields, setField, isAdmin }: Props) {

@@ -1,0 +1,195 @@
+/* ── Badge: pill base ─────────────────────────────────────── */
+.badge {
+  --b-fg:     var(--fg);
+  --b-bg:     color-mix(in srgb, var(--fg) 6%, transparent);
+  --b-border: color-mix(in srgb, var(--fg) 12%, transparent);
+  --b-dot:    var(--fg);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  padding: 0.225rem 0.5625rem;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--b-fg);
+  background: var(--b-bg);
+  border: 1px solid var(--b-border);
+  border-radius: 999px;
+  white-space: nowrap;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: transform 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  animation: badgeIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.badge:hover {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--b-fg) 10%, transparent);
+  border-color: color-mix(in srgb, var(--b-fg) 22%, transparent);
+}
+
+@keyframes badgeIn {
+  from { opacity: 0; transform: translateY(3px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Sizes ────────────────────────────────────────────────── */
+.sizeXs { font-size: 0.5rem;    padding: 0.175rem 0.4375rem; gap: 0.25rem; }
+.sizeSm { font-size: 0.5625rem; padding: 0.225rem 0.5625rem; gap: 0.3125rem; }
+.sizeMd { font-size: 0.6875rem; padding: 0.3125rem 0.6875rem; gap: 0.375rem; letter-spacing: 0.04em; }
+
+/* ── Dot (status indicator) ───────────────────────────────── */
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--b-dot);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.sizeMd .dot { width: 6px; height: 6px; }
+
+/* Pulse halo around the dot (live/active states) */
+.dotPulse::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--b-dot);
+  opacity: 0.4;
+  animation: dotPulse 1.6s ease-out infinite;
+}
+
+@keyframes dotPulse {
+  0%   { transform: scale(0.6); opacity: 0.55; }
+  70%  { transform: scale(1.8); opacity: 0; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* ── Icon slot (lucide-react size 11 by default) ──────────── */
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+/* ── Tones ────────────────────────────────────────────────── */
+.toneNeutral {
+  --b-fg:     var(--fg-secondary);
+  --b-bg:     color-mix(in srgb, var(--fg) 5%, transparent);
+  --b-border: color-mix(in srgb, var(--fg) 11%, transparent);
+  --b-dot:    var(--fg-secondary);
+}
+
+.toneBrand {
+  --b-fg:     var(--brand);
+  --b-bg:     var(--brand-alpha);
+  --b-border: var(--brand-alpha-border);
+  --b-dot:    var(--brand);
+}
+
+.toneSuccess {
+  --b-fg:     #16a34a;
+  --b-bg:     rgba(22,163,74,0.10);
+  --b-border: rgba(22,163,74,0.28);
+  --b-dot:    #16a34a;
+}
+
+.toneAmber {
+  --b-fg:     #d97706;
+  --b-bg:     rgba(217,119,6,0.10);
+  --b-border: rgba(217,119,6,0.28);
+  --b-dot:    #d97706;
+}
+
+.toneRose {
+  --b-fg:     #e11d48;
+  --b-bg:     rgba(225,29,72,0.10);
+  --b-border: rgba(225,29,72,0.28);
+  --b-dot:    #e11d48;
+}
+
+.toneTeal {
+  --b-fg:     #0f766e;
+  --b-bg:     rgba(15,118,110,0.10);
+  --b-border: rgba(15,118,110,0.28);
+  --b-dot:    #0f766e;
+}
+
+.toneViolet {
+  --b-fg:     #7c3aed;
+  --b-bg:     rgba(124,58,237,0.10);
+  --b-border: rgba(124,58,237,0.28);
+  --b-dot:    #7c3aed;
+}
+
+.toneBlue {
+  --b-fg:     #2563eb;
+  --b-bg:     rgba(37,99,235,0.10);
+  --b-border: rgba(37,99,235,0.28);
+  --b-dot:    #2563eb;
+}
+
+/* ── Solid variant: cor de fundo cheia (alta ênfase) ──────── */
+.solid {
+  background: var(--b-fg);
+  color: #fff;
+  border-color: transparent;
+  --b-dot: #fff;
+}
+.solid:hover {
+  background: var(--b-fg);
+  filter: brightness(1.08);
+  border-color: transparent;
+}
+
+/* ── Outline variant: sem fundo ──────────────────────────── */
+.outline {
+  background: transparent;
+}
+.outline:hover {
+  background: var(--b-bg);
+}
+
+/* ── Counter (números: 3, 99+) ────────────────────────────── */
+.counter {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  padding: 0.125rem 0.4375rem;
+  min-width: 18px;
+  justify-content: center;
+}
+
+/* ── Interactive ──────────────────────────────────────────── */
+.clickable {
+  cursor: pointer;
+  user-select: none;
+}
+.clickable:active {
+  transform: scale(0.96);
+}
+
+/* ── Removable (com X) ────────────────────────────────────── */
+.removeBtn {
+  margin-left: 0.125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--b-fg) 18%, transparent);
+  color: var(--b-fg);
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  transition: background 0.12s, transform 0.12s;
+}
+.removeBtn:hover {
+  background: color-mix(in srgb, var(--b-fg) 32%, transparent);
+  transform: scale(1.1);
+}

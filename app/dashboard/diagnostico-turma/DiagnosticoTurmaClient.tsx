@@ -25,6 +25,7 @@ export function DiagnosticoTurmaClient({ turmas: turmasInit, canManage }: { turm
   const [geradoPorIA, setGeradoPorIA] = useState(false)
   const [catOpen, setCatOpen] = useState(false)
   const [iaOpen, setIaOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   async function abrir(t: DtTurma) {
     setLoading(true); setFb(null)
@@ -55,8 +56,9 @@ export function DiagnosticoTurmaClient({ turmas: turmasInit, canManage }: { turm
   }
 
   async function excluir() {
-    if (!docId || !confirm('Excluir este diagnóstico?')) return
+    if (!docId) return
     const r = await fetch(`/api/diagnostico-turma?id=${docId}`, { method: 'DELETE' }).then(x => x.json())
+    setConfirmDelete(false)
     if (r.error) { setFb({ kind: 'err', msg: r.error }); return }
     setDocId(null); setDocStatus(null); setDiagnostico(''); setPlano([])
     if (cx) setTurmas(prev => prev.map(t => t.classId === cx.classId ? { ...t, diagnosticoId: null, diagnosticoStatus: null } : t))
@@ -219,7 +221,7 @@ export function DiagnosticoTurmaClient({ turmas: turmasInit, canManage }: { turm
             <button className={s.btnPrimary} onClick={() => salvar(false)} disabled={saving}><Save size={15} /> {saving ? 'Salvando…' : 'Salvar rascunho'}</button>
             <button className={s.btnPrimary} onClick={() => salvar(true)} disabled={saving} style={{ background: '#059669' }}><CheckCircle2 size={15} /> Finalizar</button>
             {docId && <a className={s.btnGhost} href={`/api/diagnostico-turma/${docId}/docx`}><Download size={15} /> Word</a>}
-            {docId && <button className={s.iconBtnDanger} onClick={excluir} title="Excluir"><Trash2 size={15} /></button>}
+            {docId && <button className={s.iconBtnDanger} onClick={() => setConfirmDelete(true)} title="Excluir"><Trash2 size={15} /></button>}
             {docStatus && <span className={docStatus === 'FINAL' ? s.tagFinal : s.tagDraft}>{docStatus === 'FINAL' ? 'finalizado' : 'rascunho'}</span>}
           </div>
         </>
@@ -227,6 +229,23 @@ export function DiagnosticoTurmaClient({ turmas: turmasInit, canManage }: { turm
 
       {catOpen && <CatalogoModal onClose={() => setCatOpen(false)} onPick={addAcao} />}
       {iaOpen && <IaModal classId={cx.classId} onClose={() => setIaOpen(false)} onApply={(d, p) => { setDiagnostico(d); setPlano(prev => [...prev, ...p]); setGeradoPorIA(true); setIaOpen(false); setFb({ kind: 'ok', msg: 'Resposta da IA aplicada. Revise antes de salvar.' }) }} />}
+      {confirmDelete && (
+        <div className={s.overlay} onClick={() => setConfirmDelete(false)}>
+          <div className={s.modal} onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+            <div className={s.modalHead}>
+              <span className={s.modalTitle}>Excluir diagnóstico?</span>
+              <button className={s.iconBtn} onClick={() => setConfirmDelete(false)}><X size={16} /></button>
+            </div>
+            <p className={s.muted} style={{ margin: '4px 0 14px' }}>Esta ação não pode ser desfeita. O diagnóstico e o plano de ação serão removidos.</p>
+            <div className={s.toolbar}>
+              <button className={s.btnGhost} onClick={() => setConfirmDelete(false)}>Cancelar</button>
+              <button className={s.btnPrimary} onClick={excluir} style={{ background: '#dc2626' }}>
+                <Trash2 size={15} /> Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

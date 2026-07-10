@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { Plus, X, ChevronDown } from 'lucide-react'
 import { DIMENSOES_PDI, OBJETIVOS_OPCOES, getAtividade, getMetaDefault } from '@/lib/pdi-data'
 import s from './pdi.module.css'
+import { ChipSelector } from '../../_components/Selector'
 
 type Props = {
   fields:   Record<string, string>
@@ -72,13 +73,12 @@ export function PdiEditor({ fields, setField }: Props) {
         <div className={s.idGrid}>
           <div className={s.field}>
             <label className={s.label}>Período de referência</label>
-            <div className={s.selectWrap}>
-              <select className={s.select} value={fields.periodo ?? ''} onChange={e => setField('periodo', e.target.value)}>
-                <option value="">Selecionar período…</option>
-                {periodoOpcoes.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-              <ChevronDown size={14} className={s.selectChevron} />
-            </div>
+            <ChipSelector
+              size="sm"
+              value={fields.periodo || null}
+              onChange={v => setField('periodo', v)}
+              options={periodoOpcoes.map(p => ({ value: p, label: p }))}
+            />
           </div>
           <div className={s.field}>
             <label className={s.label}>Data de elaboração</label>
@@ -103,26 +103,29 @@ export function PdiEditor({ fields, setField }: Props) {
             <div className={s.grid2}>
               <div className={s.field}>
                 <label className={s.label}>Dimensão</label>
-                <div className={s.selectWrap}>
-                  <select className={s.select} value={ativ.dimensao} onChange={e => changeAtividade(ativ.id, 'dimensao', e.target.value)}>
-                    <option value="">Selecionar dimensão…</option>
-                    {Object.values(DIMENSOES_PDI).map(dim => {
-                      const disabled = dimensoesUsadas.has(String(dim.codigo)) && ativ.dimensao !== String(dim.codigo)
-                      return <option key={dim.codigo} value={dim.codigo} disabled={disabled}>{dim.codigo} - {dim.nome}{disabled ? ' (já utilizada)' : ''}</option>
-                    })}
-                  </select>
-                  <ChevronDown size={14} className={s.selectChevron} />
-                </div>
+                <ChipSelector
+                  size="sm"
+                  value={ativ.dimensao || null}
+                  onChange={v => changeAtividade(ativ.id, 'dimensao', v)}
+                  options={Object.values(DIMENSOES_PDI).map(dim => ({
+                    value:    String(dim.codigo),
+                    label:    `${dim.codigo} · ${dim.nome}`,
+                    disabled: dimensoesUsadas.has(String(dim.codigo)) && ativ.dimensao !== String(dim.codigo),
+                  }))}
+                />
               </div>
               <div className={s.field}>
                 <label className={s.label}>Atividade</label>
-                <div className={s.selectWrap}>
-                  <select className={s.select} value={ativ.atividade} disabled={!ativ.dimensao} onChange={e => changeAtividade(ativ.id, 'atividade', e.target.value)}>
-                    <option value="">{ativ.dimensao ? 'Selecionar atividade…' : 'Selecione uma dimensão primeiro'}</option>
-                    {ativ.dimensao && DIMENSOES_PDI[parseInt(ativ.dimensao)]?.atividades.map(a => <option key={a.id} value={a.id}>{a.titulo}</option>)}
-                  </select>
-                  <ChevronDown size={14} className={s.selectChevron} />
-                </div>
+                {!ativ.dimensao ? (
+                  <p className={s.empty} style={{ margin: 0, fontSize: '0.75rem' }}>Selecione uma dimensão primeiro</p>
+                ) : (
+                  <ChipSelector
+                    size="sm"
+                    value={ativ.atividade || null}
+                    onChange={v => changeAtividade(ativ.id, 'atividade', v)}
+                    options={(DIMENSOES_PDI[parseInt(ativ.dimensao)]?.atividades ?? []).map(a => ({ value: a.id, label: a.titulo }))}
+                  />
+                )}
               </div>
             </div>
 
@@ -143,18 +146,26 @@ export function PdiEditor({ fields, setField }: Props) {
             </div>
 
             <div className={s.field}>
-              <label className={s.label}>Objetivos esperados e evidências <span className={s.hint}>selecione uma sugestão ou escreva</span></label>
-              <div className={s.selectWrap}>
-                <select className={s.select} value="" onChange={e => { if (e.target.value) changeAtividade(ativ.id, 'objetivos', e.target.value) }}>
-                  <option value="">Usar sugestão de objetivo…</option>
+              <label className={s.label}>Objetivos esperados e evidências <span className={s.hint}>clique numa sugestão ou escreva</span></label>
+              <details className={s.suggestions}>
+                <summary className={s.suggestionsHeader}>
+                  Ver sugestões por categoria
+                  <ChevronDown size={13} className={s.suggestionsChevron} />
+                </summary>
+                <div className={s.suggestionsBody}>
                   {OBJETIVOS_OPCOES.map(cat => (
-                    <optgroup key={cat.categoria} label={cat.categoria}>
-                      {cat.opcoes.map((op, i) => <option key={i} value={op}>{op}</option>)}
-                    </optgroup>
+                    <div key={cat.categoria} className={s.suggestionsGroup}>
+                      <p className={s.suggestionsGroupLabel}>{cat.categoria}</p>
+                      <ChipSelector
+                        size="sm"
+                        value={null}
+                        onChange={v => changeAtividade(ativ.id, 'objetivos', v)}
+                        options={cat.opcoes.map(op => ({ value: op, label: op }))}
+                      />
+                    </div>
                   ))}
-                </select>
-                <ChevronDown size={14} className={s.selectChevron} />
-              </div>
+                </div>
+              </details>
               <textarea className={s.textarea} rows={3} value={ativ.objetivos} placeholder="Objetivos esperados e evidências de aprendizagem…" onChange={e => changeAtividade(ativ.id, 'objetivos', e.target.value)} />
             </div>
 

@@ -17,6 +17,9 @@ import { EletivaEditor } from './EletivaEditor'
 import { EmaEditor } from './EmaEditor'
 import { CartaNauticaEditor } from './CartaNauticaEditor'
 import { AtaEditor } from './AtaEditor'
+import { useRegisterBreadcrumb } from '../../_components/BreadcrumbContext'
+import { Badge } from '../../_components/Badge'
+import { ChipSelector, GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
 import s from './editor.module.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -241,24 +244,30 @@ WOLFF, Natály Rubert. Aprendizagem, avaliação e competência nas três versõ
 
 // ─── Helper Components ────────────────────────────────────────────────────────
 
-function TecnicaBadge({ item, selected, onSelect, disabled = false, disabledReason }: {
+function TecnicaBadge({ item, selected, onSelect, disabled = false, disabledReason, index = 0 }: {
   item: TecnicaItem; selected: boolean; onSelect: (id: number) => void;
-  disabled?: boolean; disabledReason?: string;
+  disabled?: boolean; disabledReason?: string; index?: number;
 }) {
   return (
-    <div className={s.tecnicaWrap}>
+    <div
+      className={s.tecnicaWrap}
+      style={{ '--stagger': `${Math.min(index, 14) * 0.012}s` } as React.CSSProperties}
+    >
       <button
         type="button"
         onClick={() => !disabled && onSelect(item.id)}
         className={`${s.tecnicaBadge} ${selected ? s.tecnicaBadgeActive : ''} ${disabled ? s.tecnicaBadgeDisabled : ''}`}
+        title={disabledReason ?? undefined}
       >
         <span className={s.tecnicaNum}>{String(item.id).padStart(2, '0')}</span>
-        {item.nome}
+        <span className={s.tecnicaName}>{item.nome}</span>
+        {selected && (
+          <span className={s.tecnicaCheck} aria-hidden>
+            <Check size={11} strokeWidth={3} />
+          </span>
+        )}
+        <span className={s.tecnicaDescr}>{disabledReason ?? item.descritor}</span>
       </button>
-      <div className={s.tecnicaTooltip}>
-        <span className={s.tecnicaTooltipTitle}>{item.nome}</span>
-        <span className={s.tecnicaTooltipDesc}>{disabledReason ?? item.descritor}</span>
-      </div>
     </div>
   )
 }
@@ -275,82 +284,27 @@ function TecnicaDetailPanel({ item }: { item: TecnicaItem }) {
 function GrupoCheckbox({ grupos, value, onChange }: {
   grupos: RecursoGrupo[] | AvaliacaoGrupo[]; value: string; onChange: (v: string) => void;
 }) {
-  const [openIds, setOpenIds] = useState<Set<string>>(
-    new Set(grupos.filter(g => g.defaultOpen).map(g => g.id))
-  )
-  const selected = new Set(value ? value.split(', ').map(x => x.trim()).filter(Boolean) : [])
-
-  function toggle(item: string) {
-    const nx = new Set(selected)
-    nx.has(item) ? nx.delete(item) : nx.add(item)
-    onChange([...nx].join(', '))
-  }
-
-  function toggleGrupo(id: string) {
-    setOpenIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
-  }
-
-  return (
-    <div className={s.grupoList}>
-      {grupos.map(g => {
-        const count  = g.items.filter(i => selected.has(i)).length
-        const isOpen = openIds.has(g.id)
-        const Icon   = g.icon
-        return (
-          <div key={g.id} className={s.grupoSection}>
-            <button type="button" className={s.grupoHeader} onClick={() => toggleGrupo(g.id)}>
-              <Icon size={13} />
-              <span className={s.grupoLabel}>{g.label}</span>
-              {count > 0 && <span className={s.grupoCount}>{count}</span>}
-              <ChevronDown size={12} className={`${s.grupoChevron} ${isOpen ? s.grupoChevronOpen : ''}`} />
-            </button>
-            {isOpen && (
-              <div className={s.grupoBody}>
-                {g.items.map(item => (
-                  <label key={item} className={`${s.grupoItem} ${selected.has(item) ? s.grupoItemOn : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={selected.has(item)}
-                      onChange={() => toggle(item)}
-                      className={s.grupoCheckbox}
-                    />
-                    <span>{item}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
+  const groups: SelectorGroup[] = grupos.map(g => ({
+    id: g.id, label: g.label, icon: g.icon, items: g.items, defaultOpen: g.defaultOpen,
+  }))
+  return <GroupedChipSelector groups={groups} value={value} onChange={onChange} />
 }
 
 function ChipSelect({ options, value, onChange }: {
   options: string[]; value: string; onChange: (v: string) => void;
 }) {
   if (options.length === 0) return null
-  const selected = new Set(
-    value ? value.split('\n').map(x => x.trim()).filter(Boolean) : options
-  )
-  function toggle(opt: string) {
-    const nx = new Set(selected)
-    nx.has(opt) ? nx.delete(opt) : nx.add(opt)
-    onChange(options.filter(o => nx.has(o)).join('\n'))
-  }
+  const selectedArr = value
+    ? value.split('\n').map(x => x.trim()).filter(Boolean)
+    : [...options]
   return (
-    <div className={s.chipSelectWrap}>
-      {options.map(opt => (
-        <button
-          key={opt}
-          type="button"
-          onClick={() => toggle(opt)}
-          className={`${s.chipOpt} ${!selected.has(opt) ? s.chipOptOff : ''}`}
-        >
-          {opt}
-        </button>
-      ))}
-    </div>
+    <ChipSelector
+      multi
+      size="sm"
+      options={options.map(opt => ({ value: opt, label: opt }))}
+      value={selectedArr}
+      onChange={vals => onChange(options.filter(o => vals.includes(o)).join('\n'))}
+    />
   )
 }
 
@@ -385,13 +339,15 @@ function useFetch<T>(url: string | null) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
+export function EditorClient({ doc, isAdmin }: Props) {
   const router   = useRouter()
   const docType  = doc.type as DocType
   const meta     = DOC_TYPES[docType]
   const content  = doc.content as Record<string, string>
 
   const [title,   setTitle]   = useState(doc.title)
+
+  useRegisterBreadcrumb(doc.id, title.trim() || `documento ${doc.id}`)
   const [fields,  setFields]  = useState<Record<string, string>>(
     Object.fromEntries(Object.entries(content).map(([k, v]) => [k, String(v ?? '')]))
   )
@@ -399,8 +355,6 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
   const [saved,   setSaved]   = useState(false)
   const [pdfing,  setPdfing]  = useState(false)
   const [error,   setError]   = useState<string | null>(null)
-  const [feedbackText, setFeedbackText] = useState('')
-  const [feedbacks, setFeedbacks]       = useState<Feedback[]>(doc.feedbacks)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -443,6 +397,7 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
     if (fields.aula_id)  return [Number(fields.aula_id)].filter(Boolean)
     return []
   })
+  const [aulaSearch, setAulaSearch] = useState('')
   const [momentoIds,     setMomentoIds]     = useState<number[]>(
     fields.momento_ids ? fields.momento_ids.split(',').map(Number).filter(Boolean) : []
   )
@@ -823,20 +778,6 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
     else { const d = await res.json(); setError(d.error) }
   }
 
-  async function addFeedback() {
-    if (!feedbackText.trim()) return
-    const res = await fetch(`/api/documentos/${doc.id}/feedback`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ text: feedbackText.trim() }),
-    })
-    if (res.ok) {
-      const d = await res.json()
-      setFeedbacks(prev => [d, ...prev])
-      setFeedbackText('')
-    }
-  }
-
   // ── Render helpers ────────────────────────────────────────────────────────
 
   function renderCurriculumCascade() {
@@ -852,41 +793,30 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
         {isAdmin && needsSchool && (
           <div className={s.cascadeField}>
             <label className={s.cascadeLabel}>escola</label>
-            <div className={s.optionGrid}>
-              {adminSchools.map(sch => (
-                <button
-                  key={sch.id}
-                  className={`${s.optionChip} ${adminSchoolSlug === sch.slug ? s.optionChipActive : ''}`}
-                  onClick={() => { setAdminSchoolSlug(sch.slug); setField('_school_slug', sch.slug) }}
-                >
-                  {sch.name}
-                </button>
-              ))}
-            </div>
+            <ChipSelector
+              size="sm"
+              value={adminSchoolSlug}
+              onChange={slug => { setAdminSchoolSlug(slug); setField('_school_slug', slug) }}
+              options={adminSchools.map(sch => ({ value: sch.slug, label: sch.name }))}
+            />
           </div>
         )}
 
         <div className={s.cascadeField}>
           <label className={s.cascadeLabel}>turma</label>
-          {isAdmin && !adminSchoolSlug ? (
+          {isAdmin && needsSchool && !adminSchoolSlug ? (
             <p className={s.cascadeLoading}>selecione uma escola acima…</p>
           ) : !turmas ? (
             <p className={s.cascadeLoading}>carregando turmas…</p>
           ) : turmas.length === 0 ? (
             <p className={s.emptyMsg}>nenhuma turma atribuída</p>
           ) : (
-            <div className={s.optionGrid}>
-              {turmas.map(t => (
-                <button
-                  key={t.id}
-                  className={`${s.optionChip} ${turmaId === t.id ? s.optionChipActive : ''}`}
-                  onClick={() => handleTurmaChange(t.id)}
-                >
-                  <span>{t.name}</span>
-                  <span className={s.optionChipSub}>{t.grade}</span>
-                </button>
-              ))}
-            </div>
+            <ChipSelector
+              size="md"
+              value={turmaId ? String(turmaId) : null}
+              onChange={v => handleTurmaChange(Number(v))}
+              options={turmas.map(t => ({ value: String(t.id), label: t.name, sub: t.grade }))}
+            />
           )}
         </div>
 
@@ -898,17 +828,12 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
             ) : disciplinas.length === 0 ? (
               <p className={s.emptyMsg}>nenhuma disciplina para esta turma</p>
             ) : (
-              <div className={s.optionGrid}>
-                {disciplinas.map(d => (
-                  <button
-                    key={d.id}
-                    className={`${s.optionChip} ${disciplinaId === d.id ? s.optionChipActive : ''}`}
-                    onClick={() => handleDisciplinaChange(d.id)}
-                  >
-                    {d.name}
-                  </button>
-                ))}
-              </div>
+              <ChipSelector
+                size="md"
+                value={disciplinaId ? String(disciplinaId) : null}
+                onChange={v => handleDisciplinaChange(Number(v))}
+                options={disciplinas.map(d => ({ value: String(d.id), label: d.name }))}
+              />
             )}
           </div>
         )}
@@ -919,17 +844,12 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
             {!bimestres ? (
               <p className={s.cascadeLoading}>carregando…</p>
             ) : (
-              <div className={s.bimRow}>
-                {bimestres.map(b => (
-                  <button
-                    key={b.id}
-                    className={`${s.bimBtn} ${bimestreNum === b.numero ? s.bimBtnActive : ''}`}
-                    onClick={() => handleBimestreChange(b.numero)}
-                  >
-                    {b.label}
-                  </button>
-                ))}
-              </div>
+              <ChipSelector
+                size="md"
+                value={bimestreNum ? String(bimestreNum) : null}
+                onChange={v => handleBimestreChange(Number(v))}
+                options={bimestres.map(b => ({ value: String(b.numero), label: b.label }))}
+              />
             )}
           </div>
         )}
@@ -953,20 +873,38 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
               <p className={s.emptyMsg}>nenhuma aula encontrada para este período</p>
             ) : (
               <div className={s.aulaList}>
-                {aulas.map(a => (
-                  <button
-                    key={a.id}
-                    className={`${s.aulaItem} ${aulaId === a.id ? s.aulaItemSelected : ''}`}
-                    onClick={() => handleAulaChange(a.id)}
-                  >
-                    <span className={s.aulaNum}>{a.aulaNum}</span>
-                    <span className={s.aulaTitulo}>{a.titulo}</span>
-                    {a.habilidadeCodigo && (
-                      <span className={s.aulaCode}>{a.habilidadeCodigo.split(',')[0].trim()}</span>
-                    )}
-                    {aulaId === a.id && <Check size={13} className={s.aulaCheck} />}
-                  </button>
-                ))}
+                {aulas.map(a => {
+                  const sel = aulaId === a.id
+                  return (
+                    <button
+                      key={a.id}
+                      className={`${s.aulaItem} ${sel ? s.aulaItemSelected : ''}`}
+                      onClick={() => handleAulaChange(a.id)}
+                    >
+                      <span className={s.aulaItemTop}>
+                        <span className={s.aulaNum}><span>{a.aulaNum}</span></span>
+                        <span className={s.aulaInfo2col}>
+                          <span className={s.aulaTitulo}>{a.titulo}</span>
+                          {(a.eixo || a.unidadeTematica) && (
+                            <span className={s.aulaSubtitle}>{a.eixo ?? a.unidadeTematica}</span>
+                          )}
+                        </span>
+                        {sel
+                          ? <span className={s.aulaCheck}><Check size={14} strokeWidth={3} /></span>
+                          : <span className={s.aulaArrow}><ArrowRight size={14} /></span>
+                        }
+                      </span>
+                      {(a.conteudo || a.objetivos) && (
+                        <p className={s.aulaDescription}>{a.conteudo ?? a.objetivos}</p>
+                      )}
+                      {a.habilidadeCodigo && (
+                        <div className={s.aulaTags}>
+                          <span className={s.aulaCode}>{a.habilidadeCodigo.split(',')[0].trim()}</span>
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -1045,62 +983,51 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
             {/* Tipo de plano */}
             <div className={s.wizardGroup}>
               <p className={s.subLabel}>tipo de plano</p>
-              <div className={s.pillRow}>
-                {[
-                  { value: 'por_aula',  label: 'Por aula',   desc: 'Uma aula específica do currículo' },
-                  { value: 'semanal',   label: 'Semanal',    desc: 'Plano para as aulas da semana' },
-                  { value: 'quinzenal', label: 'Quinzenal',  desc: 'Plano para duas semanas' },
-                  { value: 'bimestral', label: 'Bimestral',  desc: 'Plano para o bimestre completo' },
-                ].map(o => (
-                  <button
-                    key={o.value}
-                    type="button"
-                    title={o.desc}
-                    className={`${s.pillChip} ${fields.periodo === o.value ? s.pillChipActive : ''}`}
-                    onClick={() => setField('periodo', o.value)}
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
+              <ChipSelector
+                size="md"
+                value={fields.periodo}
+                onChange={v => setField('periodo', v)}
+                options={[
+                  { value: 'por_aula',  label: 'Por aula' },
+                  { value: 'semanal',   label: 'Semanal' },
+                  { value: 'quinzenal', label: 'Quinzenal' },
+                  { value: 'bimestral', label: 'Bimestral' },
+                ]}
+              />
             </div>
 
             {/* Turma — multi-select pills */}
             <div className={s.wizardGroup}>
               <p className={s.subLabel}>turma(s)</p>
               {isAdmin && needsSchool && (
-                <div className={s.pillRow} style={{ marginBottom: '0.375rem' }}>
-                  {adminSchools.map(sch => (
-                    <button
-                      key={sch.id}
-                      className={`${s.optionChip} ${adminSchoolSlug === sch.slug ? s.optionChipActive : ''}`}
-                      onClick={() => { setAdminSchoolSlug(sch.slug); setField('_school_slug', sch.slug) }}
-                    >
-                      {sch.name}
-                    </button>
-                  ))}
+                <div style={{ marginBottom: '0.5rem' }}>
+                  <ChipSelector
+                    size="sm"
+                    value={adminSchoolSlug}
+                    onChange={slug => { setAdminSchoolSlug(slug); setField('_school_slug', slug) }}
+                    options={adminSchools.map(sch => ({ value: sch.slug, label: sch.name }))}
+                  />
                 </div>
               )}
-              {isAdmin && !adminSchoolSlug ? (
+              {isAdmin && needsSchool && !adminSchoolSlug ? (
                 <p className={s.cascadeLoading}>selecione uma escola acima…</p>
               ) : !turmas ? (
                 <p className={s.cascadeLoading}>carregando turmas…</p>
               ) : turmas.length === 0 ? (
                 <p className={s.emptyMsg}>nenhuma turma atribuída</p>
               ) : (
-                <div className={s.pillRow}>
-                  {turmas.map(t => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className={`${s.pillChip} ${selectedTurmas.includes(t.name) ? s.pillChipActive : ''}`}
-                      onClick={() => togglePlanoTurma(t)}
-                    >
-                      {selectedTurmas.includes(t.name) && <Check size={10} />}
-                      {t.name}
-                    </button>
-                  ))}
-                </div>
+                <ChipSelector
+                  multi
+                  size="md"
+                  value={selectedTurmas}
+                  onChange={vals => {
+                    const toRemove = selectedTurmas.filter(n => !vals.includes(n))
+                    const toAdd    = vals.filter(n => !selectedTurmas.includes(n))
+                    toRemove.forEach(name => { const t = turmas.find(x => x.name === name); if (t) togglePlanoTurma(t) })
+                    toAdd.forEach(name => { const t = turmas.find(x => x.name === name); if (t) togglePlanoTurma(t) })
+                  }}
+                  options={turmas.map(t => ({ value: t.name, label: t.name, sub: t.grade }))}
+                />
               )}
             </div>
 
@@ -1127,17 +1054,12 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
 
                 <div className={s.wizardSubGroup}>
                   <p className={s.subLabel}>bimestre</p>
-                  <div className={s.bimRow}>
-                    {(bimestres ?? []).map(b => (
-                      <button
-                        key={b.id}
-                        className={`${s.bimBtn} ${bimestreNum === b.numero ? s.bimBtnActive : ''}`}
-                        onClick={() => handlePlanoBimestreChange(b.numero)}
-                      >
-                        {b.label}
-                      </button>
-                    ))}
-                  </div>
+                  <ChipSelector
+                    size="sm"
+                    value={bimestreNum ? String(bimestreNum) : null}
+                    onChange={v => handlePlanoBimestreChange(Number(v))}
+                    options={(bimestres ?? []).map(b => ({ value: String(b.numero), label: b.label }))}
+                  />
                 </div>
 
                 <div className={s.wizardSubGroup}>
@@ -1166,70 +1088,152 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
         {/* ── Step 2: Aulas ── */}
         {planoStep === 2 && (
           <div className={s.wizardStep}>
+            {/* Context badges */}
             <div className={s.cascadePills}>
-              {selectedTurmas.map(t => <span key={t} className={s.pill}>{t}</span>)}
-              {selectedDisc && <span className={s.pill}>{selectedDisc.name}</span>}
-              {selectedBim  && <span className={s.pill}>{selectedBim.label}</span>}
-              {multiSelect && <span className={s.pill}>múltiplas aulas</span>}
+              {selectedTurmas.map(t => (
+                <Badge key={t} tone="brand" size="sm" icon={<Users size={9} />}>{t}</Badge>
+              ))}
+              {selectedDisc && <Badge tone="violet" size="sm" icon={<BookOpen size={9} />}>{selectedDisc.name}</Badge>}
+              {selectedBim  && <Badge tone="amber" size="sm" icon={<Layers size={9} />}>{selectedBim.label}</Badge>}
+              {multiSelect && <Badge tone="teal" size="sm" withDot>múltiplas aulas</Badge>}
             </div>
 
-            <p className={s.subLabel}>aulas do currículo — clique para selecionar</p>
+            {/* Header: search + counter */}
+            <div className={s.aulaListHeader}>
+              <div className={s.aulaSearchWrap}>
+                <Search size={13} className={s.aulaSearchIcon} />
+                <input
+                  type="text"
+                  className={s.aulaSearch}
+                  placeholder="Buscar aula por título, habilidade ou conteúdo…"
+                  value={aulaSearch}
+                  onChange={e => setAulaSearch(e.target.value)}
+                />
+                {aulaSearch && (
+                  <button
+                    type="button"
+                    className={s.aulaSearchClear}
+                    onClick={() => setAulaSearch('')}
+                    aria-label="Limpar busca"
+                  >
+                    <Check size={11} style={{ display: 'none' }} />
+                    ×
+                  </button>
+                )}
+              </div>
+              {aulas && aulas.length > 0 && (
+                <span className={s.aulaCounter}>
+                  {planoAulaIds.length > 0 && <strong>{planoAulaIds.length}</strong>}
+                  {planoAulaIds.length > 0 && ' de '}
+                  {aulas.length} aula{aulas.length === 1 ? '' : 's'}
+                </span>
+              )}
+            </div>
 
             {!aulas ? (
               <p className={s.cascadeLoading}>carregando aulas…</p>
             ) : aulas.length === 0 ? (
-              <p className={s.emptyMsg}>nenhuma aula encontrada para este período</p>
-            ) : (
-              <div className={s.aulaList}>
-                {aulas.map(a => {
-                  const sel = planoAulaIds.includes(a.id)
-                  return (
-                    <button
-                      key={a.id}
-                      className={`${s.aulaItem} ${sel ? s.aulaItemSelected : ''}`}
-                      onClick={() => {
-                        togglePlanoAula(a.id)
-                        if (!multiSelect) {
-                          setPlanoAulaIds([a.id])
-                          // immediate apply for single select
-                          const parseLines = (raw: string | undefined): string[] =>
-                            (raw ?? '').split(/\n/).map(x => x.replace(/^[\s\-•*–]+/, '').trim()).filter(x => x.length > 2)
-                          const habs = parseLines(a.habilidadeTexto)
-                          const codes = (a.habilidadeCodigo ?? '').split(',').map(x => x.trim()).filter(Boolean)
-                          const habLines = habs.length > 0 ? habs : codes
-                          const contItems = parseLines(a.conteudo)
-                          setHabilidadeOpcoes(habLines)
-                          setConteudoOpcoes(contItems)
-                          setFields(prev => ({
-                            ...prev,
-                            aula_id: String(a.id),
-                            aula_num: String(a.aulaNum),
-                            tema: a.titulo,
-                            eixo: a.eixo ?? '',
-                            unidade_tematica: a.unidadeTematica ?? '',
-                            objeto_conhecimento: a.objetoConhecimento ?? '',
-                            bloco: a.bloco ?? '',
-                            objetivo_geral: a.objetivos ?? '',
-                            habilidades: habLines.join('\n'),
-                            conteudo: contItems.join('\n'),
-                            conteudo_opcoes: contItems.join('\n'),
-                          }))
-                          scheduleSave({ ...fields, tema: a.titulo, aula_id: String(a.id) })
-                          setPlanoStep(3)
-                        }
-                      }}
-                    >
-                      <span className={s.aulaNum}>{a.aulaNum}</span>
-                      <span className={s.aulaTitulo}>{a.titulo}</span>
-                      {a.habilidadeCodigo && (
-                        <span className={s.aulaCode}>{a.habilidadeCodigo.split(',')[0].trim()}</span>
-                      )}
-                      {sel && <Check size={13} className={s.aulaCheck} />}
-                    </button>
-                  )
-                })}
+              <div className={s.aulaEmptyState}>
+                <BookOpen size={28} strokeWidth={1.3} />
+                <p>nenhuma aula encontrada para este período</p>
               </div>
-            )}
+            ) : (() => {
+              const query = aulaSearch.trim().toLowerCase()
+              const filtered = !query ? aulas : aulas.filter(a =>
+                [a.titulo, a.habilidadeCodigo, a.habilidadeTexto, a.conteudo, a.eixo, a.unidadeTematica]
+                  .some(s => s?.toLowerCase().includes(query))
+              )
+              if (filtered.length === 0) {
+                return (
+                  <div className={s.aulaEmptyState}>
+                    <Search size={24} strokeWidth={1.3} />
+                    <p>nenhuma aula corresponde à busca</p>
+                  </div>
+                )
+              }
+              return (
+                <div className={s.aulaList}>
+                  {filtered.map((a, idx) => {
+                    const sel = planoAulaIds.includes(a.id)
+                    return (
+                      <button
+                        key={a.id}
+                        className={`${s.aulaItem} ${sel ? s.aulaItemSelected : ''}`}
+                        style={{ '--stagger': `${Math.min(idx, 15) * 0.018}s` } as React.CSSProperties}
+                        onClick={() => {
+                          togglePlanoAula(a.id)
+                          if (!multiSelect) {
+                            setPlanoAulaIds([a.id])
+                            const parseLines = (raw: string | undefined): string[] =>
+                              (raw ?? '').split(/\n/).map(x => x.replace(/^[\s\-•*–]+/, '').trim()).filter(x => x.length > 2)
+                            const habs = parseLines(a.habilidadeTexto)
+                            const codes = (a.habilidadeCodigo ?? '').split(',').map(x => x.trim()).filter(Boolean)
+                            const habLines = habs.length > 0 ? habs : codes
+                            const contItems = parseLines(a.conteudo)
+                            setHabilidadeOpcoes(habLines)
+                            setConteudoOpcoes(contItems)
+                            setFields(prev => ({
+                              ...prev,
+                              aula_id: String(a.id),
+                              aula_num: String(a.aulaNum),
+                              tema: a.titulo,
+                              eixo: a.eixo ?? '',
+                              unidade_tematica: a.unidadeTematica ?? '',
+                              objeto_conhecimento: a.objetoConhecimento ?? '',
+                              bloco: a.bloco ?? '',
+                              objetivo_geral: a.objetivos ?? '',
+                              habilidades: habLines.join('\n'),
+                              conteudo: contItems.join('\n'),
+                              conteudo_opcoes: contItems.join('\n'),
+                            }))
+                            scheduleSave({ ...fields, tema: a.titulo, aula_id: String(a.id) })
+                            setPlanoStep(3)
+                          }
+                        }}
+                      >
+                        <span className={s.aulaItemTop}>
+                          <span className={s.aulaNum}><span>{a.aulaNum}</span></span>
+                          <span className={s.aulaInfo2col}>
+                            <span className={s.aulaTitulo}>{a.titulo}</span>
+                            {(a.eixo || a.unidadeTematica) && (
+                              <span className={s.aulaSubtitle}>{a.eixo ?? a.unidadeTematica}</span>
+                            )}
+                          </span>
+                          {sel
+                            ? <span className={s.aulaCheck}><Check size={14} strokeWidth={3} /></span>
+                            : <span className={s.aulaArrow}><ArrowRight size={14} /></span>
+                          }
+                        </span>
+                        {(a.conteudo || a.objetivos) && (
+                          <div className={s.aulaBody}>
+                            <p className={s.aulaDescription}>
+                              {a.conteudo ?? a.objetivos}
+                            </p>
+                          </div>
+                        )}
+                        <div className={s.aulaTags}>
+                          {a.habilidadeCodigo && (
+                            <span className={s.aulaCode}>{a.habilidadeCodigo.split(',')[0].trim()}</span>
+                          )}
+                          {a.objetoConhecimento && (
+                            <span className={s.aulaTag} title={a.objetoConhecimento}>
+                              <BookOpen size={9} />
+                              {a.objetoConhecimento}
+                            </span>
+                          )}
+                          {a.bloco && (
+                            <span className={s.aulaTag}>
+                              <Layers size={9} />
+                              Bloco {a.bloco}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )
+            })()}
 
             {multiSelect && canStep3 && (
               <div className={s.wizardAdvRow}>
@@ -1382,16 +1386,17 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
               {/* Momentos Iniciais */}
               <div className={s.seqSection}>
                 <div className={s.seqSectionHeader}>
-                  <span className={s.seqDot} style={{ background: 'var(--brand)' }} />
+                  <span className={s.seqDot} />
                   <span className={s.seqSectionLabel}>{aulaCfg.inicio}</span>
                   <span className={s.seqCount}>{momentoIds.length}/3</span>
                 </div>
                 <div className={s.seqSectionBody}>
                   <div className={s.tecnicaGrid}>
-                    {MOMENTOS_INICIAIS.map(m => (
+                    {MOMENTOS_INICIAIS.map((m, idx) => (
                       <TecnicaBadge
                         key={m.id}
                         item={m}
+                        index={idx}
                         selected={momentoIds.includes(m.id)}
                         onSelect={id => {
                           setMomentoIds(prev => {
@@ -1418,7 +1423,7 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
               {/* Desenvolvimento — 3 partes */}
               <div className={s.seqSection}>
                 <div className={`${s.seqSectionHeader} ${s.seqSectionHeaderAmber}`}>
-                  <span className={s.seqDot} style={{ background: '#f59e0b' }} />
+                  <span className={s.seqDot} />
                   <span className={s.seqSectionLabel}>{aulaCfg.desenv}</span>
                   <span className={s.seqCount}>{desenvolvP1Ids.length + desenvolvP2Ids.length + desenvolvP3Ids.length} de 3–6</span>
                 </div>
@@ -1436,13 +1441,14 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
                           <span className={s.seqCount}>{ids.length}/2</span>
                         </div>
                         <div className={s.tecnicaGrid}>
-                          {DESENVOLVIMENTO_OPTS.map(m => {
+                          {DESENVOLVIMENTO_OPTS.map((m, idx) => {
                             const usedElsewhere = outrosSet.has(m.id)
                             const atMax = !ids.includes(m.id) && ids.length >= 2
                             return (
                               <TecnicaBadge
                                 key={m.id}
                                 item={m}
+                                index={idx}
                                 selected={ids.includes(m.id)}
                                 disabled={usedElsewhere || atMax}
                                 disabledReason={usedElsewhere ? 'Em outra parte' : undefined}
@@ -1474,16 +1480,17 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
               {/* Momentos Finais */}
               <div className={s.seqSection}>
                 <div className={`${s.seqSectionHeader} ${s.seqSectionHeaderEmerald}`}>
-                  <span className={s.seqDot} style={{ background: '#10b981' }} />
+                  <span className={s.seqDot} />
                   <span className={s.seqSectionLabel}>{aulaCfg.fim}</span>
                   <span className={s.seqCount}>{fechamentoIds.length}/3</span>
                 </div>
                 <div className={s.seqSectionBody}>
                   <div className={s.tecnicaGrid}>
-                    {FECHAMENTO_OPTS.map(m => (
+                    {FECHAMENTO_OPTS.map((m, idx) => (
                       <TecnicaBadge
                         key={m.id}
                         item={m}
+                        index={idx}
                         selected={fechamentoIds.includes(m.id)}
                         onSelect={id => {
                           setFechamentoIds(prev => {
@@ -1616,17 +1623,12 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
           <label className={s.fieldLabel}>
             {field.label}{field.required && <span className={s.required}> *</span>}
           </label>
-          <div className={s.optionGrid}>
-            {field.options.map(o => (
-              <button
-                key={o.value}
-                className={`${s.optionChip} ${val === o.value ? s.optionChipActive : ''}`}
-                onClick={() => setField(field.key, val === o.value ? '' : o.value)}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
+          <ChipSelector
+            size="md"
+            value={val || null}
+            onChange={v => setField(field.key, val === v ? '' : v)}
+            options={field.options.map(o => ({ value: o.value, label: o.label }))}
+          />
         </div>
       )
     }
@@ -1640,25 +1642,13 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
           <label className={s.fieldLabel}>
             {field.label}{field.required && <span className={s.required}> *</span>}
           </label>
-          <div className={s.optionGrid}>
-            {field.options.map(o => {
-              const on = selected.includes(o.value)
-              return (
-                <button
-                  key={o.value}
-                  className={`${s.optionChip} ${on ? s.optionChipActive : ''}`}
-                  onClick={() => {
-                    const next = on
-                      ? selected.filter(x => x !== o.value)
-                      : [...selected, o.value]
-                    setField(field.key, JSON.stringify(next))
-                  }}
-                >
-                  {o.label}
-                </button>
-              )
-            })}
-          </div>
+          <ChipSelector
+            multi
+            size="md"
+            value={selected}
+            onChange={vals => setField(field.key, JSON.stringify(vals))}
+            options={field.options.map(o => ({ value: o.value, label: o.label }))}
+          />
         </div>
       )
     }
@@ -1705,15 +1695,25 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
 
           <div className={s.docHeader}>
             <div className={s.docHeaderTop}>
-              <div
-                className={s.typeBadge}
-                style={{ background: (meta?.color ?? '#6b7280') + '20', color: meta?.color ?? '#6b7280' }}
+              <Badge
+                tone="neutral"
+                size="md"
+                style={{
+                  '--b-fg':     meta?.color ?? '#6b7280',
+                  '--b-bg':     (meta?.color ?? '#6b7280') + '14',
+                  '--b-border': (meta?.color ?? '#6b7280') + '38',
+                  '--b-dot':    meta?.color ?? '#6b7280',
+                } as React.CSSProperties}
               >
                 {meta?.label ?? doc.type}
-              </div>
-              <span className={`${s.statusBadge} ${doc.status === 'FINAL' ? s.statusFinal : s.statusDraft}`}>
-                {doc.status === 'FINAL' ? <><CheckCircle size={10} /> finalizado</> : <><Clock size={10} /> rascunho</>}
-              </span>
+              </Badge>
+              <Badge
+                tone={doc.status === 'FINAL' ? 'success' : 'amber'}
+                size="sm"
+                icon={doc.status === 'FINAL' ? <CheckCircle size={10} /> : <Clock size={10} />}
+              >
+                {doc.status === 'FINAL' ? 'finalizado' : 'rascunho'}
+              </Badge>
             </div>
             <input
               className={s.titleInput}
@@ -1766,42 +1766,6 @@ export function EditorClient({ doc, canFeedback, isAdmin }: Props) {
             </div>
           )}
 
-        </div>
-
-        <div className={s.feedbackCard}>
-          <p className={s.feedbackCardTitle}>devolutivas</p>
-          {canFeedback && (
-            <div className={s.feedbackInputArea}>
-              <textarea
-                className={s.fieldTextarea}
-                value={feedbackText}
-                placeholder="Escreva uma devolutiva…"
-                rows={3}
-                onChange={e => setFeedbackText(e.target.value)}
-              />
-              <button
-                className={`${s.actionBtn} ${s.savBtn}`}
-                onClick={addFeedback}
-                disabled={!feedbackText.trim()}
-                style={{ alignSelf: 'flex-end', width: 'auto', padding: '0.5rem 1rem' }}
-              >
-                enviar
-              </button>
-            </div>
-          )}
-          <div className={s.feedbackList}>
-            {feedbacks.length === 0 ? (
-              <p className={s.noFeedback}>nenhuma devolutiva ainda.</p>
-            ) : feedbacks.map(fb => (
-              <div key={fb.id} className={s.feedbackItem}>
-                <div className={s.feedbackItemHeader}>
-                  <span className={s.feedbackAuthor}>{fb.coordinator.name}</span>
-                  <span className={s.feedbackDate}>{new Date(fb.createdAt).toLocaleDateString('pt-BR')}</span>
-                </div>
-                <p className={s.feedbackText}>{fb.text}</p>
-              </div>
-            ))}
-          </div>
         </div>
 
       </div>

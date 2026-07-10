@@ -5,6 +5,7 @@ import { isManager, effectiveRole } from '@/lib/jwt'
 import { CoordenacaoClient } from './CoordenacaoClient'
 
 export const dynamic = 'force-dynamic'
+export const metadata = { title: 'equipe' }
 
 export default async function CoordenacaoPage() {
   const session = await getSession()

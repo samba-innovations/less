@@ -11,6 +11,7 @@ import {
   emaLetterInsuf, parseFreq, normalizeGradeInput,
 } from '@/lib/ata'
 import s from './ata.module.css'
+import { ChipSelector } from '../../_components/Selector'
 
 type Turma = { id: number; name: string; grade: string; ciclo: string; serie: string }
 type Props = {
@@ -171,23 +172,22 @@ export function AtaEditor({ doc }: Props) {
         <div className={s.setupRow}>
           <div className={s.setupField}>
             <label className={s.flabel}>Turma</label>
-            <div className={s.selectWrap}>
-              <select className={s.select} value={turmaId} onChange={e => setTurmaId(e.target.value)}>
-                <option value="">Selecione a turma</option>
-                {turmas.map(t => <option key={t.id} value={String(t.id)}>{t.name} — {t.grade}</option>)}
-              </select>
-              <ChevronDown size={14} className={s.selectChevron} />
-            </div>
+            <ChipSelector
+              size="sm"
+              value={turmaId || null}
+              onChange={v => setTurmaId(v)}
+              options={turmas.map(t => ({ value: String(t.id), label: t.name, sub: t.grade }))}
+              emptyLabel="Nenhuma turma disponível"
+            />
           </div>
           <div className={s.setupField}>
             <label className={s.flabel}>Bimestre</label>
-            <div className={s.selectWrap}>
-              <select className={s.select} value={bimestre} onChange={e => setBimestre(e.target.value)}>
-                <option value="">Selecione</option>
-                {BIMESTRES.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-              </select>
-              <ChevronDown size={14} className={s.selectChevron} />
-            </div>
+            <ChipSelector
+              size="sm"
+              value={bimestre || null}
+              onChange={v => setBimestre(v)}
+              options={BIMESTRES.map(b => ({ value: b.value, label: b.label }))}
+            />
           </div>
         </div>
         {setupDone && (

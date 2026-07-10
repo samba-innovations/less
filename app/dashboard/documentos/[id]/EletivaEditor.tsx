@@ -8,6 +8,7 @@ import {
 } from '@/lib/guia-data'
 import g from './guia.module.css'
 import s from './eletiva.module.css'
+import { GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
 
 type Props = { fields: Record<string, string>; setField: (k: string, v: string) => void }
 
@@ -22,29 +23,10 @@ function brToIso(br: string) { const m = br.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
 function GrupoCheckbox({ grupos, value, onChange, lockedItems }: {
   grupos: Grupo[]; value: string; onChange: (v: string) => void; lockedItems?: string[]
 }) {
-  const selected = new Set(value ? value.split(', ').map(x => x.trim()).filter(Boolean) : [])
-  const locked = new Set(lockedItems ?? [])
-  function toggle(item: string) { if (locked.has(item)) return; const nx = new Set(selected); nx.has(item) ? nx.delete(item) : nx.add(item); onChange([...nx].join(', ')) }
-  return (
-    <div className={g.grupoList}>
-      {grupos.map(grp => (
-        <div key={grp.id} className={g.grupo}>
-          <div className={g.grupoHead}><span className={g.grupoLabel}>{grp.label}</span></div>
-          <div className={g.grupoBody}>
-            {grp.items.map(item => {
-              const on = selected.has(item) || locked.has(item)
-              return (
-                <label key={item} className={`${g.grupoItem} ${on ? g.grupoItemOn : ''} ${locked.has(item) ? g.grupoItemLocked : ''}`}>
-                  <input type="checkbox" checked={on} disabled={locked.has(item)} onChange={() => toggle(item)} />
-                  <span>{item}</span>
-                </label>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
+  const groups: SelectorGroup[] = grupos.map(grp => ({
+    id: grp.id, label: grp.label, items: grp.items, defaultOpen: true,
+  }))
+  return <GroupedChipSelector groups={groups} value={value} onChange={onChange} lockedItems={lockedItems} />
 }
 
 export function EletivaEditor({ fields, setField }: Props) {

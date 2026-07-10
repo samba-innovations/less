@@ -7,6 +7,7 @@ import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { DOC_TYPES, type DocType } from '@/lib/doc-types'
 import { MessageSquare, FileText, CheckCircle2, Clock } from 'lucide-react'
+import { Badge } from '../_components/Badge'
 import s from './devolutivas.module.css'
 
 export default async function DevolutivasPage() {
@@ -64,12 +65,12 @@ export default async function DevolutivasPage() {
                       <p className={s.docMeta}>{meta?.label ?? fb.document.type}</p>
                     </div>
                   </div>
-                  <div className={s.statusBadge}>
-                    {fb.document.status === 'FINAL'
-                      ? <><CheckCircle2 size={12} /> final</>
-                      : <><Clock size={12} /> rascunho</>
-                    }
-                  </div>
+                  <Badge
+                    tone={fb.document.status === 'FINAL' ? 'success' : 'amber'}
+                    icon={fb.document.status === 'FINAL' ? <CheckCircle2 size={11} /> : <Clock size={11} />}
+                  >
+                    {fb.document.status === 'FINAL' ? 'final' : 'rascunho'}
+                  </Badge>
                 </div>
 
                 <blockquote className={s.feedbackText}>{fb.text}</blockquote>

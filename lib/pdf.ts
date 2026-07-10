@@ -1,6 +1,18 @@
 import PDFDocument from 'pdfkit'
 import { DOC_TYPES, type DocType, type FieldDef } from './doc-types'
 import { DIMENSOES_PDI } from './pdi-data'
+import { generateGenericPdf } from './pdf/render-generic'
+import { generatePlanoAulaPdf } from './pdf/render-plano-aula'
+import { generateGuiaPdf } from './pdf/render-guia'
+
+// Tipos migrados para o novo design system (lib/pdf/*). Os demais ainda usam
+// o renderer legado abaixo — migração será incremental.
+const NEW_GENERIC_TYPES = new Set<DocType>([
+  'DECLARACAO', 'COMUNICADO', 'ATESTADO',
+  'PROJETO', 'PLANO_ELETIVA', 'PLANO_EMA', 'CARTA_NAUTICA',
+])
+const NEW_PLANO_AULA_TYPES = new Set<DocType>(['PLANO_AULA', 'OE_PLANO_AULA'])
+const NEW_GUIA_TYPES       = new Set<DocType>(['GUIA_APRENDIZAGEM', 'OE_GUIA_APRENDIZAGEM'])
 
 const PAGE_W   = 595.28
 const PAGE_H   = 841.89
@@ -1303,6 +1315,42 @@ function renderCartaNautica(doc: InstanceType<typeof PDFDocument>, c: Record<str
 // ─── Main entry point ─────────────────────────────────────────────────────────
 
 export function generatePdf(input: PdfInput): Promise<Buffer> {
+  // Tipos simples já migrados — usam o novo design system v2 (ABNT seletiva)
+  if (NEW_GENERIC_TYPES.has(input.type)) {
+    return generateGenericPdf({
+      type:       input.type,
+      title:      input.title,
+      content:    input.content,
+      schoolName: input.schoolName,
+      authorName: input.authorName,
+      createdAt:  input.createdAt,
+    })
+  }
+  if (NEW_PLANO_AULA_TYPES.has(input.type)) {
+    return generatePlanoAulaPdf({
+      type:       input.type,
+      title:      input.title,
+      content:    input.content,
+      schoolName: input.schoolName,
+      authorName: input.authorName,
+      createdAt:  input.createdAt,
+      aprendizagensEssenciais: input.aprendizagensEssenciais,
+      aulasSelecionadas:       input.aulasSelecionadas,
+    })
+  }
+  if (NEW_GUIA_TYPES.has(input.type)) {
+    return generateGuiaPdf({
+      type:       input.type,
+      title:      input.title,
+      content:    input.content,
+      schoolName: input.schoolName,
+      authorName: input.authorName,
+      createdAt:  input.createdAt,
+      aprendizagensEssenciais: input.aprendizagensEssenciais,
+      aulasSelecionadas:       input.aulasSelecionadas,
+    })
+  }
+
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 0, autoFirstPage: true })
     const chunks: Buffer[] = []

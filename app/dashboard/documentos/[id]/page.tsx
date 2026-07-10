@@ -6,6 +6,15 @@ import { EditorClient } from './EditorClient'
 
 export const dynamic = 'force-dynamic'
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const doc = await db.lessDocument.findUnique({
+    where: { id: Number(id) },
+    select: { title: true },
+  })
+  return { title: doc?.title ?? 'documento' }
+}
+
 export default async function DocumentoPage({
   params,
 }: {

@@ -6,6 +6,8 @@ import { DOC_TYPES, type DocType } from '@/lib/doc-types'
 import { FileText, Users, Plus, Trash2, ChevronDown, X, Check, RotateCcw } from 'lucide-react'
 import { useNotificationEvent } from '@/lib/useNotificationEvent'
 import { useSchoolEvent } from '@/lib/useSchoolEvent'
+import { Badge } from '../_components/Badge'
+import { ChipSelector } from '../_components/Selector'
 import s from './coordenacao.module.css'
 
 type Doc = {
@@ -182,9 +184,9 @@ export function CoordenacaoClient({ docs, initialPeiStudents }: Props) {
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                    <span className={`${s.badge} ${doc.status === 'FINAL' ? s.badgeFinal : s.badgeDraft}`}>
+                    <Badge tone={doc.status === 'FINAL' ? 'success' : 'amber'} withDot>
                       {doc.status === 'FINAL' ? 'final' : 'rascunho'}
-                    </span>
+                    </Badge>
                     <span className={s.docDate}>{fmtDate(doc.updatedAt)}</span>
                   </div>
                 </Link>
@@ -199,13 +201,12 @@ export function CoordenacaoClient({ docs, initialPeiStudents }: Props) {
         <div className={s.peiSection}>
           <div className={s.peiHeader}>
             <div className={s.peiFilters}>
-              <div className={s.selectWrap}>
-                <select className={s.filterSelect} value={filterTurma} onChange={e => setFilterTurma(e.target.value)}>
-                  <option value="">Todas as turmas</option>
-                  {turmas.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <ChevronDown size={13} className={s.selectChevron} />
-              </div>
+              <ChipSelector
+                size="sm"
+                value={filterTurma || null}
+                onChange={v => setFilterTurma(v)}
+                options={[{ value: '', label: 'Todas' }, ...turmas.map(t => ({ value: t, label: t }))]}
+              />
               <span className={s.peiCount}>{filtered.length} aluno{filtered.length !== 1 ? 's' : ''}</span>
             </div>
             <button className={s.addBtn} onClick={() => { setShowForm(true); setFormError(null) }}>
