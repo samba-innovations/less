@@ -1,0 +1,36 @@
+/* Skeleton de carregamento instantâneo (Next loading.tsx) — feedback imediato
+   em toda navegação do dashboard. Respeita prefers-reduced-motion. */
+.wrap { display: flex; flex-direction: column; gap: 1.25rem; padding: 0.25rem; }
+
+.header { display: flex; flex-direction: column; gap: 0.6rem; }
+.title    { height: 1.6rem; width: min(280px, 60%); border-radius: 8px; }
+.subtitle { height: 0.85rem; width: min(420px, 80%); border-radius: 6px; }
+
+.grid {
+  display: grid; gap: 0.9rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+}
+.card { height: 96px; border-radius: 14px; }
+
+.rows { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.5rem; }
+.row  { height: 48px; border-radius: 10px; }
+
+/* base shimmer */
+.sk {
+  position: relative; overflow: hidden;
+  background: var(--bg-secondary, rgba(128,128,128,0.12));
+}
+.sk::after {
+  content: ''; position: absolute; inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent,
+    color-mix(in srgb, var(--fg, #888) 8%, transparent), transparent);
+  animation: shimmer 1.35s ease-in-out infinite;
+}
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sk::after { animation: none; }
+  .sk { animation: pulse 1.6s ease-in-out infinite; }
+}
+@keyframes pulse { 50% { opacity: 0.55; } }
