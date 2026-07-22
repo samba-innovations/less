@@ -5,6 +5,7 @@ import { Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle2, Layers, C
 import type { ConsideracoesInput, StudentRow, AreaData } from '@/lib/docx-consideracoes'
 import s from './consideracoes.module.css'
 import { ChipSelector } from '../_components/Selector'
+import { Input } from '../_components/Input'
 
 // ── CSV parser ────────────────────────────────────────────────────────────────
 
@@ -221,11 +222,11 @@ export function ConsideracoesClient() {
           {/* Turma name */}
           <div className={s.card}>
             <p className={s.cardLabel}>Nome da Turma no Documento</p>
-            <input
-              className={s.input}
+            <Input
+              placeholder="Ex: 6ºA — Tarde"
               value={turma}
               onChange={e => setTurma(e.target.value)}
-              placeholder="Ex: 6ºA — Tarde"
+              className={s.input}
             />
           </div>
 

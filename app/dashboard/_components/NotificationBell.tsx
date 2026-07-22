@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Bell, CheckCheck, BellOff } from 'lucide-react'
 import { playSound } from '@/lib/sounds'
 import s from './notification-bell.module.css'
+import { Chip } from '../_components/Chip'
 
 type Notif = {
   id:        number
@@ -87,7 +88,7 @@ export function NotificationBell() {
       >
         <Bell size={17} />
         {unread > 0 && (
-          <span className={s.badge}>{unread > 9 ? '9+' : unread}</span>
+          <Chip>{unread > 9 ? '9+' : unread}</Chip>
         )}
       </button>
 

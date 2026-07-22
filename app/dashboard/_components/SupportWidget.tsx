@@ -3,6 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { HelpCircle, X, Plus, Send, ArrowLeft, ChevronRight, CheckCircle2, Clock, Loader2 } from 'lucide-react'
 import s from './support-widget.module.css'
+import { Button } from '../_components/Button'
+import { IconButton } from '../_components/IconButton'
+import { Chip } from '../_components/Chip'
 
 type Msg    = { id: number; body: string; authorName: string; isFromAdmin: boolean; createdAt: string }
 type Ticket = { id: number; subject: string; status: string; updatedAt: string; messages: Msg[] }
@@ -159,9 +162,7 @@ export function SupportWidget() {
 
           <div className={s.header}>
             {view !== 'home' ? (
-              <button className={s.backBtn} onClick={() => { setView('home'); setActive(null) }}>
-                <ArrowLeft size={15} />
-              </button>
+              <Button variant="ghost" onClick={() => { setView('home'); setActive(null) }}><ArrowLeft size={15} /></Button>
             ) : (
               <div className={s.headerIcon}>
                 <HelpCircle size={16} />
@@ -177,18 +178,25 @@ export function SupportWidget() {
             </div>
             <div className={s.headerActions}>
               {view === 'home' && (
-                <button className={s.newBtn} onClick={() => { setNewErr(null); setView('new') }} title="novo chamado">
-                  <Plus size={15} />
-                </button>
+                <Button
+                  variant="primary"
+                  onClick={() => { setNewErr(null); setView('new') }}
+                  title="novo chamado"
+                ><Plus size={15} /></Button>
               )}
               {view === 'chat' && active?.status === 'OPEN' && (
-                <button className={s.closeTicketBtn} onClick={handleClose} disabled={sending} title="encerrar chamado">
-                  <CheckCircle2 size={15} />
-                </button>
+                <Button
+                  variant="danger"
+                  onClick={handleClose}
+                  disabled={sending}
+                  title="encerrar chamado"
+                ><CheckCircle2 size={15} /></Button>
               )}
-              <button className={s.closeBtn} onClick={() => setOpen(false)}>
-                <X size={15} />
-              </button>
+              <IconButton
+                icon={<X size={15} />}
+                label="x"
+                onClick={() => setOpen(false)}
+              />
             </div>
           </div>
 
@@ -255,9 +263,12 @@ export function SupportWidget() {
                     required
                   />
                 </div>
-                <button type="submit" className={s.sendFullBtn} disabled={sending}>
-                  <Send size={14} /> {sending ? 'enviando...' : 'iniciar conversa'}
-                </button>
+                <Button
+                  variant="primary"
+                  iconLeft={<Send size={14} />}
+                  disabled={sending}
+                  type="submit"
+                >{sending ? 'enviando...' : 'iniciar conversa'}</Button>
               </form>
             )}
 
@@ -291,9 +302,11 @@ export function SupportWidget() {
                         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
                       }}
                     />
-                    <button className={s.sendBtn} onClick={handleSend} disabled={sending || !msgText.trim()}>
-                      <Send size={14} />
-                    </button>
+                    <Button
+                      variant="primary"
+                      onClick={handleSend}
+                      disabled={sending || !msgText.trim()}
+                    ><Send size={14} /></Button>
                   </div>
                 ) : (
                   <div className={s.closedBanner}>
@@ -309,7 +322,7 @@ export function SupportWidget() {
 
       <button className={`${s.fab} ${open ? s.fabOpen : ''}`} onClick={toggleOpen} aria-label="suporte">
         {open ? <X size={20} /> : <HelpCircle size={22} />}
-        {!open && openCount > 0 && <span className={s.badge}>{openCount}</span>}
+        {!open && openCount > 0 && <Chip>{openCount}</Chip>}
       </button>
 
     </div>

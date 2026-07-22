@@ -1,0 +1,113 @@
+/* ── Switch (toggle iOS-style) ─────────────────────────────
+   Track pill + thumb circular que desliza. Input real
+   escondido (input:checkbox) para a11y e forms.                 */
+
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--fg);
+  user-select: none;
+  line-height: 1.4;
+}
+.disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.labelLeft { flex-direction: row; }
+
+/* Input real escondido */
+.input {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* Wrapper do controle (track + thumb) */
+.control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Track pill */
+.track {
+  display: inline-flex;
+  position: relative;
+  background: color-mix(in srgb, var(--fg) 18%, transparent);
+  border-radius: var(--radius-round);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+/* Thumb (círculo branco) */
+.thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(0, -50%);
+  background: #fff;
+  border-radius: var(--radius-round);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform var(--duration-normal) var(--ease-out),
+              width var(--duration-normal) var(--ease-out);
+}
+
+/* ── Sizes ──────────────────────────────────────────── */
+.sm .track  { width: 30px; height: 18px; }
+.sm .thumb  { width: 12px; height: 12px; left: 3px; }
+.md .track  { width: 40px; height: 22px; }
+.md .thumb  { width: 16px; height: 16px; left: 3px; }
+.lg .track  { width: 52px; height: 28px; }
+.lg .thumb  { width: 22px; height: 22px; left: 3px; }
+
+/* ── Estado checked ────────────────────────────────── */
+.brand   .input:checked ~ .track { background: var(--brand); }
+.success .input:checked ~ .track { background: var(--success); }
+
+.sm .input:checked ~ .track > .thumb { transform: translate(12px, -50%); }
+.md .input:checked ~ .track > .thumb { transform: translate(18px, -50%); }
+.lg .input:checked ~ .track > .thumb { transform: translate(24px, -50%); }
+
+/* Sutil scale ao clicar (pressed) */
+.wrap:active:not(.disabled) .thumb {
+  width: calc(var(--thumb-w, 16px) + 3px);
+}
+.sm:active:not(.disabled) .thumb { --thumb-w: 12px; }
+.md:active:not(.disabled) .thumb { --thumb-w: 16px; }
+.lg:active:not(.disabled) .thumb { --thumb-w: 22px; }
+
+/* ── Focus visible ─────────────────────────────────── */
+.input:focus-visible ~ .track {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent);
+}
+.success .input:focus-visible ~ .track {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent);
+}
+
+/* ── Labels ────────────────────────────────────────── */
+.labels {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fg);
+}
+.sm .label { font-size: 0.75rem; }
+.lg .label { font-size: 0.875rem; }
+
+.desc {
+  font-size: 0.75rem;
+  color: var(--fg-secondary);
+  font-weight: 400;
+  line-height: 1.4;
+}
+.sm .desc { font-size: 0.6875rem; }

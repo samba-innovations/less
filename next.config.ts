@@ -4,7 +4,17 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   allowedDevOrigins: ['sambainnovations.local', '*.sambainnovations.local'],
   // pdfkit carrega arquivos .afm de fontes em runtime — não pode ser bundlado pelo webpack
-  serverExternalPackages: ['pdfkit'],
+  serverExternalPackages: ['pdfkit', 'pg', 'pg-connection-string', 'pg-pool', 'pg-native'],
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false, net: false, tls: false, dns: false,
+        'pg-native': false,
+      }
+    }
+    return config
+  },
   // ── Hardening / anti-engenharia reversa ──
   productionBrowserSourceMaps: false, // não expõe o código-fonte no browser em produção
   poweredByHeader: false,             // remove o header X-Powered-By: Next.js

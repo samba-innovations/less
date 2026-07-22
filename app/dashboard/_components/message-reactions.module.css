@@ -1,0 +1,90 @@
+.wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  border-radius: var(--radius-round);
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-bounce);
+}
+.chip:hover { transform: scale(1.06); }
+.chip:active { transform: scale(0.94); }
+
+.chipMine {
+  background: color-mix(in srgb, var(--brand) 14%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 25%, transparent);
+}
+
+.chipEmoji { font-size: 0.75rem; line-height: 1; }
+.chipCount { font-size: 0.625rem; font-weight: 700; color: var(--fg-secondary); }
+.chipMine .chipCount { color: var(--brand); }
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border: none;
+  border-radius: var(--radius-round);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  color: var(--fg-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
+}
+.wrap:hover .addBtn { opacity: 1; }
+.wrap:has(.chip) .addBtn { opacity: 0.5; }
+.addBtn:hover { opacity: 1; background: color-mix(in srgb, var(--fg) 10%, transparent); }
+
+.picker {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+  animation: mr-in var(--duration-fast) var(--ease-out);
+}
+@keyframes mr-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.pickerBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  transition: background var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-bounce);
+}
+.pickerBtn:hover {
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+  transform: scale(1.15);
+}

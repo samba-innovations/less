@@ -9,6 +9,8 @@ import {
 import g from './guia.module.css'
 import s from './eletiva.module.css'
 import { GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
+import { DatePicker } from '../../_components/DatePicker'
+import { Input } from '../../_components/Input'
 
 type Props = { fields: Record<string, string>; setField: (k: string, v: string) => void }
 
@@ -63,7 +65,12 @@ export function EletivaEditor({ fields, setField }: Props) {
         <div className={g.sectionHead}><span className={g.dot} />Identificação</div>
         <div className={g.field}>
           <label className={g.label}>Nome da Eletiva</label>
-          <input className={g.input} value={fields.nome_eletiva ?? ''} placeholder="Ex: Programação Criativa" onChange={e => setField('nome_eletiva', e.target.value)} />
+          <Input
+            placeholder="Ex: Programação Criativa"
+            value={fields.nome_eletiva ?? ''}
+            onChange={e => setField('nome_eletiva', e.target.value)}
+            className={g.input}
+          />
         </div>
         <div className={g.field}>
           <label className={g.label}>Nível de ensino</label>
@@ -76,7 +83,12 @@ export function EletivaEditor({ fields, setField }: Props) {
         <div className={g.idGrid}>
           <div className={g.field}>
             <label className={g.label}>Professor(a) parceiro(a) <span className={g.hint}>opcional</span></label>
-            <input className={g.input} value={fields.professor_parceiro ?? ''} placeholder="Nome do parceiro" onChange={e => setField('professor_parceiro', e.target.value)} />
+            <Input
+              placeholder="Nome do parceiro"
+              value={fields.professor_parceiro ?? ''}
+              onChange={e => setField('professor_parceiro', e.target.value)}
+              className={g.input}
+            />
           </div>
           <div className={g.field}>
             <label className={g.label}>Semestre</label>
@@ -88,7 +100,12 @@ export function EletivaEditor({ fields, setField }: Props) {
           </div>
           <div className={g.field}>
             <label className={g.label}>Carga horária semanal</label>
-            <input className={g.input} value={fields.carga_horaria ?? ''} placeholder="Ex: 2 aulas / semana" onChange={e => setField('carga_horaria', e.target.value)} />
+            <Input
+              placeholder="Ex: 2 aulas / semana"
+              value={fields.carga_horaria ?? ''}
+              onChange={e => setField('carga_horaria', e.target.value)}
+              className={g.input}
+            />
           </div>
         </div>
       </section>
@@ -119,11 +136,19 @@ export function EletivaEditor({ fields, setField }: Props) {
           <div className={s.cronoControls}>
             <div className={s.cronoDate}>
               <span className={s.cronoDateLabel}>Primeira aula</span>
-              <input type="date" className={g.input} value={fields.data_inicio ?? ''} onChange={e => setField('data_inicio', e.target.value)} />
+              <DatePicker
+                value={fields.data_inicio ?? null}
+                onChange={v => setField('data_inicio', v)}
+                className={g.input}
+              />
             </div>
             <div className={s.cronoDate}>
               <span className={s.cronoDateLabel}>Culminância</span>
-              <input type="date" className={g.input} value={fields.data_culminancia ?? ''} onChange={e => setField('data_culminancia', e.target.value)} />
+              <DatePicker
+                value={fields.data_culminancia ?? null}
+                onChange={v => setField('data_culminancia', v)}
+                className={g.input}
+              />
             </div>
             <button className={s.cronoBtn} disabled={!fields.data_inicio || !fields.data_culminancia} onClick={gerarCronograma}>
               <Calendar size={13} /> Gerar cronograma
@@ -136,7 +161,12 @@ export function EletivaEditor({ fields, setField }: Props) {
                 <div key={row.date} className={`${s.cronoRow} ${i === rows.length - 1 ? s.cronoRowLast : ''}`}>
                   <span className={s.cronoNum}>{pad(i + 1)}</span>
                   <span className={s.cronoData}>{row.date}{i === rows.length - 1 ? ' · Culminância' : ''}</span>
-                  <input className={g.input} value={row.acao} placeholder={i === 0 ? 'Apresentação da eletiva…' : i === rows.length - 1 ? 'Culminância — apresentação final…' : 'Tema / atividade…'} onChange={e => updateAcao(i, e.target.value)} />
+                  <Input
+                    placeholder={i === 0 ? 'Apresentação da eletiva…' : i === rows.length - 1 ? 'Culminância — apresentação final…' : 'Tema / atividade…'}
+                    value={row.acao}
+                    onChange={e => updateAcao(i, e.target.value)}
+                    className={g.input}
+                  />
                 </div>
               ))}
             </div>

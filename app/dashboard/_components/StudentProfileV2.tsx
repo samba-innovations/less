@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import { createPortal } from 'react-dom'
 import {
   User, IdCard, Calendar, GraduationCap, BookOpen, Shield, UsersRound,
@@ -8,6 +8,11 @@ import {
   Plus, Check, X, Phone, ShieldCheck, Sparkles, ZoomIn,
 } from 'lucide-react'
 import s from './student-profile-v2.module.css'
+import { Select } from '../_components/Select'
+import { DatePicker } from '../_components/DatePicker'
+import { Button } from '../_components/Button'
+import { IconButton } from '../_components/IconButton'
+import { formatName } from '@/lib/format-name'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 export type V2Responsible = {
@@ -94,18 +99,161 @@ function ageFromBirth(iso: string | null): number | null {
   return Math.floor((Date.now() - new Date(iso).getTime()) / (365.25 * 24 * 3600 * 1000))
 }
 
+// ── Subforms isolados (state próprio pra não re-renderizar o modal inteiro)─
+type AddRespProps = {
+  onAdd:      (input: { name: string; relation: string; phoneType: 'CELULAR'|'FIXO'; phone: string }) => Promise<V2Responsible>
+  onClose:    () => void
+}
+
+const AddResponsibleForm = memo(function AddResponsibleFormImpl({ onAdd, onClose }: AddRespProps) {
+  const [form, setForm]       = useState({ name: '', relation: '', phone: '', phoneType: 'CELULAR' as 'CELULAR'|'FIXO' })
+  const [loading, setLoading] = useState(false)
+  const [err, setErr]         = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true); setErr(null)
+    try {
+      await onAdd(form)
+      onClose()
+    } catch (er: any) {
+      setErr(er?.message ?? 'erro ao salvar')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form className={s.qForm} onSubmit={handleSubmit}>
+      {err && <span className={s.qFormError}>{err}</span>}
+      <div className={s.qFormRow}>
+        <input className={s.qFormInput} placeholder="nome *" required autoFocus
+          value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
+        <input className={s.qFormInput} placeholder="parentesco *" required
+          value={form.relation} onChange={e => setForm(p => ({ ...p, relation: e.target.value }))} />
+      </div>
+      <div className={s.qFormRow}>
+        <Select
+          value={form.phoneType}
+          onChange={v => setForm(p => ({ ...p, phoneType: v as 'CELULAR' | 'FIXO' }))}
+          options={[{ value: 'CELULAR', label: 'Celular' }, { value: 'FIXO', label: 'Fixo' }]}
+        />
+        <input className={s.qFormInput} placeholder="telefone" value={form.phone}
+          onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
+      </div>
+      <div className={s.qFormActions}>
+        <button type="button" className={s.qCancel} onClick={onClose}>cancelar</button>
+        <button type="submit" className={s.qSubmit} disabled={loading}>
+          <Check size={11} /> {loading ? 'salvando…' : 'salvar'}
+        </button>
+      </div>
+    </form>
+  )
+})
+
+type AddOcrProps = {
+  onAdd:     (input: { categoryId: number; severity: 'LEVE'|'MODERADA'|'GRAVE'; date: string; description: string; location: string | null }) => Promise<V2Occurrence>
+  onClose:   () => void
+  categories: V2OcrCategory[]
+}
+
+const AddOccurrenceForm = memo(function AddOccurrenceFormImpl({ onAdd, onClose, categories }: AddOcrProps) {
+  const [form, setForm] = useState({
+    categoryId: '',
+    severity:   'LEVE' as 'LEVE'|'MODERADA'|'GRAVE',
+    date:       new Date().toISOString().slice(0,10),
+    description:'',
+    location:   '',
+  })
+  const [loading, setLoading] = useState(false)
+  const [err, setErr]         = useState<string | null>(null)
+
+  const catOpts = useMemo(
+    () => categories.map(c => ({ value: String(c.id), label: c.name })),
+    [categories],
+  )
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.categoryId) return
+    setLoading(true); setErr(null)
+    try {
+      await onAdd({
+        categoryId:  Number(form.categoryId),
+        severity:    form.severity,
+        date:        form.date,
+        description: form.description.trim(),
+        location:    form.location.trim() || null,
+      })
+      onClose()
+    } catch (er: any) {
+      setErr(er?.message ?? 'erro ao registrar')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form className={s.qForm} onSubmit={handleSubmit}>
+      {err && <span className={s.qFormError}>{err}</span>}
+      <div className={s.qFormRow}>
+        <Select
+          value={form.categoryId}
+          onChange={v => setForm(p => ({ ...p, categoryId: v }))}
+          placeholder="categoria *"
+          options={catOpts}
+        />
+        <Select
+          value={form.severity}
+          onChange={v => setForm(p => ({ ...p, severity: v as 'LEVE'|'MODERADA'|'GRAVE' }))}
+          options={[
+            { value: 'LEVE', label: 'Leve' },
+            { value: 'MODERADA', label: 'Moderada' },
+            { value: 'GRAVE', label: 'Grave' },
+          ]}
+        />
+      </div>
+      <DatePicker
+        value={form.date ?? null}
+        onChange={v => setForm(p => ({ ...p, date: v }))}
+      />
+      <textarea className={s.qFormTextarea} placeholder="descrição *" required
+        value={form.description}
+        onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
+      <input className={s.qFormInput} placeholder="local (opcional)"
+        value={form.location}
+        onChange={e => setForm(p => ({ ...p, location: e.target.value }))} />
+      <div className={s.qFormActions}>
+        <button type="button" className={s.qCancel} onClick={onClose}>cancelar</button>
+        <button type="submit" className={s.qSubmit}
+          disabled={loading || !form.description.trim() || !form.categoryId}>
+          <Check size={11} /> {loading ? 'registrando…' : 'registrar'}
+        </button>
+      </div>
+    </form>
+  )
+})
+
 // ── Component ────────────────────────────────────────────────────────────────
-export function StudentProfileV2({
+function StudentProfileV2Impl({
   student, schoolType, canWrite,
   onClose, onEdit, onToggle, onDelete,
   extraViews = [],
   ocrFetcher, ocrCreator, respCreator, respRemover,
 }: V2Props) {
-  const initials = useMemo(
+  // ── Valores derivados memoizados (evitam recompute a cada render) ──────
+  const displayName = useMemo(() => formatName(student.name), [student.name])
+  const initials    = useMemo(
     () => student.name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join(''),
     [student.name]
   )
-  const age = ageFromBirth(student.birthDate)
+  const age = useMemo(() => ageFromBirth(student.birthDate), [student.birthDate])
+  const turmasLabel = useMemo(
+    () => student.enrollments.length > 0
+      ? student.enrollments.map(e => `${e.class.grade.name} ${e.class.name}`).join(', ')
+      : '—',
+    [student.enrollments],
+  )
 
   const [view, setView] = useState<ViewId>('dados')
   const [photoOpen, setPhotoOpen] = useState(false)
@@ -113,9 +261,6 @@ export function StudentProfileV2({
   // Responsibles state
   const [resps, setResps]         = useState<V2Responsible[]>(student.responsibles ?? [])
   const [showResp, setShowResp]   = useState(false)
-  const [respForm, setRespForm]   = useState({ name: '', relation: '', phone: '', phoneType: 'CELULAR' as 'CELULAR'|'FIXO' })
-  const [respLoading, setRespLoad] = useState(false)
-  const [respErr, setRespErr]     = useState<string | null>(null)
 
   // Ocorrências state
   const [ocrs, setOcrs]           = useState<V2Occurrence[]>([])
@@ -123,9 +268,6 @@ export function StudentProfileV2({
   const [ocrLoaded, setOcrLoaded] = useState(false)
   const [ocrFetching, setOcrFetching] = useState(false)
   const [showOcr, setShowOcr]     = useState(false)
-  const [ocrForm, setOcrForm]     = useState({ categoryId: '', severity: 'LEVE' as 'LEVE'|'MODERADA'|'GRAVE', date: new Date().toISOString().slice(0,10), description: '', location: '' })
-  const [ocrSubmitting, setOcrSubmit] = useState(false)
-  const [ocrErr, setOcrErr]       = useState<string | null>(null)
 
   // Esc to close (lightbox first, then modal)
   useEffect(() => {
@@ -138,7 +280,7 @@ export function StudentProfileV2({
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose, photoOpen])
 
-  // Lock body scroll
+  // Lock body scroll (roda uma vez só)
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -155,69 +297,56 @@ export function StudentProfileV2({
       .finally(() => setOcrFetching(false))
   }, [view, ocrLoaded, ocrFetcher, ocrFetching])
 
-  async function addResp(e: React.FormEvent) {
-    e.preventDefault()
-    if (!respCreator) return
-    setRespLoad(true); setRespErr(null)
-    try {
-      const r = await respCreator(respForm)
-      setResps(prev => [...prev, r])
-      setRespForm({ name: '', relation: '', phone: '', phoneType: 'CELULAR' })
-      setShowResp(false)
-    } catch (err: any) {
-      setRespErr(err?.message ?? 'erro ao salvar')
-    } finally {
-      setRespLoad(false)
-    }
-  }
+  // Callbacks estáveis para os subforms (evitam re-render dos memos)
+  const addResp = useCallback(async (input: Parameters<NonNullable<typeof respCreator>>[0]) => {
+    if (!respCreator) throw new Error('Not available')
+    const r = await respCreator(input)
+    setResps(prev => [...prev, r])
+    return r
+  }, [respCreator])
 
-  async function removeResp(id: number) {
+  const removeResp = useCallback(async (id: number) => {
     if (!respRemover) return
     try {
       await respRemover(id)
       setResps(prev => prev.filter(r => r.id !== id))
     } catch { /* ignore */ }
-  }
+  }, [respRemover])
 
-  async function addOcr(e: React.FormEvent) {
-    e.preventDefault()
-    if (!ocrCreator || !ocrForm.categoryId) return
-    setOcrSubmit(true); setOcrErr(null)
-    try {
-      const o = await ocrCreator({
-        categoryId:  Number(ocrForm.categoryId),
-        severity:    ocrForm.severity,
-        date:        ocrForm.date,
-        description: ocrForm.description.trim(),
-        location:    ocrForm.location.trim() || null,
-      })
-      setOcrs(prev => [o, ...prev])
-      setOcrForm({ categoryId: '', severity: 'LEVE', date: new Date().toISOString().slice(0,10), description: '', location: '' })
-      setShowOcr(false)
-    } catch (err: any) {
-      setOcrErr(err?.message ?? 'erro ao registrar')
-    } finally {
-      setOcrSubmit(false)
-    }
-  }
+  const addOcr = useCallback(async (input: Parameters<NonNullable<typeof ocrCreator>>[0]) => {
+    if (!ocrCreator) throw new Error('Not available')
+    const o = await ocrCreator(input)
+    setOcrs(prev => [o, ...prev])
+    return o
+  }, [ocrCreator])
 
-  // Build views list
+  const closeRespForm = useCallback(() => setShowResp(false), [])
+  const closeOcrForm  = useCallback(() => setShowOcr(false), [])
+
+  // ── Views memoizadas ─────────────────────────────────────────
   const showOcrTab  = !!ocrFetcher
   const showRespTab = resps.length > 0 || !!respCreator
-  const showRaioX   = true
 
-  const views: { id: ViewId; label: string; icon: React.ElementType; badge?: number | null }[] = [
-    { id: 'dados',         label: 'dados',         icon: User },
-    ...(showRespTab ? [{ id: 'responsaveis' as ViewId, label: 'responsáveis', icon: UsersRound, badge: resps.length || null }] : []),
-    ...(showRaioX  ? [{ id: 'raiox' as ViewId,        label: 'raio-x',       icon: ScanLine }] : []),
-    ...(showOcrTab ? [{ id: 'ocorrencias' as ViewId,  label: 'ocorrências',  icon: AlertTriangle, badge: ocrs.length || null }] : []),
-    ...extraViews.map(v => ({ id: v.id, label: v.label, icon: v.icon, badge: v.badge ?? null })),
-  ]
+  const views = useMemo(() => {
+    const list: { id: ViewId; label: string; icon: React.ElementType; badge?: number | null }[] = [
+      { id: 'dados', label: 'dados', icon: User },
+    ]
+    if (showRespTab) list.push({ id: 'responsaveis', label: 'responsáveis', icon: UsersRound, badge: resps.length || null })
+    list.push({ id: 'raiox', label: 'raio-x', icon: ScanLine })
+    if (showOcrTab)  list.push({ id: 'ocorrencias', label: 'ocorrências', icon: AlertTriangle, badge: ocrs.length || null })
+    extraViews.forEach(v => list.push({ id: v.id, label: v.label, icon: v.icon, badge: v.badge ?? null }))
+    return list
+  }, [showRespTab, showOcrTab, resps.length, ocrs.length, extraViews])
 
-  const currentView = views.find(v => v.id === view) ?? views[0]
-  const turmasLabel = student.enrollments.length > 0
-    ? student.enrollments.map(e => `${e.class.grade.name} ${e.class.name}`).join(', ')
-    : '—'
+  const currentView = useMemo(
+    () => views.find(v => v.id === view) ?? views[0],
+    [views, view],
+  )
+
+  const extraContent = useMemo(
+    () => extraViews.find(v => v.id === view)?.content ?? null,
+    [extraViews, view],
+  )
 
   return createPortal(
     <div className={s.overlay} onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
@@ -238,7 +367,7 @@ export function StudentProfileV2({
               {student.photoUrl ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={student.photoUrl} alt={student.name} className={`${s.avatar} ${s.avatarClickable}`} />
+                  <img src={student.photoUrl} alt={displayName} className={`${s.avatar} ${s.avatarClickable}`} />
                   <span className={s.avatarZoomHint}><ZoomIn size={20} /></span>
                 </>
               ) : (
@@ -246,7 +375,7 @@ export function StudentProfileV2({
               )}
               <span className={`${s.statusDot} ${student.isActive ? s.statusDotActive : s.statusDotInactive}`} />
             </div>
-            <h2 className={s.name}>{student.name}</h2>
+            <h2 className={s.name}>{displayName}</h2>
             {student.ra && <span className={s.ra}>{formatRa(student.ra)}</span>}
             <div className={s.badges}>
               <span className={`${s.badge} ${student.isActive ? s.badgeActive : s.badgeInactive}`}>
@@ -286,11 +415,11 @@ export function StudentProfileV2({
                 </button>
               )}
               {onToggle && (
-                <button className={s.actionBtn} onClick={onToggle}>
+                <Button variant="primary" onClick={onToggle}>
                   {student.isActive
                     ? <><ToggleRight size={15} /> desativar</>
                     : <><ToggleLeft  size={15} /> ativar</>}
-                </button>
+                </Button>
               )}
               {onDelete && (
                 <button className={`${s.actionBtn} ${s.actionBtnDanger}`} onClick={onDelete}>
@@ -313,9 +442,11 @@ export function StudentProfileV2({
                 {view === 'ocorrencias'   && `${ocrs.length} ocorrência${ocrs.length !== 1 ? 's' : ''} registrada${ocrs.length !== 1 ? 's' : ''}`}
               </span>
             </div>
-            <button className={s.closeBtn} onClick={onClose} aria-label="Fechar">
-              <X size={16} />
-            </button>
+            <IconButton
+              icon={<X size={16} />}
+              label="Fechar"
+              onClick={onClose}
+            />
           </div>
 
           <div className={s.mainBody}>
@@ -342,7 +473,7 @@ export function StudentProfileV2({
                 </div>
                 <div className={s.infoCard}>
                   <span className={s.infoLabel}><User size={11} /> responsável principal</span>
-                  <span className={s.infoValue}>{student.guardian ?? '—'}</span>
+                  <span className={s.infoValue}>{student.guardian ? formatName(student.guardian) : '—'}</span>
                 </div>
               </div>
             )}
@@ -351,37 +482,25 @@ export function StudentProfileV2({
             {view === 'responsaveis' && (
               <>
                 {canWrite && respCreator && !showResp && (
-                  <button className={s.addBtn} onClick={() => { setShowResp(true); setRespErr(null) }}>
-                    <Plus size={12} /> adicionar responsável
-                  </button>
+                  <Button
+                    variant="primary"
+                    iconLeft={<Plus size={12} />}
+                    onClick={() => setShowResp(true)}
+                  >adicionar responsável</Button>
                 )}
 
-                {showResp && (
-                  <form className={s.qForm} onSubmit={addResp}>
-                    {respErr && <span className={s.qFormError}>{respErr}</span>}
-                    <div className={s.qFormRow}>
-                      <input className={s.qFormInput} placeholder="nome *"      required autoFocus value={respForm.name}     onChange={e => setRespForm(p => ({ ...p, name: e.target.value }))} />
-                      <input className={s.qFormInput} placeholder="parentesco *" required          value={respForm.relation} onChange={e => setRespForm(p => ({ ...p, relation: e.target.value }))} />
-                    </div>
-                    <div className={s.qFormRow}>
-                      <select className={s.qFormSelect} value={respForm.phoneType} onChange={e => setRespForm(p => ({ ...p, phoneType: e.target.value as 'CELULAR' | 'FIXO' }))}>
-                        <option value="CELULAR">Celular</option>
-                        <option value="FIXO">Fixo</option>
-                      </select>
-                      <input className={s.qFormInput} placeholder="telefone" value={respForm.phone} onChange={e => setRespForm(p => ({ ...p, phone: e.target.value }))} />
-                    </div>
-                    <div className={s.qFormActions}>
-                      <button type="button" className={s.qCancel} onClick={() => { setShowResp(false); setRespErr(null) }}>cancelar</button>
-                      <button type="submit"  className={s.qSubmit} disabled={respLoading}><Check size={11} /> {respLoading ? 'salvando…' : 'salvar'}</button>
-                    </div>
-                  </form>
+                {showResp && respCreator && (
+                  <AddResponsibleForm
+                    onAdd={addResp}
+                    onClose={closeRespForm}
+                  />
                 )}
 
                 {resps.length === 0 && !showResp && (
                   <div className={s.empty}>
                     <UsersRound size={32} className={s.emptyIcon} />
                     <span className={s.emptyText}>nenhum responsável cadastrado</span>
-                    {canWrite && <span className={s.emptyHint}>clique em "adicionar responsável"</span>}
+                    {canWrite && <span className={s.emptyHint}>clique em &quot;adicionar responsável&quot;</span>}
                   </div>
                 )}
 
@@ -390,7 +509,7 @@ export function StudentProfileV2({
                     <div key={r.id} className={s.respCard}>
                       <div className={s.respIcon}><User size={16} /></div>
                       <div className={s.respInfo}>
-                        <span className={s.respName}>{r.name}</span>
+                        <span className={s.respName}>{formatName(r.name)}</span>
                         <span className={s.respMeta}>
                           {r.relation}
                           {r.phone && (
@@ -444,7 +563,7 @@ export function StudentProfileV2({
                   <div className={s.infoGrid}>
                     <div className={s.infoCard}>
                       <span className={s.infoLabel}><User size={11} /> tutor</span>
-                      <span className={s.infoValue}>{student.tutor ?? '—'}</span>
+                      <span className={s.infoValue}>{student.tutor ? formatName(student.tutor) : '—'}</span>
                     </div>
                     <div className={s.infoCard}>
                       <span className={s.infoLabel}><BookOpen size={11} /> eletiva</span>
@@ -472,35 +591,19 @@ export function StudentProfileV2({
             {view === 'ocorrencias' && ocrFetcher && (
               <>
                 {canWrite && ocrCreator && !showOcr && (
-                  <button className={s.addBtn} onClick={() => { setShowOcr(true); setOcrErr(null) }}>
-                    <Plus size={12} /> registrar ocorrência
-                  </button>
+                  <Button
+                    variant="primary"
+                    iconLeft={<Plus size={12} />}
+                    onClick={() => setShowOcr(true)}
+                  >registrar ocorrência</Button>
                 )}
 
-                {showOcr && (
-                  <form className={s.qForm} onSubmit={addOcr}>
-                    {ocrErr && <span className={s.qFormError}>{ocrErr}</span>}
-                    <div className={s.qFormRow}>
-                      <select className={s.qFormSelect} required value={ocrForm.categoryId} onChange={e => setOcrForm(p => ({ ...p, categoryId: e.target.value }))}>
-                        <option value="">categoria *</option>
-                        {ocrCats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                      <select className={s.qFormSelect} value={ocrForm.severity} onChange={e => setOcrForm(p => ({ ...p, severity: e.target.value as 'LEVE'|'MODERADA'|'GRAVE' }))}>
-                        <option value="LEVE">Leve</option>
-                        <option value="MODERADA">Moderada</option>
-                        <option value="GRAVE">Grave</option>
-                      </select>
-                    </div>
-                    <input type="date" className={s.qFormInput} required value={ocrForm.date} onChange={e => setOcrForm(p => ({ ...p, date: e.target.value }))} />
-                    <textarea className={s.qFormTextarea} placeholder="descrição *" required value={ocrForm.description} onChange={e => setOcrForm(p => ({ ...p, description: e.target.value }))} />
-                    <input className={s.qFormInput} placeholder="local (opcional)" value={ocrForm.location} onChange={e => setOcrForm(p => ({ ...p, location: e.target.value }))} />
-                    <div className={s.qFormActions}>
-                      <button type="button" className={s.qCancel} onClick={() => { setShowOcr(false); setOcrErr(null) }}>cancelar</button>
-                      <button type="submit"  className={s.qSubmit} disabled={ocrSubmitting || !ocrForm.description.trim() || !ocrForm.categoryId}>
-                        <Check size={11} /> {ocrSubmitting ? 'registrando…' : 'registrar'}
-                      </button>
-                    </div>
-                  </form>
+                {showOcr && ocrCreator && (
+                  <AddOccurrenceForm
+                    onAdd={addOcr}
+                    onClose={closeOcrForm}
+                    categories={ocrCats}
+                  />
                 )}
 
                 {ocrFetching && !ocrLoaded && <div className={s.empty}><span className={s.emptyText}>carregando…</span></div>}
@@ -531,7 +634,7 @@ export function StudentProfileV2({
             )}
 
             {/* ── Extra system-specific views ── */}
-            {extraViews.find(v => v.id === view)?.content}
+            {extraContent}
 
           </div>
         </div>
@@ -545,11 +648,11 @@ export function StudentProfileV2({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={student.photoUrl}
-              alt={student.name}
+              alt={displayName}
               className={s.lightboxImg}
               onClick={e => e.stopPropagation()}
             />
-            <span className={s.lightboxCaption}>{student.name}</span>
+            <span className={s.lightboxCaption}>{displayName}</span>
           </div>
         )}
       </div>
@@ -557,3 +660,6 @@ export function StudentProfileV2({
     document.body
   )
 }
+
+// memo: evita re-render quando pai muda mas props do modal não mudaram
+export const StudentProfileV2 = memo(StudentProfileV2Impl)

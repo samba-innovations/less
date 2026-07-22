@@ -1,16 +1,25 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, FileText, FilePlus, Users, Compass,
-  HelpCircle, Sun, Moon, LogOut, PanelLeft, Menu, X, MessageSquare, Layers, BookMarked, FileBarChart2, ClipboardList,
+  HelpCircle, Sun, Moon, Rows3, Rows2, LogOut, PanelLeft, Menu, X, MessageSquare, Layers, BookMarked, FileBarChart2, ClipboardList, Settings,
 } from 'lucide-react'
 import type { JwtPayload } from '@/lib/jwt'
+import { formatName } from '@/lib/format-name'
 import { isManager, effectiveRole } from '@/lib/jwt'
+import { formatName } from '@/lib/format-name'
 import { NotificationBell } from './_components/NotificationBell'
+import { useDensity } from './_components/useDensity'
 import { SupportWidget } from './_components/SupportWidget'
+import { MessagesWidget } from './_components/MessagesWidget'
+import { MessageToastStack } from './_components/MessageToastStack'
+import { LoadingBar } from './_components/LoadingBar'
+import { KeyboardShortcuts } from './_components/KeyboardShortcuts'
+import { PWAInstallBanner } from './_components/PWAInstallBanner'
+import { ErrorBoundary } from './_components/ErrorBoundary'
 import { SpotlightTour } from './_components/SpotlightTour'
 import { Breadcrumb } from './_components/Breadcrumb'
 import { BreadcrumbProvider } from './_components/BreadcrumbContext'
@@ -18,6 +27,8 @@ import { PeriodChip } from './_components/PeriodChip'
 import { CommandPaletteTrigger } from './_components/CommandPalette'
 import { StudentLookup } from './_components/StudentLookup'
 import s from './shell.module.css'
+import { IconButton } from './_components/IconButton'
+import { Avatar } from './_components/Avatar'
 
 const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN ?? 'sambainnovations.local'
 const TOUR_KEY = 'samba-less-tour-done'
@@ -74,10 +85,27 @@ function isActive(pathname: string, href: string) {
 
 export function DashboardShell({ payload, user, children, activeYear, currentBimester }: Props) {
   const pathname = usePathname()
+  const density = useDensity()
   const [dark, setDark]               = useState(false)
   const [collapsed, setCollapsed]     = useState(false)
   const [mobileOpen, setMobileOpen]   = useState(false)
   const [avatarError, setAvatarError] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef                     = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!userMenuOpen) return
+    function onClick(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false)
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setUserMenuOpen(false) }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [userMenuOpen])
   const [tourActive, setTourActive]   = useState(false)
   const [tourDone,   setTourDone]     = useState(false)
 
@@ -193,6 +221,7 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
   return (
     <BreadcrumbProvider>
     <div className={s.shell}>
+      <a href="#main-content" className="samba-skip-link">pular pro conteúdo</a>
 
       {/* ── Desktop sidebar ── */}
       <aside className={`${s.sidebar} ${collapsed ? s.sidebarCollapsed : ''}`}>
@@ -228,7 +257,7 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
       )}
 
       {/* ── Main ── */}
-      <div className={s.main}>
+      <div id="main-content" className={s.main}>
 
         <header className={s.topbar}>
           <div className={s.topbarLeft}>
@@ -248,46 +277,77 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
           <div className={s.topbarRight}>
             <PeriodChip year={activeYear} bimester={currentBimester} />
             {tourDone && (
-              <button className={s.topbarBtn} onClick={() => setTourActive(true)} title="Explorar sistema" aria-label="Replay tour">
-                <Compass size={18} />
-              </button>
+              <IconButton
+                icon={<Compass size={18} />}
+                label="Explorar sistema"
+                onClick={() => setTourActive(true)}
+              />
             )}
+            <button className={s.topbarBtn} onClick={density.toggle} aria-label="Alternar densidade" title={density.isCompact ? 'densidade confortável' : 'densidade compacta'}>
+              {density.isCompact ? <Rows3 size={18} /> : <Rows2 size={18} />}
+            </button>
             <button className={s.topbarBtn} onClick={toggleTheme} aria-label="Alternar tema">
               {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
             <NotificationBell />
 
-            <div className={s.userInfo}>
-              <div className={s.userText}>
-                <span className={s.userName}>{user?.name ?? 'usuário'}</span>
-                <span className={s.userRole}>{roleLabel}</span>
-              </div>
-              <div className={s.avatarWrap}>
-                {resolvedAvatarUrl && !avatarError ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={resolvedAvatarUrl}
-                    alt={user?.name ?? ''}
-                    className={s.avatarImg}
-                    onError={() => setAvatarError(true)}
-                  />
-                ) : (
-                  <span className={s.avatarFallback}>{initials}</span>
-                )}
-              </div>
+            <div className={s.userMenuWrap} ref={userMenuRef}>
+              <button
+                type="button"
+                className={s.userInfo}
+                onClick={() => setUserMenuOpen(v => !v)}
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
+              >
+                <div className={s.userText}>
+                  <span className={s.userName}>{formatName(user?.name) || 'usuário'}</span>
+                  <span className={s.userRole}>{roleLabel}</span>
+                </div>
+                <div className={s.avatarWrap}>
+                  {resolvedAvatarUrl && !avatarError ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <Avatar name={user?.name ?? ''} url={resolvedAvatarUrl} />
+                  ) : (
+                    <span className={s.avatarFallback}>{initials}</span>
+                  )}
+                </div>
+              </button>
+              {userMenuOpen && (
+                <div className={s.userDropdown} role="menu">
+                  <Link
+                    href="/dashboard/preferencias"
+                    className={s.userDropdownItem}
+                    onClick={() => setUserMenuOpen(false)}
+                    role="menuitem"
+                  >
+                    <Settings size={14} />
+                    <span>preferências</span>
+                  </Link>
+                  <div className={s.userDropdownDivider} />
+                  <a href={hubUrl} className={s.userDropdownItem} role="menuitem">
+                    <LogOut size={14} />
+                    <span>sair do sistema</span>
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </header>
 
         <main className={s.content}>
           <div key={pathname} className={s.pageTransition}>
-            {children}
+            <ErrorBoundary>{children}</ErrorBoundary>
           </div>
         </main>
         <StudentLookup />
 
         <SupportWidget />
+        <MessagesWidget />
+        <MessageToastStack />
+        <LoadingBar />
+        <KeyboardShortcuts />
+        <PWAInstallBanner />
         <SpotlightTour active={tourActive} onEnd={handleTourEnd} />
       </div>
     </div>

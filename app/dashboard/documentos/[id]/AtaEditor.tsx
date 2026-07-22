@@ -12,6 +12,9 @@ import {
 } from '@/lib/ata'
 import s from './ata.module.css'
 import { ChipSelector } from '../../_components/Selector'
+import { Button } from '../../_components/Button'
+import { Input } from '../../_components/Input'
+import { formatName } from '@/lib/format-name'
 
 type Turma = { id: number; name: string; grade: string; ciclo: string; serie: string }
 type Props = {
@@ -56,11 +59,40 @@ export function AtaEditor({ doc }: Props) {
   const [teachers, setTeachers] = useState<ClassTeacher[]>([])
   const [saving, setSaving]     = useState(false)
   const [saved, setSaved]       = useState(false)
+  const [savedAt, setSavedAt]   = useState<Date | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
   const [pdfing, setPdfing]     = useState<string | null>(null)
   const [showPdfMenu, setShowPdfMenu] = useState(false)
+  const pdfMenuRef  = useRef<HTMLDivElement>(null)
   const fileRef  = useRef<HTMLInputElement>(null)
   const fileRef2 = useRef<HTMLInputElement>(null)
+  const saveRef  = useRef<() => void>(() => {})
+
+  // Atalho ⌘S / Ctrl+S
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault(); saveRef.current()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // Outside-click e Escape para fechar dropdown de export
+  useEffect(() => {
+    if (!showPdfMenu) return
+    function onDown(e: MouseEvent) {
+      if (pdfMenuRef.current && !pdfMenuRef.current.contains(e.target as Node)) setShowPdfMenu(false)
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setShowPdfMenu(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [showPdfMenu])
 
   useEffect(() => {
     fetch('/api/less/turmas').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setTurmas(d) }).catch(() => {})
@@ -119,6 +151,7 @@ export function AtaEditor({ doc }: Props) {
   }
 
   async function save() {
+    if (saving) return
     setSaving(true)
     try {
       await fetch(`/api/documentos/${doc.id}`, {
@@ -129,9 +162,10 @@ export function AtaEditor({ doc }: Props) {
           csvRaw2: csvData2 ? JSON.stringify(csvData2) : '',
         } }),
       })
-      setSaved(true); setTimeout(() => setSaved(false), 2000)
+      setSaved(true); setSavedAt(new Date()); setTimeout(() => setSaved(false), 2000)
     } finally { setSaving(false) }
   }
+  saveRef.current = save
 
   async function genPdf(tipo: 'mapao' | 'ata' | 'reuniao') {
     if (!csvData) return
@@ -166,6 +200,75 @@ export function AtaEditor({ doc }: Props) {
 
   return (
     <div className={s.wrap}>
+      {/* Top action bar — substitui a antiga fixed bottom bar full-width.
+          Só os botões, alinhados à direita com o status ao lado. */}
+      <div className={s.topActionsBar}>
+        <p className={s.topActionsLabel}>Ata</p>
+        <div className={s.topActions}>
+          {saving ? (
+            <p className={s.savingMsg}><Loader2 size={11} className={s.spin} /> salvando…</p>
+          ) : savedAt ? (
+            <p className={s.savedMsgNew} title={savedAt.toLocaleString('pt-BR')}>
+              <span className={s.savedDot} /> salvo {formatSavedAt(savedAt)}
+            </p>
+          ) : (
+            <p className={s.savedMsgIdle}>rascunho — <kbd>⌘S</kbd> para salvar</p>
+          )}
+          {csvData && (
+            <div className={s.pdfMenuWrap} ref={pdfMenuRef}>
+              <Button
+                variant="secondary"
+                onClick={() => setShowPdfMenu(v => !v)}
+                disabled={!!pdfing || excelBusy}
+                type="button"
+              >{(pdfing || excelBusy) ? (
+                  <><Loader2 size={13} className={s.spin} /> gerando…</>
+                ) : (
+                  <><Download size={13} /> exportar <ChevronDown size={12} /></>
+                )}</Button>
+              {showPdfMenu && (
+                <div className={`${s.pdfMenu} ${s.dropdownTopAnchor}`} role="menu">
+                  <button type="button" onClick={() => { setShowPdfMenu(false); genPdf('reuniao') }}>
+                    <FileText size={13} /> Ata de Reunião (PDF)
+                  </button>
+                  <button type="button" onClick={() => { setShowPdfMenu(false); genPdf('mapao') }}>
+                    <FileText size={13} /> Mapão — grade completa (PDF)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowPdfMenu(false); genPdf('ata') }}
+                    disabled={bimestre !== '5'}
+                    title={bimestre !== '5' ? 'disponível apenas para 5º Conceito (Anual)' : undefined}
+                  >
+                    <FileText size={13} /> Ata de Resultado — 5º Conceito (PDF)
+                  </button>
+                  <div className={s.pdfMenuDivider} />
+                  <button
+                    type="button"
+                    onClick={() => { setShowPdfMenu(false); genExcel() }}
+                    disabled={excelBusy}
+                    title="Excel oficial: Resumo · Dados · Mapão · Assinaturas · ATA (5º)"
+                  >
+                    <FileSpreadsheet size={13} /> Excel oficial (planilha completa)
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          <Button
+            variant="primary"
+            onClick={save}
+            disabled={saving}
+            type="button"
+            title="salvar (⌘S)"
+          >{saving ? (
+              <><Loader2 size={13} className={s.spin} /> salvando…</>
+            ) : (
+              <><Save size={13} /> salvar</>
+            )}</Button>
+        </div>
+      </div>
+
       {/* Setup */}
       <div className={s.setup}>
         <p className={s.setupLabel}>Configuração</p>
@@ -193,9 +296,11 @@ export function AtaEditor({ doc }: Props) {
         {setupDone && (
           <div className={s.importRow}>
             <input ref={fileRef} type="file" accept=".xlsx,.xls" className={s.hidden} onChange={e => e.target.files?.[0] && importMapao(e.target.files[0])} />
-            <button className={s.importBtn} onClick={() => fileRef.current?.click()}>
-              <Database size={14} /> Importar Mapão (SED)
-            </button>
+            <Button
+              variant="secondary"
+              iconLeft={<Database size={14} />}
+              onClick={() => fileRef.current?.click()}
+            >Importar Mapão (SED)</Button>
             <input ref={fileRef2} type="file" accept=".xlsx,.xls,.csv" className={s.hidden} onChange={e => e.target.files?.[0] && importComplementar(e.target.files[0])} />
             <button className={s.importBtn2} onClick={() => fileRef2.current?.click()}>
               <UserCheck size={14} /> Dados Complementares
@@ -296,9 +401,12 @@ export function AtaEditor({ doc }: Props) {
                               <td key={`${d}-n`} className={s.numCell}>{g?.num || ''}</td>,
                               <td key={`${d}-m`} className={s.mEditCell}>
                                 {inactive ? <span className={gradeCls(media)}>{String(media)}</span> : (
-                                  <input className={`${s.gradeInput} ${gradeCls(media)}`} defaultValue={String(media)}
+                                  <Input
                                     onBlur={e => { const v = normalizeGradeInput(e.target.value); if (String(v) !== String(media)) handleGradeChange(st.name, d, v) }}
-                                    onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }} />
+                                    onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                                    defaultValue={String(media)}
+                                    className={`${s.gradeInput} ${gradeCls(media)}`}
+                                  />
                                 )}
                               </td>,
                               <td key={`${d}-f`} className={s.numCell}>{g?.faltas || ''}</td>,
@@ -328,7 +436,7 @@ export function AtaEditor({ doc }: Props) {
                     <thead><tr><th>Nome</th><th>Disciplina</th><th>Assinatura</th></tr></thead>
                     <tbody>
                       {teachers.map(t => (
-                        <tr key={`${t.name}-${t.discipline}`}><td>{t.name}</td><td>{t.discipline}</td><td><div className={s.signLine} /></td></tr>
+                        <tr key={`${t.name}-${t.discipline}`}><td>{formatName(t.name)}</td><td>{t.discipline}</td><td><div className={s.signLine} /></td></tr>
                       ))}
                     </tbody>
                   </table>
@@ -352,34 +460,18 @@ export function AtaEditor({ doc }: Props) {
         </>
       )}
 
-      {/* Bottom bar */}
-      <div className={s.bottomBar}>
-        <p className={`${s.savedMsg} ${saved ? s.savedVisible : ''}`}><Check size={11} /> salvo</p>
-        <div className={s.bottomActions}>
-          <button className={s.saveBtn} onClick={save} disabled={saving}><Save size={13} /> {saving ? 'salvando…' : 'salvar'}</button>
-          {csvData && (
-            <div className={s.pdfMenuWrap}>
-              <button className={s.pdfBtn} onClick={() => setShowPdfMenu(v => !v)} disabled={!!pdfing}>
-                {pdfing ? <Loader2 size={13} className={s.spin} /> : <Download size={13} />} {pdfing ? 'gerando…' : 'gerar PDF'} <ChevronDown size={12} />
-              </button>
-              {showPdfMenu && (
-                <div className={s.pdfMenu}>
-                  <button onClick={() => genPdf('reuniao')}>Ata de Reunião</button>
-                  <button onClick={() => genPdf('mapao')}>Mapão (grade completa)</button>
-                  <button onClick={() => genPdf('ata')} disabled={bimestre !== '5'} title={bimestre !== '5' ? 'Apenas 5º Conceito' : undefined}>Ata de Resultado (5º Conceito)</button>
-                </div>
-              )}
-            </div>
-          )}
-          {csvData && (
-            <button className={s.pdfBtn} onClick={genExcel} disabled={excelBusy} title="Excel oficial: Resumo · Dados · Mapão · Assinaturas · ATA (5º)">
-              {excelBusy ? <Loader2 size={13} className={s.spin} /> : <FileSpreadsheet size={13} />} {excelBusy ? 'gerando…' : 'gerar Excel'}
-            </button>
-          )}
-        </div>
-      </div>
     </div>
   )
+}
+
+// formatSavedAt — "agora", "há 12s", "há 3 min", "há 2 h" etc.
+function formatSavedAt(d: Date): string {
+  const diff = Math.floor((Date.now() - d.getTime()) / 1000)
+  if (diff < 5)     return 'agora'
+  if (diff < 60)    return `há ${diff}s`
+  if (diff < 3600)  return `há ${Math.floor(diff / 60)} min`
+  if (diff < 86400) return `há ${Math.floor(diff / 3600)} h`
+  return d.toLocaleDateString('pt-BR')
 }
 
 function ResultadoTable({ data }: { data: AtaCsvData }) {

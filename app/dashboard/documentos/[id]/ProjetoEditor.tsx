@@ -8,6 +8,7 @@ import {
 } from '@/lib/projeto-data'
 import { REFERENCIAS_PADRAO } from '@/lib/guia-data'
 import s from './projeto.module.css'
+import { Input } from '../../_components/Input'
 
 type Props = {
   fields:   Record<string, string>
@@ -123,15 +124,29 @@ export function ProjetoEditor({ fields, setField }: Props) {
         <div className={s.sectionHead}><span className={s.dot} />Estrutura do Projeto</div>
         <div className={s.field}>
           <label className={s.label}>Título do projeto</label>
-          <input className={s.input} value={fields.titulo ?? ''} placeholder="Ex: Análise da qualidade da água do ribeirão Bauru" onChange={e => setField('titulo', e.target.value)} />
+          <Input
+            placeholder="Ex: Análise da qualidade da água do ribeirão Bauru"
+            value={fields.titulo ?? ''}
+            onChange={e => setField('titulo', e.target.value)}
+            className={s.input}
+          />
         </div>
         <div className={s.field}>
           <label className={s.label}>Tema / Subtítulo</label>
-          <input className={s.input} value={fields.tema_sugerido ?? ''} placeholder="Ex: Recursos hídricos, saneamento e saúde pública" onChange={e => setField('tema_sugerido', e.target.value)} />
+          <Input
+            placeholder="Ex: Recursos hídricos, saneamento e saúde pública"
+            value={fields.tema_sugerido ?? ''}
+            onChange={e => setField('tema_sugerido', e.target.value)}
+            className={s.input}
+          />
         </div>
         <div className={s.field}>
           <label className={s.label}>Período de referência</label>
-          <input className={s.input} value={fields.periodo ?? ''} onChange={e => setField('periodo', e.target.value)} />
+          <Input
+            value={fields.periodo ?? ''}
+            onChange={e => setField('periodo', e.target.value)}
+            className={s.input}
+          />
         </div>
         <div className={s.field}>
           <label className={s.label}>Ação central <span className={s.hint}>verbo que define o projeto</span></label>
@@ -173,7 +188,12 @@ export function ProjetoEditor({ fields, setField }: Props) {
         <div className={s.field}>
           <label className={s.label}>Palavras-chave <span className={s.hint}>3 a 5 termos, separados por ponto e vírgula</span></label>
           <div className={s.kwRow}>
-            <input className={s.input} value={fields.palavras_chave ?? ''} placeholder="Ex: recursos hídricos; qualidade da água; saneamento" onChange={e => setField('palavras_chave', e.target.value)} />
+            <Input
+              placeholder="Ex: recursos hídricos; qualidade da água; saneamento"
+              value={fields.palavras_chave ?? ''}
+              onChange={e => setField('palavras_chave', e.target.value)}
+              className={s.input}
+            />
             <button className={s.suggestBtn} onClick={handleSuggest}><Sparkles size={13} /> Sugerir</button>
           </div>
         </div>

@@ -1,0 +1,128 @@
+/* ── Tabs ─────────────────────────────────────────────────
+   Duas variantes: underline (aba clássica) e pill (fundo).   */
+
+.list {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  position: relative;
+}
+.fullWidth {
+  display: flex;
+  width: 100%;
+}
+.fullWidth .tab { flex: 1; }
+
+/* ── Underline variant: border-bottom brand na ativa ───── */
+.underline {
+  border-bottom: 1px solid var(--border);
+  gap: 0.25rem;
+}
+.underline .tab {
+  position: relative;
+  padding: 0.55rem 0.85rem;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  color: var(--fg-secondary);
+  cursor: pointer;
+  font-weight: 500;
+  transition: color var(--duration-fast) var(--ease-out);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.underline .tab::after {
+  content: '';
+  position: absolute;
+  left: 0.5rem; right: 0.5rem;
+  bottom: -1px;
+  height: 2px;
+  background: var(--brand);
+  border-radius: var(--radius-round);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--duration-normal) var(--ease-out);
+}
+.underline .tab:hover:not(.tabDisabled):not(.active) {
+  color: var(--fg);
+}
+.underline .active {
+  color: var(--brand);
+  font-weight: 700;
+}
+.underline .active::after { transform: scaleX(1); }
+
+/* ── Pill variant: fundo brand-alpha na ativa ─────────── */
+.pill {
+  padding: 3px;
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  border-radius: var(--radius-md);
+  gap: 2px;
+}
+.pill .tab {
+  padding: 0.4rem 0.85rem;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  color: var(--fg-secondary);
+  cursor: pointer;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.pill .tab:hover:not(.tabDisabled):not(.active) {
+  color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+}
+.pill .active {
+  background: var(--bg);
+  color: var(--brand);
+  font-weight: 700;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--fg) 10%, transparent);
+}
+
+/* ── Sizes ────────────────────────────────────────────── */
+.sm .tab { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
+.md .tab { font-size: 0.8125rem; }
+
+/* ── Focus visible ───────────────────────────────────── */
+.tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent);
+  z-index: 1;
+}
+
+/* ── Disabled ────────────────────────────────────────── */
+.tabDisabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Slots internos ─────────────────────────────────── */
+.tabIcon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.tabLabel { display: inline-block; }
+.tabCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  padding: 0 5px;
+  height: 15px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--radius-round);
+  background: color-mix(in srgb, currentColor 15%, transparent);
+  line-height: 1;
+}
+.active .tabCount {
+  background: color-mix(in srgb, var(--brand) 15%, transparent);
+  color: var(--brand);
+}

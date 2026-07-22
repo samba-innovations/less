@@ -15,6 +15,8 @@ import {
 } from 'lucide-react'
 import { type DocType, type FieldType, DOC_TYPES } from '@/lib/doc-types'
 import s from './novo.module.css'
+import { Button } from '../../_components/Button'
+import { Input } from '../../_components/Input'
 
 type TypeMeta = {
   value:       DocType
@@ -317,18 +319,17 @@ export function NovoClient({ isManager, preType }: Props) {
           ) : (
             <div className={s.stepCard} key={selectedType}>
               <div className={s.titleRow}>
-                <input
-                  ref={titleRef}
-                  className={s.titleInput}
-                  type="text"
+                <Input
                   placeholder={`Ex: ${suggestTitle(selectedType, meta!.label)}`}
                   value={title}
-                  autoFocus
                   onChange={e => { setTitle(e.target.value); setDupOpen(false) }}
                   onKeyDown={e => {
                     if (e.key === 'Enter' && !loading) create()
                     if (e.ctrlKey && e.key === 'Enter' && !loading) create()
                   }}
+                  autoFocus
+                  className={s.titleInput}
+                  ref={titleRef}
                 />
                 <button
                   type="button"
@@ -390,14 +391,12 @@ export function NovoClient({ isManager, preType }: Props) {
                 </div>
               )}
 
-              <button
-                className={s.submitBtn}
+              <Button
+                variant="primary"
+                iconLeft={<ArrowRight size={15} />}
                 onClick={create}
                 disabled={loading || !title.trim()}
-              >
-                <ArrowRight size={15} />
-                {loading ? 'Criando…' : (cloneFromId ? 'Criar com base na cópia' : 'Criar documento')}
-              </button>
+              >{loading ? 'Criando…' : (cloneFromId ? 'Criar com base na cópia' : 'Criar documento')}</Button>
 
               {error && <p className={s.errMsg}>{error}</p>}
               <p className={s.hint}>Você pode alterar o título depois no editor. Pressione <kbd className={s.kbd}>Enter</kbd> para criar.</p>

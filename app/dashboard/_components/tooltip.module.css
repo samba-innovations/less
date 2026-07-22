@@ -1,0 +1,72 @@
+/* ── Tooltip ──────────────────────────────────────────────
+   Popup fixed via portal. 4 posições com arrow via ::before.  */
+
+.wrap {
+  display: inline-flex;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 100000;
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  pointer-events: none;
+  max-width: 280px;
+  width: max-content;
+  text-wrap: pretty;
+  animation: tooltipIn 120ms var(--ease-out);
+}
+@keyframes tooltipIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Sizes ──────────────────────────────────────────── */
+.sm { padding: 0.25rem 0.5rem; font-size: 0.6875rem; }
+.md { padding: 0.4rem 0.65rem; font-size: 0.75rem; }
+
+/* ── Variants ─────────────────────────────────────── */
+.default {
+  background: var(--fg);
+  color: var(--bg);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--fg) 25%, transparent);
+}
+.dark {
+  background: #1f2937;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+}
+
+/* ── Arrow (via ::before) ─────────────────────────── */
+.tooltip::before {
+  content: '';
+  position: absolute;
+  width: 6px; height: 6px;
+  transform: rotate(45deg);
+  background: inherit;
+}
+
+.pos-top::before {
+  bottom: -3px;
+  left: 50%;
+  margin-left: -3px;
+}
+.pos-bottom::before {
+  top: -3px;
+  left: 50%;
+  margin-left: -3px;
+}
+.pos-left::before {
+  right: -3px;
+  top: 50%;
+  margin-top: -3px;
+}
+.pos-right::before {
+  left: -3px;
+  top: 50%;
+  margin-top: -3px;
+}

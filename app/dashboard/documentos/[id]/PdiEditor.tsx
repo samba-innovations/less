@@ -5,6 +5,9 @@ import { Plus, X, ChevronDown } from 'lucide-react'
 import { DIMENSOES_PDI, OBJETIVOS_OPCOES, getAtividade, getMetaDefault } from '@/lib/pdi-data'
 import s from './pdi.module.css'
 import { ChipSelector } from '../../_components/Selector'
+import { DatePicker } from '../../_components/DatePicker'
+import { Button } from '../../_components/Button'
+import { IconButton } from '../../_components/IconButton'
 
 type Props = {
   fields:   Record<string, string>
@@ -82,7 +85,11 @@ export function PdiEditor({ fields, setField }: Props) {
           </div>
           <div className={s.field}>
             <label className={s.label}>Data de elaboração</label>
-            <input type="date" className={s.input} value={fields.data_elaboracao ?? ''} onChange={e => setField('data_elaboracao', e.target.value)} />
+            <DatePicker
+              value={fields.data_elaboracao ?? null}
+              onChange={v => setField('data_elaboracao', v)}
+              className={s.input}
+            />
           </div>
         </div>
       </section>
@@ -97,7 +104,12 @@ export function PdiEditor({ fields, setField }: Props) {
           <div key={ativ.id} className={s.card}>
             <div className={s.cardHead}>
               <span className={s.cardTitle}>Atividade {idx + 1}{ativ.dimensao ? ` — Dimensão ${ativ.dimensao}` : ''}</span>
-              <button className={s.removeBtn} onClick={() => removeAtividade(ativ.id)} title="Remover"><X size={15} /></button>
+              <IconButton
+                icon={<X size={15} />}
+                label="Remover"
+                variant="danger"
+                onClick={() => removeAtividade(ativ.id)}
+              />
             </div>
 
             <div className={s.grid2}>
@@ -176,7 +188,11 @@ export function PdiEditor({ fields, setField }: Props) {
           </div>
         ))}
 
-        <button className={s.addBtn} onClick={addAtividade}><Plus size={16} /> Adicionar Atividade</button>
+        <Button
+          variant="primary"
+          iconLeft={<Plus size={16} />}
+          onClick={addAtividade}
+        >Adicionar Atividade</Button>
       </section>
     </div>
   )

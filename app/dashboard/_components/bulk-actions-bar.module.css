@@ -1,0 +1,100 @@
+.bar {
+  position: fixed;
+  bottom: var(--space-xl);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--fg);
+  color: var(--bg);
+  border-radius: var(--radius-round);
+  box-shadow: var(--shadow-xl);
+  animation: bab-in var(--duration-normal) var(--ease-bounce);
+}
+@keyframes bab-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px) scale(0.9); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+.count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 0.75rem;
+  padding-left: var(--space-sm);
+  white-space: nowrap;
+}
+.countNum {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--brand-light, var(--bg));
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background: color-mix(in srgb, var(--bg) 25%, transparent);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--bg);
+  border-radius: var(--radius-round);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
+}
+.clear:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--bg) 15%, transparent);
+}
+
+/* Buttons dentro do BulkActionsBar herdam styling padrão */
+.actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--bg);
+  border: 1px solid color-mix(in srgb, var(--bg) 30%, transparent);
+  border-radius: var(--radius-round);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.actions button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bg) 15%, transparent);
+}
+.actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 640px) {
+  .bar {
+    left: var(--space-sm);
+    right: var(--space-sm);
+    transform: none;
+    justify-content: space-between;
+  }
+  @keyframes bab-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}

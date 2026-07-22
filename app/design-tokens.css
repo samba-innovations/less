@@ -1,0 +1,433 @@
+/* ─── Design Tokens v2 ─────────────────────────────────────────────────────
+   Compartilhado entre os 8 sistemas de education. Cada sistema importa este
+   arquivo depois do seu globals.css. Os valores de --brand vêm de cada sistema
+   individual; tudo aqui é neutro/universal.
+
+   Convenções:
+   - --space-*   : escala de espaçamento (paddings, gaps, margins)
+   - --radius-*  : border-radius
+   - --ease-*    : curvas de motion
+   - --duration-*: durações padronizadas
+   - --shadow-*  : elevation scale
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Spacing scale */
+  --space-xs:   4px;
+  --space-sm:   8px;
+  --space-md:   12px;
+  --space-lg:   16px;
+  --space-xl:   24px;
+  --space-2xl:  32px;
+  --space-3xl:  48px;
+
+  /* Radius scale */
+  --radius-sm:    6px;
+  --radius-md:    10px;
+  --radius-lg:    14px;
+  --radius-xl:    20px;
+  --radius-round: 999px;
+
+  /* Motion */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:     cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast:   150ms;
+  --duration-normal: 220ms;
+  --duration-slow:   340ms;
+
+  /* Semantic colors — usados em savedMsg, erros, alertas.
+     Um tom por papel, não por sistema — para consistência entre editores. */
+  --success: #059669;
+  --danger:  #ef4444;
+  --warning: #f59e0b;
+  --info:    #0ea5e9;
+
+  /* Elevation shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.10), 0 4px 8px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.14), 0 8px 16px rgba(0, 0, 0, 0.08);
+  --shadow-brand: 0 8px 24px color-mix(in srgb, var(--brand) 20%, transparent);
+}
+
+:root[data-theme="dark"],
+:root.dark {
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.20);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.55), 0 12px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Global theme cross-fade ──────────────────────────────────────────── */
+/* Aplica só em body/root — evita animar cada elemento individualmente
+   quando toggle theme (bug de scroll/perf conhecido). */
+html, body {
+  transition: background-color var(--duration-normal) var(--ease-in-out),
+              color           var(--duration-normal) var(--ease-in-out);
+}
+
+/* ── Focus visible unificado ──────────────────────────────────────────── */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+  transition: outline-offset var(--duration-fast) var(--ease-out);
+}
+button:focus-visible,
+a:focus-visible {
+  border-radius: inherit;
+}
+
+/* ── Utilitário: reduced motion respeitado ────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ═══ Utility classes universais ═════════════════════════════════════════
+   Prefixadas com samba- pra não colidir com CSS modules.
+   Podem ser aplicadas em qualquer elemento HTML via className="samba-card".
+   ═════════════════════════════════════════════════════════════════════ */
+
+/* Card clicável com micro-lift no hover */
+.samba-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  transition: transform var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out);
+}
+.samba-card-interactive {
+  cursor: pointer;
+}
+.samba-card-interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--border));
+}
+.samba-card-interactive:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Botão primário do sistema (usa --brand) */
+.samba-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+.samba-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: var(--shadow-brand);
+}
+.samba-btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.samba-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Botão secundário/ghost */
+.samba-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out);
+}
+.samba-btn-ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--fg) 5%, transparent);
+  border-color: var(--fg-secondary);
+}
+
+/* Sticky helper — top do main scroll */
+.samba-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* Container centralizado com max-width padronizado */
+.samba-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+  width: 100%;
+}
+.samba-container-narrow {
+  max-width: 960px;
+}
+.samba-container-wide {
+  max-width: 1440px;
+}
+
+/* Kbd unificado — visual consistente pra tokens de teclado */
+.samba-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 0 var(--border);
+}
+
+/* ═══ Density modes ═════════════════════════════════════════════════════
+   Toggle via useDensity hook — reduz padding vertical em componentes
+   marcados com .samba-dense-adaptive. Não afeta componentes sem essa flag.
+   ═════════════════════════════════════════════════════════════════════ */
+
+:root[data-density="compact"] {
+  --space-md-adaptive: 8px;   /* era 12px */
+  --space-lg-adaptive: 10px;  /* era 16px */
+  --space-xl-adaptive: 16px;  /* era 24px */
+}
+:root {
+  --space-md-adaptive: var(--space-md);
+  --space-lg-adaptive: var(--space-lg);
+  --space-xl-adaptive: var(--space-xl);
+}
+
+/* ═══ Skip link (WCAG 2.4.1) ═════════════════════════════════════════════
+   Invisível até receber foco. Ativa com Tab logo após load.
+   ═════════════════════════════════════════════════════════════════════ */
+
+.samba-skip-link {
+  position: fixed;
+  top: -100px;
+  left: var(--space-lg);
+  z-index: 10000;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  box-shadow: var(--shadow-lg);
+  transition: top var(--duration-fast) var(--ease-out);
+}
+.samba-skip-link:focus-visible {
+  top: var(--space-lg);
+  outline: none;
+}
+
+/* ═══ Custom scrollbars (fluidos, on-brand) ═══════════════════════════════
+   Aplicado no <body> e em qualquer .samba-scroll utility class.
+   ═════════════════════════════════════════════════════════════════════ */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--fg) 22%, transparent) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--fg) 18%, transparent);
+  border-radius: var(--radius-round);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background 0.2s ease;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--brand) 55%, transparent);
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ═══ Print styles ═══════════════════════════════════════════════════════
+   Esconde chrome da app (sidebar, topbar, widgets, FABs) e otimiza content
+   pra papel. Ativa com Ctrl+P automaticamente.
+   ═════════════════════════════════════════════════════════════════════ */
+
+@media print {
+  /* Força tema claro no papel */
+  :root { color-scheme: light !important; }
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Esconde chrome da aplicação */
+  aside,
+  header,
+  nav,
+  [class*="sidebar"],
+  [class*="topbar"],
+  [class*="topBar"],
+  [class*="Sidebar"],
+  [class*="fab"],
+  [class*="widget"],
+  [class*="Widget"],
+  [class*="toastStack"],
+  [class*="notificationBell"],
+  [class*="Bell"],
+  [class*="loadingBar"],
+  [class*="LoadingBar"] {
+    display: none !important;
+  }
+
+  /* Conteúdo ocupa todo o papel */
+  main, [class*="main"], [class*="content"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* Tipografia impressa */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  h1, h2, h3 { color: #000 !important; page-break-after: avoid; }
+  p, li      { orphans: 3; widows: 3; }
+
+  /* Links imprimem URL entre parênteses (opcional, remova se não quiser) */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.75em;
+    color: #666;
+  }
+
+  /* Evita quebra dentro de cards/tabelas */
+  table, tr, td, th, [class*="card"] {
+    page-break-inside: avoid;
+  }
+  table { border-collapse: collapse !important; width: 100% !important; }
+  th, td { border: 1px solid #999 !important; padding: 4px 8px !important; }
+
+  /* Footer de impressão */
+  body::after {
+    content: "impresso via samba innovations · " attr(data-print-time);
+    display: block;
+    text-align: center;
+    font-size: 0.6875rem;
+    color: #666;
+    margin-top: 2rem;
+    border-top: 1px solid #ccc;
+    padding-top: 0.5rem;
+  }
+}
+
+/* ═══ Parallax utilities ═════════════════════════════════════════════════
+   Aplicar via className="samba-parallax-{slow,med,fast}". Usa transform 3D
+   pra respeitar o scroll com desempenho GPU-accelerated.
+   ═════════════════════════════════════════════════════════════════════ */
+
+.samba-parallax-slow,
+.samba-parallax-med,
+.samba-parallax-fast {
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Anima o background em relação ao scroll — usar em heros/decorações. */
+@keyframes samba-parallax-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(0, -30px, 0); }
+}
+
+.samba-parallax-slow {
+  animation: samba-parallax-drift linear;
+  animation-timeline: scroll();
+  animation-range: 0 100vh;
+}
+.samba-parallax-med  {
+  animation: samba-parallax-drift linear;
+  animation-timeline: scroll();
+  animation-range: 0 60vh;
+}
+.samba-parallax-fast {
+  animation: samba-parallax-drift linear;
+  animation-timeline: scroll();
+  animation-range: 0 30vh;
+}
+
+/* Fallback quando scroll-timeline não é suportado — nada anima, sem quebra */
+@supports not (animation-timeline: scroll()) {
+  .samba-parallax-slow, .samba-parallax-med, .samba-parallax-fast {
+    animation: none;
+  }
+}
+
+/* Fade + slide-in-on-scroll — aplique via className="samba-reveal" */
+.samba-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out);
+}
+.samba-reveal.samba-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Spin loader global ───────────────────────────────────────────────── */
+/* Antes cada CSS module tinha seu próprio @keyframes spin — agora um só. */
+@keyframes samba-spin { to { transform: rotate(360deg); } }
+.samba-spin {
+  animation: samba-spin 800ms linear infinite;
+}
+
+/* Preserva contrato pra usuário que prefere menos motion */
+@media (prefers-reduced-motion: reduce) {
+  .samba-parallax-slow, .samba-parallax-med, .samba-parallax-fast {
+    animation: none;
+  }
+  .samba-reveal { opacity: 1; transform: none; transition: none; }
+}

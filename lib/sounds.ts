@@ -10,6 +10,18 @@ type Note = {
 
 function synthesize(notes: Note[]) {
   if (typeof window === 'undefined') return
+  // Respeita prefs de som salvas em /dashboard/preferencias.
+  // Se user desligou, não toca. Volume 0-1 multiplica o gain de cada nota.
+  try {
+    const soundOn = localStorage.getItem('samba-notif-sound')
+    if (soundOn === '0') return
+  } catch { /* SSR / storage bloqueado — segue normal */ }
+  const volMult = (() => {
+    try {
+      const v = localStorage.getItem('samba-notif-volume')
+      return v === null ? 1 : Number(v) / 0.5 // 0.5 é o "padrão" que representa gain original
+    } catch { return 1 }
+  })()
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
     const ctx = new Ctx()
@@ -20,7 +32,7 @@ function synthesize(notes: Note[]) {
       osc.type = note.type ?? 'sine'
       osc.frequency.setValueAtTime(note.freq, ctx.currentTime + note.start)
       const t = ctx.currentTime + note.start
-      const g = note.gain ?? 0.28
+      const g = Math.min(1, Math.max(0, (note.gain ?? 0.28) * volMult))
       gain.gain.setValueAtTime(0, t)
       gain.gain.linearRampToValueAtTime(g, t + 0.012)
       gain.gain.exponentialRampToValueAtTime(0.001, t + note.duration)

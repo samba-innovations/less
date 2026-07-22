@@ -1,0 +1,142 @@
+/* ── StatCard ─────────────────────────────────────────────
+   Card de KPI. 5 variants × 3 tones × 3 sizes.
+   Estrutura: [icon]label · VALOR grande · trend + sub.        */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem 1.125rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+/* ── Clickable ───────────────────────────────────────── */
+button.card,
+a.card { cursor: pointer; }
+.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.clickable:active { transform: scale(0.98); }
+.clickable:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent);
+}
+
+/* ── Tones ───────────────────────────────────────────── */
+.outlined { border-color: var(--border); }
+.subtle   { background: var(--surface); }
+.filled   { border-color: transparent; }
+
+.filled.neutral { background: color-mix(in srgb, var(--fg) 5%, transparent); }
+.filled.brand   { background: color-mix(in srgb, var(--brand) 8%, transparent); }
+.filled.success { background: color-mix(in srgb, var(--success) 8%, transparent); }
+.filled.warning { background: color-mix(in srgb, var(--warning) 8%, transparent); }
+.filled.danger  { background: color-mix(in srgb, var(--danger) 8%, transparent); }
+
+/* ── Head (icon + label) ────────────────────────────── */
+.head {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-secondary);
+  flex-shrink: 0;
+}
+.brand   .icon { color: var(--brand); }
+.success .icon { color: var(--success); }
+.warning .icon { color: var(--warning); }
+.danger  .icon { color: var(--danger); }
+.filled .icon { color: inherit; }
+.filled.brand   .icon,
+.filled.success .icon,
+.filled.warning .icon,
+.filled.danger  .icon { color: var(--fg); }
+
+.label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--fg-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Value ───────────────────────────────────────────── */
+.value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--fg);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.brand   .value { color: var(--brand); }
+.success .value { color: var(--success); }
+.warning .value { color: var(--warning); }
+.danger  .value { color: var(--danger); }
+
+/* ── Footer (trend + sub) ────────────────────────────── */
+.footer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.15rem;
+}
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+.trendUp {
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+}
+.trendDown {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+.trendFlat {
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+  color: var(--fg-secondary);
+}
+.trendLabel {
+  font-weight: 500;
+  opacity: 0.7;
+  margin-left: 0.15rem;
+}
+.sub {
+  font-size: 0.75rem;
+  color: var(--fg-secondary);
+  line-height: 1.4;
+}
+
+/* ── Sizes ────────────────────────────────────────────── */
+.sm { padding: 0.75rem 0.875rem; gap: 0.25rem; }
+.sm .value { font-size: 1.25rem; }
+.sm .label { font-size: 0.625rem; }
+
+.md { /* padrão */ }
+
+.lg { padding: 1.25rem 1.5rem; gap: 0.5rem; }
+.lg .value { font-size: 2.25rem; }
+.lg .label { font-size: 0.75rem; }

@@ -1,0 +1,189 @@
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-lg) var(--space-lg) var(--space-3xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--fg);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.sub {
+  font-size: 0.875rem;
+  color: var(--fg-secondary);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.sectionTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--fg-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--fg-secondary);
+  line-height: 1.5;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+}
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  color: var(--fg);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: transform var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+.card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--border));
+  box-shadow: var(--shadow-md);
+}
+.cardActive {
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 6%, var(--bg));
+  color: var(--brand);
+}
+
+.checkIcon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: var(--brand);
+}
+
+.autoIcon {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.notifRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+.notifRow:last-child { border-bottom: none; }
+.notifRow > div:first-child { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+
+.notifLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--fg);
+  text-transform: capitalize;
+}
+.notifDesc {
+  font-size: 0.75rem;
+  color: var(--fg-secondary);
+}
+
+.toggle {
+  position: relative;
+  width: 42px;
+  height: 22px;
+  border: none;
+  border-radius: var(--radius-round);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+.toggleOn  { background: var(--brand); }
+.toggleOff { background: color-mix(in srgb, var(--fg) 15%, transparent); }
+
+.knob {
+  position: absolute;
+  top: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left var(--duration-fast) var(--ease-out);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.toggleOff .knob { left: 3px; }
+.toggleOn .knob  { left: 23px; }
+
+.volumeRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+}
+.volumeLabel {
+  font-size: 0.75rem;
+  color: var(--fg-secondary);
+  min-width: 100px;
+  font-variant-numeric: tabular-nums;
+}
+.slider {
+  flex: 1;
+  accent-color: var(--brand);
+}
+.previewBtn {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand) 20%, transparent);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.previewBtn:hover { background: color-mix(in srgb, var(--brand) 15%, transparent); }

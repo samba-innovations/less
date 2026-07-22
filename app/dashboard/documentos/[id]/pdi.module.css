@@ -9,8 +9,8 @@
 .hint { font-size: 0.6875rem; font-weight: 400; color: var(--fg-secondary); }
 
 .input, .textarea, .select {
-  width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 0.625rem;
-  background: var(--surface); color: var(--fg); font-size: 0.875rem; outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--surface); color: var(--fg); font-size: 0.875rem; outline: none; transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
 }
 .input:focus, .textarea:focus, .select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-alpha); }
 .textarea { resize: vertical; line-height: 1.5; }
@@ -22,22 +22,22 @@
 .idGrid, .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 @media (max-width: 640px) { .idGrid, .grid2 { grid-template-columns: 1fr; } }
 
-.card { display: flex; flex-direction: column; gap: 0.875rem; padding: 1rem; border: 1px solid var(--border); border-radius: 0.875rem; background: var(--surface); }
+.card { display: flex; flex-direction: column; gap: 0.875rem; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
 .cardHead { display: flex; align-items: center; justify-content: space-between; }
 .cardTitle { font-size: 0.8125rem; font-weight: 700; color: var(--fg); }
-.removeBtn { width: 1.75rem; height: 1.75rem; display: flex; align-items: center; justify-content: center; border-radius: 0.4rem; color: #dc2626; transition: background 0.12s; }
+.removeBtn { width: 1.75rem; height: 1.75rem; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); color: var(--danger); transition: background var(--duration-fast) var(--ease-out); }
 .removeBtn:hover { background: rgba(220,38,38,0.1); }
 
-.addBtn { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.75rem; border: 2px dashed var(--border); border-radius: 0.75rem; background: var(--bg); color: var(--fg); font-size: 0.875rem; font-weight: 600; transition: all 0.15s; }
+.addBtn { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.75rem; border: 2px dashed var(--border); border-radius: var(--radius-lg); background: var(--bg); color: var(--fg); font-size: 0.875rem; font-weight: 600; transition: all var(--duration-fast) var(--ease-out); }
 .addBtn:hover { border-color: var(--brand); background: var(--brand-alpha); color: var(--brand-dark); }
 
 /* ── Suggestions (native details/summary com estilo unificado) ── */
 .suggestions {
   border: 1.25px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   overflow: hidden;
-  transition: border-color 0.18s;
+  transition: border-color var(--duration-fast) var(--ease-out);
 }
 .suggestions[open] { border-color: var(--brand-alpha-border); }
 
@@ -51,7 +51,7 @@
   color: var(--fg-secondary);
   cursor: pointer;
   list-style: none;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
 }
 .suggestionsHeader::-webkit-details-marker { display: none; }
 .suggestionsHeader:hover { background: var(--surface-elevated); color: var(--fg); }
@@ -59,7 +59,7 @@
 .suggestionsChevron {
   margin-left: auto;
   color: var(--fg-secondary);
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--duration-normal) cubic-bezier(0.22, 1, 0.36, 1);
 }
 .suggestions[open] .suggestionsChevron { transform: rotate(180deg); color: var(--brand); }
 
@@ -69,7 +69,7 @@
   gap: 0.75rem;
   padding: 0.625rem 0.75rem 0.75rem;
   border-top: 1px solid var(--border);
-  animation: sugIn 0.24s ease both;
+  animation: sugIn var(--duration-normal) ease both;
 }
 @keyframes sugIn {
   from { opacity: 0; transform: translateY(-4px); }

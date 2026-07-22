@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Home } from 'lucide-react'
 import { useBreadcrumbLabels } from './BreadcrumbContext'
 import s from './breadcrumb.module.css'
 
@@ -34,16 +34,23 @@ export function Breadcrumb() {
 
   return (
     <nav className={s.crumbs} aria-label="breadcrumb">
-      {crumbs.map((c, i) => (
-        <span key={c.href} className={s.crumb}>
-          {i > 0 && <ChevronRight size={13} className={s.sep} />}
-          {c.isLast || c.isDynamicSeg ? (
-            <span className={`${s.label} ${c.isLast ? s.current : ''}`}>{c.label}</span>
-          ) : (
-            <Link href={c.href} className={s.label}>{c.label}</Link>
-          )}
-        </span>
-      ))}
+      {crumbs.map((c, i) => {
+        const isFirst = i === 0
+        return (
+          <span key={c.href} className={s.crumb}>
+            {i > 0 && <ChevronRight size={12} className={s.sep} />}
+            {c.isLast || c.isDynamicSeg ? (
+              <span className={`${s.label} ${c.isLast ? s.current : ''}`}>{c.label}</span>
+            ) : isFirst ? (
+              <Link href={c.href} className={s.homeIcon} title={c.label} aria-label={c.label}>
+                <Home size={13} />
+              </Link>
+            ) : (
+              <Link href={c.href} className={s.label}>{c.label}</Link>
+            )}
+          </span>
+        )
+      })}
     </nav>
   )
 }

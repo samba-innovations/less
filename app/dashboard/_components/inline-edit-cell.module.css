@@ -1,0 +1,115 @@
+.viewCell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--fg);
+  border-radius: var(--radius-sm);
+  cursor: text;
+  font-size: inherit;
+  font-family: inherit;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
+  max-width: 100%;
+  min-height: 26px;
+  text-align: left;
+}
+.viewCell:hover:not(.disabled) {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--fg) 3%, transparent);
+}
+.viewCell.disabled { cursor: default; }
+
+.value {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.placeholder {
+  color: var(--fg-secondary);
+  opacity: 0.6;
+}
+
+.editIcon {
+  color: var(--fg-secondary);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.viewCell:hover .editIcon { opacity: 0.7; }
+
+.align-left   { text-align: left; }
+.align-center { text-align: center; }
+.align-right  { text-align: right; }
+
+.editCell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 3px 5px;
+  border: 1px solid var(--brand);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 10%, transparent);
+  position: relative;
+  max-width: 100%;
+}
+.errorState { border-color: #dc2626; box-shadow: 0 0 0 3px color-mix(in srgb, #dc2626 10%, transparent); }
+
+.input {
+  flex: 1;
+  min-width: 60px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: inherit;
+  font-family: inherit;
+  color: var(--fg);
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.commit, .cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+.commit { color: #16a34a; background: transparent; }
+.commit:hover { background: color-mix(in srgb, #16a34a 15%, transparent); }
+.cancel { color: var(--fg-secondary); background: transparent; }
+.cancel:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 8%, transparent); }
+
+.spin {
+  animation: iec-spin 1s linear infinite;
+  color: var(--brand);
+}
+@keyframes iec-spin { to { transform: rotate(360deg); } }
+
+.errorMsg {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  font-size: 0.6875rem;
+  color: #dc2626;
+  background: var(--bg);
+  padding: 2px 6px;
+  border: 1px solid color-mix(in srgb, #dc2626 30%, transparent);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  z-index: 10;
+}

@@ -212,6 +212,8 @@ model School {
   lessDocuments       LessDocument[]
   lessDocTypes        LessSchoolDocType[]
   lessPeiStudents     LessPeiStudent[]
+
+  threads Thread[]
 }
 
 // â”€â”€â”€ OrganizationSubscription â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -247,6 +249,7 @@ model User {
   teacherAssignments       TeacherAssignment[]
   gateRecords              GateRecord[]
   notifications            Notification[]
+  notificationPreferences NotificationPreference[]
   createdExams             Exam[]
   timetableSlots           TimetableSlot[]
   reservations             Reservation[]          @relation("UserReservations")
@@ -262,6 +265,10 @@ model User {
 
   @@index([email])
   @@index([isActive])
+
+  threadParticipations ThreadParticipant[]
+  messagesSent         Message[]              @relation("MessageSender")
+  messageReactions MessageReaction[]
 }
 
 // â”€â”€â”€ UserOrganizationRole â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -620,25 +627,49 @@ model StudentEnrollment {
 
 // â”€â”€â”€ Notification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
 model Notification {
-  id             Int      @id @default(autoincrement())
+  id             Int                   @id @default(autoincrement())
   userId         Int
   organizationId Int
   type           String
+  priority       NotificationPriority  @default(NORMAL)
   title          String
   body           String
   link           String?
-  read           Boolean  @default(false)
+  read           Boolean               @default(false)
   system         String?
   meta           Json?
-  createdAt      DateTime @default(now())
+  dedupKey       String?
+  deliveredAt    DateTime?
+  seenAt         DateTime?
+  createdAt      DateTime              @default(now())
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
   @@index([userId, createdAt(sort: Desc)])
-  @@index([userId, system])
+  @@index([userId, dedupKey, createdAt])
+}
+
+model NotificationPreference {
+  userId    Int
+  type      String
+  inApp     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, type])
+  @@index([userId])
 }
 
 model TeacherAssignment {
@@ -1138,4 +1169,62 @@ model LessOeMissaoHabilidade {
 
   @@id([missaoId, habilidadeId])
   @@map("less_oe_missao_habilidades")
+}
+
+// ─── Messages (cross-system, mesmo canônico de db/prisma) ──────────────────
+model Thread {
+  id            Int      @id @default(autoincrement())
+  schoolId      Int
+  subject       String?
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  school       School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  participants ThreadParticipant[]
+  messages     Message[]
+
+  @@index([schoolId])
+  @@index([lastMessageAt])
+}
+
+model ThreadParticipant {
+  threadId   Int
+  userId     Int
+  lastReadAt DateTime?
+
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([threadId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id            Int      @id @default(autoincrement())
+  threadId      Int
+  senderId      Int
+  body          String
+  attachmentUrl String?
+  createdAt     DateTime @default(now())
+
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User   @relation("MessageSender", fields: [senderId], references: [id])
+
+  reactions MessageReaction[]
+  @@index([threadId])
+}
+
+
+model MessageReaction {
+  messageId Int
+  userId    Int
+  emoji     String   @db.VarChar(16)
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId, emoji])
+  @@index([messageId])
+  @@index([userId])
 }

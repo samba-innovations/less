@@ -1,0 +1,106 @@
+.toast {
+  position: fixed;
+  bottom: var(--space-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  padding-right: 32px;
+  background: var(--fg);
+  color: var(--bg);
+  border-radius: var(--radius-round);
+  box-shadow: var(--shadow-xl);
+  animation: ut-in var(--duration-normal) var(--ease-out);
+  overflow: hidden;
+  min-width: 320px;
+  max-width: 90vw;
+}
+@keyframes ut-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.exiting {
+  animation: ut-out var(--duration-normal) var(--ease-in) forwards;
+  pointer-events: none;
+}
+@keyframes ut-out {
+  from { opacity: 1; transform: translateX(-50%) translateY(0); }
+  to   { opacity: 0; transform: translateX(-50%) translateY(12px); }
+}
+
+.iconWrap {
+  color: #16a34a;
+  display: inline-flex;
+  align-items: center;
+}
+
+.message {
+  flex: 1;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.undoBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  background: transparent;
+  color: var(--bg);
+  border: 1px solid color-mix(in srgb, var(--bg) 30%, transparent);
+  border-radius: var(--radius-round);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.undoBtn:hover {
+  background: color-mix(in srgb, var(--bg) 15%, transparent);
+}
+
+.close {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--bg);
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  border-radius: var(--radius-sm);
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.close:hover { opacity: 1; }
+
+.progress {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--bg) 15%, transparent);
+}
+.progressFill {
+  height: 100%;
+  width: 100%;
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  transform-origin: left center;
+  will-change: transform;
+}
+
+@media (max-width: 640px) {
+  .toast { min-width: auto; left: var(--space-sm); right: var(--space-sm); transform: none; }
+  @keyframes ut-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}

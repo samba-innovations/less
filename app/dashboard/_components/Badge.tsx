@@ -23,6 +23,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { X } from 'lucide-react'
 import s from './badge.module.css'
+import { IconButton } from '../_components/IconButton'
 
 type Tone = 'neutral' | 'brand' | 'success' | 'amber' | 'rose' | 'teal' | 'violet' | 'blue'
 type Variant = 'soft' | 'solid' | 'outline'
@@ -96,14 +97,13 @@ export function Badge({
       {icon && <span className={s.icon} aria-hidden>{icon}</span>}
       <span>{children}</span>
       {onRemove && (
-        <button
-          type="button"
-          className={s.removeBtn}
+        <IconButton
+          icon={<X size={9} strokeWidth={2.5} />}
+          label="remover"
+          variant="danger"
           onClick={e => { e.stopPropagation(); onRemove() }}
-          aria-label="remover"
-        >
-          <X size={9} strokeWidth={2.5} />
-        </button>
+          type="button"
+        />
       )}
     </Tag>
   )

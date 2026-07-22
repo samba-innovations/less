@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Compass, ChevronDown, BookOpen, ClipboardList, ArrowRight, Target, Info } from 'lucide-react'
 import s from './oe.module.css'
+import { Select } from '../_components/Select'
 
 type OEDisciplina = {
   id: number
@@ -133,21 +134,15 @@ export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
           <div className={s.selectorRow}>
             <div className={s.selectorGroup}>
               <p className={s.selectorLabel}>Disciplina OE</p>
-              <div className={s.selectWrap}>
-                <select
-                  className={s.select}
-                  value={selectedDisc?.id ?? ''}
-                  onChange={e => {
-                    const d = disciplinasOE.find(d => d.id === Number(e.target.value))
-                    if (d) handleDiscChange(d)
-                  }}
-                >
-                  {disciplinasOE.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-                <ChevronDown size={13} className={s.selectChevron} />
-              </div>
+              <Select
+                value={selectedDisc ? String(selectedDisc.id) : ''}
+                onChange={v => {
+                  const d = disciplinasOE.find(d => d.id === Number(v))
+                  if (d) handleDiscChange(d)
+                }}
+                options={disciplinasOE.map(d => ({ value: String(d.id), label: d.name }))}
+                placeholder="selecionar disciplina…"
+              />
             </div>
 
             <div className={s.selectorGroup}>

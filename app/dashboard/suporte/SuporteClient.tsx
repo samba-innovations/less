@@ -5,6 +5,8 @@ import { Plus, Send, X, ChevronLeft, CheckCircle2, Clock, Play } from 'lucide-re
 import { createTicket, addMessage, closeTicket } from './actions'
 import { Modal, ms } from '../_components/Modal'
 import s from './suporte.module.css'
+import { Input } from '../_components/Input'
+import { Button } from '../_components/Button'
 
 type Msg    = { id: number; body: string; authorName: string; isFromAdmin: boolean; createdAt: Date }
 type Ticket = { id: number; subject: string; status: string; createdAt: Date; updatedAt: Date; messages: Msg[] }
@@ -81,10 +83,13 @@ export function SuporteClient({ tickets: initial, systemName, videoUrl }: Props)
         <Modal title="novo chamado" subtitle="descreva sua dúvida ou problema" onClose={() => setShowNew(false)} size="sm">
           <form onSubmit={handleCreate} className={ms.form}>
             {error && <p className={ms.errorMsg}>{error}</p>}
-            <div className={ms.field}>
-              <label className={ms.label}>assunto *</label>
-              <input name="subject" required className={ms.input} placeholder="Ex: como criar um documento?" autoFocus />
-            </div>
+            <Input
+              label="assunto *"
+              name="subject"
+              placeholder="Ex: como criar um documento?"
+              required
+              autoFocus
+            />
             <div className={ms.field}>
               <label className={ms.label}>mensagem *</label>
               <textarea name="body" required className={ms.textarea} rows={4} placeholder="Descreva em detalhes..." />
@@ -101,9 +106,11 @@ export function SuporteClient({ tickets: initial, systemName, videoUrl }: Props)
 
       <div className={s.header}>
         {active ? (
-          <button className={s.backBtn} onClick={() => setActive(null)}>
-            <ChevronLeft size={16} /> chamados
-          </button>
+          <Button
+            variant="ghost"
+            iconLeft={<ChevronLeft size={16} />}
+            onClick={() => setActive(null)}
+          >chamados</Button>
         ) : (
           <div>
             <h1 className={s.title}>suporte</h1>
@@ -111,9 +118,11 @@ export function SuporteClient({ tickets: initial, systemName, videoUrl }: Props)
           </div>
         )}
         {!active && (
-          <button className={s.btnPrimary} onClick={() => { setShowNew(true); setError(null) }}>
-            <Plus size={14} /> novo chamado
-          </button>
+          <Button
+            variant="primary"
+            iconLeft={<Plus size={14} />}
+            onClick={() => { setShowNew(true); setError(null) }}
+          >novo chamado</Button>
         )}
       </div>
 
@@ -176,9 +185,12 @@ export function SuporteClient({ tickets: initial, systemName, videoUrl }: Props)
                 {active.status === 'OPEN' ? 'aberto' : 'encerrado'}
               </span>
               {active.status === 'OPEN' && (
-                <button className={s.closeChatBtn} onClick={handleClose} disabled={isPending}>
-                  <X size={13} /> encerrar
-                </button>
+                <Button
+                  variant="ghost"
+                  iconLeft={<X size={13} />}
+                  onClick={handleClose}
+                  disabled={isPending}
+                >encerrar</Button>
               )}
             </div>
           </div>
@@ -207,9 +219,11 @@ export function SuporteClient({ tickets: initial, systemName, videoUrl }: Props)
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
                 }}
               />
-              <button className={s.sendBtn} onClick={handleSend} disabled={isPending || !msgText.trim()}>
-                <Send size={16} />
-              </button>
+              <Button
+                variant="primary"
+                onClick={handleSend}
+                disabled={isPending || !msgText.trim()}
+              ><Send size={16} /></Button>
             </div>
           )}
           {active.status === 'CLOSED' && (

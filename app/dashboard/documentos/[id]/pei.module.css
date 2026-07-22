@@ -35,12 +35,12 @@
   width: 100%;
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 0.625rem;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--fg);
   font-size: 0.875rem;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
 }
 .input:focus, .textarea:focus, .select:focus {
   border-color: var(--brand);
@@ -58,9 +58,9 @@
 
 .chipRow { display: flex; gap: 0.375rem; }
 .chip {
-  flex: 1; padding: 0.5rem 0; border: 1px solid var(--border); border-radius: 0.5rem;
+  flex: 1; padding: 0.5rem 0; border: 1px solid var(--border); border-radius: var(--radius-md);
   background: var(--surface); color: var(--fg-secondary); font-size: 0.8125rem; font-weight: 600;
-  transition: all 0.12s;
+  transition: all var(--duration-fast) var(--ease-out);
 }
 .chip:hover { border-color: var(--brand-alpha-border); }
 .chipOn { background: var(--brand); border-color: var(--brand); color: #fff; }
@@ -70,8 +70,8 @@
 
 .studentCard {
   display: flex; flex-direction: column; gap: 0.4rem; text-align: left;
-  padding: 0.7rem; border: 1px solid var(--border); border-radius: 0.75rem;
-  background: var(--bg); transition: all 0.15s;
+  padding: 0.7rem; border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--bg); transition: all var(--duration-fast) var(--ease-out);
 }
 .studentCard:hover:not(.studentDisabled) { border-color: var(--brand-alpha-border); background: var(--brand-alpha); }
 .studentOn { background: var(--brand-alpha); border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand-alpha-border); }
@@ -96,24 +96,22 @@
 
 /* ── Habilidades list ── */
 .loadingRow { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8125rem; color: var(--fg-secondary); margin: 0; }
-.spin { animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
+.spin { animation: samba-spin 0.8s linear infinite; }
 .habList { display: flex; flex-direction: column; gap: 0.3rem; }
 .habItem { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.8125rem; color: var(--fg); line-height: 1.4; }
 .habDot { margin-top: 0.45rem; width: 0.3rem; height: 0.3rem; border-radius: 50%; background: var(--brand); flex-shrink: 0; }
 
 /* ── Diagnóstico eixos ── */
 .eixoList { display: flex; flex-direction: column; gap: 0.4rem; }
-.eixo { border: 1px solid var(--border); border-radius: 0.625rem; overflow: hidden; background: var(--bg); }
+.eixo { border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--bg); }
 .eixoHead { width: 100%; display: flex; align-items: center; gap: 0.5rem; padding: 0.625rem 0.75rem; background: var(--surface); }
 .eixoNome { flex: 1; text-align: left; font-size: 0.8125rem; font-weight: 600; color: var(--fg); }
-.eixoCount { font-size: 0.6875rem; font-weight: 700; padding: 0.05rem 0.4rem; border-radius: 999px; background: var(--brand); color: #fff; }
-.eixoChevron { color: var(--fg-secondary); transition: transform 0.15s; }
+.eixoCount { font-size: 0.6875rem; font-weight: 700; padding: 0.05rem 0.4rem; border-radius: var(--radius-round); background: var(--brand); color: #fff; }
+.eixoChevron { color: var(--fg-secondary); transition: transform var(--duration-fast) var(--ease-out); }
 .eixoChevronOpen { transform: rotate(180deg); }
 
 .eixoBody { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.25rem; padding: 0.625rem 0.75rem; }
-.necItem { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--fg); padding: 0.3rem 0.4rem; border-radius: 0.4rem; cursor: pointer; }
+.necItem { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--fg); padding: 0.3rem 0.4rem; border-radius: var(--radius-md); cursor: pointer; }
 .necItem:hover { background: var(--surface); }
 .necItem input { accent-color: var(--brand); }
 .necOn { color: var(--brand-dark); font-weight: 600; }
@@ -123,8 +121,8 @@
 
 .card {
   display: flex; gap: 0.5rem; align-items: flex-start; text-align: left;
-  padding: 0.7rem; border: 1px solid var(--border); border-radius: 0.75rem;
-  background: var(--bg); transition: all 0.15s; min-height: 5rem;
+  padding: 0.7rem; border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--bg); transition: all var(--duration-fast) var(--ease-out); min-height: 5rem;
 }
 .card:hover { border-color: var(--brand-alpha-border); background: var(--brand-alpha); }
 .cardOn { background: var(--brand-alpha); border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand-alpha-border); }
@@ -144,17 +142,17 @@
 /* ── Sub-group divider ── */
 .subGroup { display: flex; flex-direction: column; gap: 0.625rem; margin-top: 0.75rem; }
 .subDivider { display: flex; align-items: center; gap: 0.625rem; }
-.subDot { width: 0.75rem; height: 3px; border-radius: 999px; background: var(--brand); opacity: 0.5; flex-shrink: 0; }
+.subDot { width: 0.75rem; height: 3px; border-radius: var(--radius-round); background: var(--brand); opacity: 0.5; flex-shrink: 0; }
 .subLabel { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--brand-dark); }
 .subLine { flex: 1; height: 1px; background: linear-gradient(to right, var(--brand-alpha-border), transparent); }
 
 /* ── Legal card ── */
-.legalCard { border: 1px solid var(--brand-alpha-border); border-radius: 0.875rem; background: var(--brand-alpha); overflow: hidden; }
+.legalCard { border: 1px solid var(--brand-alpha-border); border-radius: var(--radius-lg); background: var(--brand-alpha); overflow: hidden; }
 .legalHead { width: 100%; display: flex; align-items: center; gap: 0.5rem; padding: 0.875rem 1rem; color: var(--brand-dark); }
 .legalTitle { flex: 1; text-align: left; font-size: 0.8125rem; font-weight: 700; }
 .legalBody { padding: 0 1rem 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
 .legalIntro { font-size: 0.75rem; color: var(--fg-secondary); line-height: 1.5; margin: 0; }
-.legalTable { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden; }
+.legalTable { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
 .legalRow { display: grid; grid-template-columns: 130px 1fr; gap: 0.5rem; padding: 0.4rem 0.625rem; background: var(--bg); border-bottom: 1px solid var(--border); }
 .legalRow:last-child { border-bottom: none; }
 .legalRow:nth-child(even) { background: var(--surface); }
@@ -165,6 +163,6 @@
 .legalPurposes li { font-size: 0.6875rem; color: var(--fg-secondary); }
 
 /* ── Profissionais box ── */
-.profBox { padding: 0.75rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; }
+.profBox { padding: 0.75rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
 .profBoxLabel { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-secondary); margin: 0 0 0.4rem; }
 .profLine { font-size: 0.8125rem; color: var(--fg); margin: 0; }

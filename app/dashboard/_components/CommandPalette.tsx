@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { useFuzzySearch } from './useFuzzySearch'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { FilePlus, FileText, GraduationCap, HelpCircle, LayoutDashboard, Loader2, School, Search, Users } from 'lucide-react'
@@ -93,11 +94,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
   }, [q])
 
   // Page filtering (local)
-  const filteredPages = useMemo(() => {
-    const lq = q.trim().toLowerCase()
-    if (!lq) return PAGES.slice(0, 8)
-    return PAGES.filter(p => p.label.toLowerCase().includes(lq))
-  }, [q])
+  const filteredPages = useFuzzySearch(PAGES, q, ['label', 'keywords'])
 
   // Flat item list for keyboard nav
   const flat: Item[] = useMemo(() => [

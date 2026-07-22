@@ -1,0 +1,167 @@
+/* ── Chip ─────────────────────────────────────────────────
+   6 variants × 2 sizes, com estados selected/disabled.
+   Se `onClick` → button (interactive); senão → span.        */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-round);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out);
+  vertical-align: middle;
+}
+
+/* ── Sizes ──────────────────────────────────────────────── */
+.sm {
+  font-size: 0.6875rem;
+  padding: 0.2rem 0.5rem;
+  gap: 0.3rem;
+}
+.md {
+  font-size: 0.75rem;
+  padding: 0.28rem 0.65rem;
+}
+
+/* ── Interactive ────────────────────────────────────────── */
+.interactive {
+  cursor: pointer;
+  background: transparent;
+}
+button.chip { font-family: inherit; }
+.interactive:hover:not(.disabled):not(.selected) {
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+}
+.interactive:active:not(.disabled) { transform: scale(0.96); }
+.disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Variants (default = não-selecionado) ─────────────── */
+/* Cada variant: cor da borda, cor do texto, sem fundo */
+.neutral {
+  border-color: var(--border);
+  color: var(--fg-secondary);
+  background: color-mix(in srgb, var(--fg) 3%, transparent);
+}
+.brand {
+  border-color: color-mix(in srgb, var(--brand) 25%, transparent);
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 6%, transparent);
+}
+.success {
+  border-color: color-mix(in srgb, var(--success) 25%, transparent);
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 6%, transparent);
+}
+.warning {
+  border-color: color-mix(in srgb, var(--warning) 25%, transparent);
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 6%, transparent);
+}
+.danger {
+  border-color: color-mix(in srgb, var(--danger) 25%, transparent);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 6%, transparent);
+}
+.amber {
+  border-color: color-mix(in srgb, #f59e0b 30%, transparent);
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 8%, transparent);
+}
+
+/* ── Selected — fundo sólido da variant ─────────────── */
+.selected.neutral {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+.selected.brand {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+.selected.success {
+  background: var(--success);
+  color: #fff;
+  border-color: var(--success);
+}
+.selected.warning {
+  background: var(--warning);
+  color: #fff;
+  border-color: var(--warning);
+}
+.selected.danger {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+.selected.amber {
+  background: #f59e0b;
+  color: #fff;
+  border-color: #f59e0b;
+}
+.selected {
+  font-weight: 600;
+}
+
+/* ── Focus visible ────────────────────────────────────── */
+.interactive:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent);
+}
+
+/* ── Slots internos ──────────────────────────────────── */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.label { display: inline-block; }
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  padding: 0 4px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--radius-round);
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  line-height: 1;
+  height: 14px;
+}
+.selected .count {
+  background: color-mix(in srgb, #fff 25%, transparent);
+}
+
+.removeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px; height: 14px;
+  padding: 0;
+  margin-right: -2px;
+  margin-left: 2px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  border-radius: var(--radius-round);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
+}
+.removeBtn:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}

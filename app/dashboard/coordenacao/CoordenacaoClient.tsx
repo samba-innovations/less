@@ -9,6 +9,9 @@ import { useSchoolEvent } from '@/lib/useSchoolEvent'
 import { Badge } from '../_components/Badge'
 import { ChipSelector } from '../_components/Selector'
 import s from './coordenacao.module.css'
+import { Button } from '../_components/Button'
+import { IconButton } from '../_components/IconButton'
+import { Input } from '../_components/Input'
 
 type Doc = {
   id: number; title: string; type: string; status: string
@@ -209,9 +212,11 @@ export function CoordenacaoClient({ docs, initialPeiStudents }: Props) {
               />
               <span className={s.peiCount}>{filtered.length} aluno{filtered.length !== 1 ? 's' : ''}</span>
             </div>
-            <button className={s.addBtn} onClick={() => { setShowForm(true); setFormError(null) }}>
-              <Plus size={14} /> Adicionar
-            </button>
+            <Button
+              variant="primary"
+              iconLeft={<Plus size={14} />}
+              onClick={() => { setShowForm(true); setFormError(null) }}
+            >Adicionar</Button>
           </div>
 
           {/* Add form */}
@@ -219,40 +224,76 @@ export function CoordenacaoClient({ docs, initialPeiStudents }: Props) {
             <div className={s.addForm}>
               <div className={s.addFormHeader}>
                 <p className={s.addFormTitle}>Novo aluno PEI</p>
-                <button className={s.closeBtn} onClick={() => setShowForm(false)}><X size={14} /></button>
+                <IconButton
+                  icon={<X size={14} />}
+                  label="x"
+                  onClick={() => setShowForm(false)}
+                />
               </div>
               <div className={s.formGrid}>
                 <div className={s.formField}>
                   <label className={s.formLabel}>Nome <span className={s.req}>*</span></label>
-                  <input className={s.formInput} value={form.name} placeholder="Nome completo" onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+                  <Input
+                    placeholder="Nome completo"
+                    value={form.name}
+                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    className={s.formInput}
+                  />
                 </div>
                 <div className={s.formField}>
                   <label className={s.formLabel}>RA <span className={s.req}>*</span></label>
-                  <input className={s.formInput} value={form.ra} placeholder="RA" onChange={e => setForm(f => ({ ...f, ra: e.target.value }))} />
+                  <Input
+                    placeholder="RA"
+                    value={form.ra}
+                    onChange={e => setForm(f => ({ ...f, ra: e.target.value }))}
+                    className={s.formInput}
+                  />
                 </div>
                 <div className={s.formField}>
                   <label className={s.formLabel}>Turma <span className={s.req}>*</span></label>
-                  <input className={s.formInput} value={form.turma} placeholder="Ex: 9A" onChange={e => setForm(f => ({ ...f, turma: e.target.value }))} />
+                  <Input
+                    placeholder="Ex: 9A"
+                    value={form.turma}
+                    onChange={e => setForm(f => ({ ...f, turma: e.target.value }))}
+                    className={s.formInput}
+                  />
                 </div>
                 <div className={s.formField}>
                   <label className={s.formLabel}>Diagnóstico</label>
-                  <input className={s.formInput} value={form.diagnostico} placeholder="Ex: TEA, D.I" onChange={e => setForm(f => ({ ...f, diagnostico: e.target.value }))} />
+                  <Input
+                    placeholder="Ex: TEA, D.I"
+                    value={form.diagnostico}
+                    onChange={e => setForm(f => ({ ...f, diagnostico: e.target.value }))}
+                    className={s.formInput}
+                  />
                 </div>
                 <div className={s.formField}>
                   <label className={s.formLabel}>Prof. Colaborativo</label>
-                  <input className={s.formInput} value={form.profColaborativo} placeholder="Nome" onChange={e => setForm(f => ({ ...f, profColaborativo: e.target.value }))} />
+                  <Input
+                    placeholder="Nome"
+                    value={form.profColaborativo}
+                    onChange={e => setForm(f => ({ ...f, profColaborativo: e.target.value }))}
+                    className={s.formInput}
+                  />
                 </div>
                 <div className={s.formField}>
                   <label className={s.formLabel}>Prof. AEE</label>
-                  <input className={s.formInput} value={form.profAee} placeholder="Nome" onChange={e => setForm(f => ({ ...f, profAee: e.target.value }))} />
+                  <Input
+                    placeholder="Nome"
+                    value={form.profAee}
+                    onChange={e => setForm(f => ({ ...f, profAee: e.target.value }))}
+                    className={s.formInput}
+                  />
                 </div>
               </div>
               {formError && <p className={s.formError}>{formError}</p>}
               <div className={s.formActions}>
-                <button className={s.cancelBtn} onClick={() => setShowForm(false)}>Cancelar</button>
-                <button className={s.saveBtn} onClick={addStudent} disabled={saving}>
-                  {saving ? 'Salvando…' : <><Check size={13} /> Salvar</>}
-                </button>
+                <Button variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
+                <Button
+                  variant="primary"
+                  onClick={addStudent}
+                  disabled={saving}
+                >{saving ? 'Salvando…' : <><Check size={13} /> Salvar</>}</Button>
               </div>
             </div>
           )}
@@ -291,7 +332,7 @@ export function CoordenacaoClient({ docs, initialPeiStudents }: Props) {
                       <button className={s.delNo} onClick={() => setConfirmDel(null)}>Não</button>
                     </div>
                   ) : (
-                    <button className={s.delBtn} onClick={() => setConfirmDel(st.id)}><Trash2 size={13} /></button>
+                    <Button variant="danger" onClick={() => setConfirmDel(st.id)}><Trash2 size={13} /></Button>
                   )}
                 </div>
               ))}

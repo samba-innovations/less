@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Check, ChevronDown, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react'
+import { Select } from '../../_components/Select'
+import { SkeletonText } from '../../_components/Skeleton'
 import {
   BNCC_COMPETENCIAS, DESENVOLVIMENTO_OPTS, RECURSOS_GRUPOS, AVALIACAO_GRUPOS,
   RECURSO_OBRIGATORIO, COMPOSICAO_MODELS, BLOCO_LABELS, BLOCO_ACCENT,
@@ -10,6 +12,9 @@ import {
 import { useFetch } from '@/lib/use-fetch'
 import { GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
 import s from './guia.module.css'
+import { Button } from '../../_components/Button'
+import { Input } from '../../_components/Input'
+import { Chip } from '../../_components/Chip'
 
 type Turma = { id: number; name: string; grade: string; ciclo: string; serie: string }
 type Disciplina = { id: number; name: string; aulasNome: string }
@@ -184,7 +189,11 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
           })}
         </div>
         <div className={s.navActions}>
-          {step > 1 && <button className={s.backBtn} onClick={() => setStep(step - 1)}><ArrowLeft size={12} /> Voltar</button>}
+          {step > 1 && <Button
+            variant="ghost"
+            iconLeft={<ArrowLeft size={12} />}
+            onClick={() => setStep(step - 1)}
+          >Voltar</Button>}
           {step < 5 && (
             <button className={s.nextBtn} disabled={step === 1 && !canStep1}
               onClick={() => {
@@ -222,14 +231,12 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
           <div className={s.idGrid}>
             <div className={s.field}>
               <label className={s.label}>Disciplina</label>
-              <div className={s.selectWrap}>
-                <select className={s.select} value={fields.disciplina ?? ''} disabled={!classId}
-                  onChange={e => setField('disciplina', e.target.value)}>
-                  <option value="">{classId ? 'selecionar…' : 'selecione a turma'}</option>
-                  {disciplinas.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
-                </select>
-                <ChevronDown size={14} className={s.selectChevron} />
-              </div>
+              <Select
+                value={fields.disciplina ?? ''}
+                placeholder={classId ? 'selecionar…' : 'selecione a turma'}
+                options={disciplinas.map(d => ({ value: d.name, label: d.name }))}
+                onChange={v => setField('disciplina', v)}
+              />
             </div>
             <div className={s.field}>
               <label className={s.label}>Bimestre</label>
@@ -242,14 +249,18 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
             </div>
             <div className={s.field}>
               <label className={s.label}>Ano letivo</label>
-              <input className={s.input} value={fields.ano_letivo ?? ''} onChange={e => setField('ano_letivo', e.target.value)} />
+              <Input
+                value={fields.ano_letivo ?? ''}
+                onChange={e => setField('ano_letivo', e.target.value)}
+                className={s.input}
+              />
             </div>
             <div className={s.field}>
               <label className={s.label}>Período do bimestre</label>
               <div className={s.periodBox}>{fields.bimestre ? `${fields.bimestre}º Bimestre: ${BIMESTRE_DATAS[fields.bimestre] ?? '—'}` : 'Selecione o bimestre'}</div>
             </div>
           </div>
-          {loadingAulas && <p className={s.loadingRow}><Loader2 size={14} className={s.spin} /> Carregando dados do currículo…</p>}
+          {loadingAulas && <div style={{ padding: '12px 0' }}><SkeletonText lines={2} /></div>}
         </section>
       )}
 
@@ -257,8 +268,8 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
       {step === 2 && (
         <section className={s.section}>
           <div className={s.sectionHead}><span className={s.dot} />Aulas do {fields.bimestre}º Bimestre — {fields.disciplina}
-            {aulas.length > 0 && <span className={s.badge}>{aulas.length} aulas</span>}</div>
-          {loadingAulas ? <p className={s.loadingRow}><Loader2 size={14} className={s.spin} /> Carregando…</p>
+            {aulas.length > 0 && <Chip>{aulas.length} aulas</Chip>}</div>
+          {loadingAulas ? <div style={{ padding: '12px 0' }}><SkeletonText lines={2} /></div>
             : aulas.length > 0 ? (
             <div className={s.aulaList}>
               {aulas.map(a => (
@@ -289,7 +300,12 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
           <div className={s.sectionHead}><span className={s.dot} />Objetivos e Conteúdo</div>
           <div className={s.field}>
             <label className={s.label}>Tema / Título do Guia</label>
-            <input className={s.input} value={fields.tema ?? ''} placeholder="Ex: Funções Afim e Quadrática" onChange={e => setField('tema', e.target.value)} />
+            <Input
+              placeholder="Ex: Funções Afim e Quadrática"
+              value={fields.tema ?? ''}
+              onChange={e => setField('tema', e.target.value)}
+              className={s.input}
+            />
           </div>
           <div className={s.field}>
             <label className={s.label}>Competências gerais (BNCC) <span className={s.hint}>passe o mouse para o descritor</span></label>

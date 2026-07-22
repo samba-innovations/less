@@ -6,8 +6,9 @@ import { DOC_TYPES, type DocType, type FieldDef } from '@/lib/doc-types'
 import {
   Save, FileDown, Trash2, CheckCircle, Clock, ChevronDown, Check, ArrowRight,
   BookOpen, Monitor, Microscope, Users, Search, Activity, UserCheck, Layers,
-  FileCheck, Zap, type LucideIcon,
+  FileCheck, Zap, MoreVertical, FileText, AlertCircle, type LucideIcon,
 } from 'lucide-react'
+import { ConfirmDialog } from '../../_components/ConfirmDialog'
 import { Fragment } from 'react'
 import { PeiEditor } from './PeiEditor'
 import { GuiaEditor } from './GuiaEditor'
@@ -20,7 +21,13 @@ import { AtaEditor } from './AtaEditor'
 import { useRegisterBreadcrumb } from '../../_components/BreadcrumbContext'
 import { Badge } from '../../_components/Badge'
 import { ChipSelector, GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
+import { Select } from '../../_components/Select'
+import { DatePicker } from '../../_components/DatePicker'
 import s from './editor.module.css'
+import w from '../../_components/wizard.module.css'
+import { IconButton } from '../../_components/IconButton'
+import { Button } from '../../_components/Button'
+import { Input } from '../../_components/Input'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -356,7 +363,44 @@ export function EditorClient({ doc, isAdmin }: Props) {
   const [pdfing,  setPdfing]  = useState(false)
   const [error,   setError]   = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [savedAt,       setSavedAt]       = useState<Date | null>(null)
+  const [moreOpen,      setMoreOpen]      = useState(false)
+  const [exportOpen,    setExportOpen]    = useState(false)
+  const moreRef                           = useRef<HTMLDivElement>(null)
+  const exportRef                         = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const saveRef   = useRef<() => void>(() => {})
+
+  // Atalho ⌘S / Ctrl+S — chama save() sem depender de closure fixa.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        saveRef.current()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // Outside-click e Escape para fechar os menus (kebab e export).
+  useEffect(() => {
+    if (!moreOpen && !exportOpen) return
+    function onDown(e: MouseEvent) {
+      const t = e.target as Node
+      if (moreOpen && moreRef.current && !moreRef.current.contains(t))   setMoreOpen(false)
+      if (exportOpen && exportRef.current && !exportRef.current.contains(t)) setExportOpen(false)
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { setMoreOpen(false); setExportOpen(false) }
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [moreOpen, exportOpen])
 
   // ── Admin: escola selecionada ─────────────────────────────────────────────
   const [adminSchoolSlug, setAdminSchoolSlug] = useState<string>(
@@ -684,7 +728,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
         return
       }
       setError(null)
-      setSaved(true)
+      setSaved(true); setSavedAt(new Date())
       setTimeout(() => setSaved(false), 2000)
     } catch {
       setError('Sem conexão — alterações não salvas. Verifique sua internet.')
@@ -692,6 +736,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
   }
 
   async function save() {
+    if (saving) return
     setSaving(true); setError(null)
     try {
       const res = await fetch(`/api/documentos/${doc.id}`, {
@@ -700,10 +745,11 @@ export function EditorClient({ doc, isAdmin }: Props) {
         body:    JSON.stringify({ title, content: buildContent(fields) }),
       })
       if (!res.ok) { const d = await res.json(); setError(d.error); return }
-      setSaved(true); setTimeout(() => setSaved(false), 2000)
+      setSaved(true); setSavedAt(new Date()); setTimeout(() => setSaved(false), 2000)
       router.refresh()
     } finally { setSaving(false) }
   }
+  saveRef.current = save
 
   async function generatePdf() {
     setPdfing(true); setError(null)
@@ -954,8 +1000,8 @@ export function EditorClient({ doc, isAdmin }: Props) {
     return (
       <div className={s.wizard}>
 
-        {/* ── Step indicator ── */}
-        <div className={s.stepIndicator}>
+        {/* Stepper — padrão wizard v4 */}
+        <div className={w.stepper} aria-label="progresso do plano">
           {STEPS.map((step, i) => {
             const done   = planoStep > step.n
             const active = planoStep === step.n
@@ -963,14 +1009,18 @@ export function EditorClient({ doc, isAdmin }: Props) {
             return (
               <Fragment key={step.n}>
                 <button
-                  className={`${s.stepBtn} ${active ? s.stepBtnActive : ''} ${done ? s.stepBtnDone : ''}`}
+                  type="button"
+                  className={`${w.stepperItem} ${active ? w.stepperItemActive : ''} ${done ? w.stepperItemDone : ''}`}
                   onClick={() => canGo && setPlanoStep(step.n)}
                   disabled={!canGo}
+                  style={{ background: 'transparent', border: 'none', cursor: canGo ? 'pointer' : 'not-allowed', padding: 0, fontFamily: 'inherit' }}
                 >
-                  <span className={s.stepNum}>{done ? <Check size={9} /> : step.n}</span>
-                  <span className={s.stepName}>{step.label}</span>
+                  <span className={w.stepperDot}>{done ? <Check size={11} /> : step.n}</span>
+                  {step.label}
                 </button>
-                {i < STEPS.length - 1 && <div className={s.stepLine} />}
+                {i < STEPS.length - 1 && (
+                  <span className={`${w.stepperLine} ${done ? w.stepperLineDone : ''}`} />
+                )}
               </Fragment>
             )
           })}
@@ -1036,20 +1086,13 @@ export function EditorClient({ doc, isAdmin }: Props) {
               <div className={s.disciplineGrid}>
                 <div className={s.wizardSubGroup}>
                   <p className={s.subLabel}>disciplina</p>
-                  <div className={s.selectWrap}>
-                    <select
-                      className={s.cascadeSelect}
-                      value={disciplinaId ?? ''}
-                      disabled={!disciplinas}
-                      onChange={e => handlePlanoDisciplinaChange(Number(e.target.value))}
-                    >
-                      <option value="">selecionar…</option>
-                      {(disciplinas ?? []).map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
-                    </select>
-                    <ChevronDown size={14} className={s.selectChevron} />
-                  </div>
+                  <Select
+                    size="sm"
+                    placeholder="selecionar…"
+                    value={disciplinaId != null ? String(disciplinaId) : ''}
+                    options={(disciplinas ?? []).map(d => ({ value: String(d.id), label: d.name }))}
+                    onChange={v => handlePlanoDisciplinaChange(Number(v))}
+                  />
                 </div>
 
                 <div className={s.wizardSubGroup}>
@@ -1064,11 +1107,11 @@ export function EditorClient({ doc, isAdmin }: Props) {
 
                 <div className={s.wizardSubGroup}>
                   <p className={s.subLabel}>data da aula</p>
-                  <input
-                    className={s.fieldInput}
-                    type="date"
-                    value={fields.data ?? ''}
-                    onChange={e => setField('data', e.target.value)}
+                  <DatePicker
+                    size="sm"
+                    placeholder="selecionar data…"
+                    value={fields.data ?? null}
+                    onChange={v => setField('data', v)}
                   />
                 </div>
               </div>
@@ -1102,12 +1145,11 @@ export function EditorClient({ doc, isAdmin }: Props) {
             <div className={s.aulaListHeader}>
               <div className={s.aulaSearchWrap}>
                 <Search size={13} className={s.aulaSearchIcon} />
-                <input
-                  type="text"
-                  className={s.aulaSearch}
+                <Input
                   placeholder="Buscar aula por título, habilidade ou conteúdo…"
                   value={aulaSearch}
                   onChange={e => setAulaSearch(e.target.value)}
+                  className={s.aulaSearch}
                 />
                 {aulaSearch && (
                   <button
@@ -1265,12 +1307,11 @@ export function EditorClient({ doc, isAdmin }: Props) {
               </div>
               <div className={s.field}>
                 <label className={s.fieldLabel}>Tema / Título da aula</label>
-                <input
-                  className={s.fieldInput}
-                  type="text"
-                  value={fields.tema ?? ''}
+                <Input
                   placeholder="Ex: Funções do 1º Grau"
+                  value={fields.tema ?? ''}
                   onChange={e => setField('tema', e.target.value)}
+                  className={s.fieldInput}
                 />
               </div>
             </div>
@@ -1312,11 +1353,10 @@ export function EditorClient({ doc, isAdmin }: Props) {
               {fields.objeto_conhecimento && (
                 <div className={s.field}>
                   <label className={s.fieldLabel}>Objeto de Conhecimento</label>
-                  <input
-                    className={s.fieldInput}
-                    type="text"
+                  <Input
                     value={fields.objeto_conhecimento ?? ''}
                     onChange={e => setField('objeto_conhecimento', e.target.value)}
+                    className={s.fieldInput}
                   />
                 </div>
               )}
@@ -1658,12 +1698,11 @@ export function EditorClient({ doc, isAdmin }: Props) {
         <label className={s.fieldLabel}>
           {field.label}{field.required && <span className={s.required}> *</span>}
         </label>
-        <input
-          className={s.fieldInput}
-          type={field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : 'text'}
-          value={val}
+        <Input
           placeholder={field.placeholder}
+          value={val}
           onChange={e => setField(field.key, e.target.value)}
+          className={s.fieldInput}
         />
       </div>
     )
@@ -1695,35 +1734,121 @@ export function EditorClient({ doc, isAdmin }: Props) {
 
           <div className={s.docHeader}>
             <div className={s.docHeaderTop}>
-              <Badge
-                tone="neutral"
-                size="md"
-                style={{
-                  '--b-fg':     meta?.color ?? '#6b7280',
-                  '--b-bg':     (meta?.color ?? '#6b7280') + '14',
-                  '--b-border': (meta?.color ?? '#6b7280') + '38',
-                  '--b-dot':    meta?.color ?? '#6b7280',
-                } as React.CSSProperties}
-              >
-                {meta?.label ?? doc.type}
-              </Badge>
-              <Badge
-                tone={doc.status === 'FINAL' ? 'success' : 'amber'}
-                size="sm"
-                icon={doc.status === 'FINAL' ? <CheckCircle size={10} /> : <Clock size={10} />}
-              >
-                {doc.status === 'FINAL' ? 'finalizado' : 'rascunho'}
-              </Badge>
+              <div className={s.docHeaderBadges}>
+                <Badge
+                  tone="neutral"
+                  size="md"
+                  style={{
+                    '--b-fg':     meta?.color ?? '#6b7280',
+                    '--b-bg':     (meta?.color ?? '#6b7280') + '14',
+                    '--b-border': (meta?.color ?? '#6b7280') + '38',
+                    '--b-dot':    meta?.color ?? '#6b7280',
+                  } as React.CSSProperties}
+                >
+                  {meta?.label ?? doc.type}
+                </Badge>
+                <Badge
+                  tone={doc.status === 'FINAL' ? 'success' : 'amber'}
+                  size="sm"
+                  icon={doc.status === 'FINAL' ? <CheckCircle size={10} /> : <Clock size={10} />}
+                >
+                  {doc.status === 'FINAL' ? 'finalizado' : 'rascunho'}
+                </Badge>
+              </div>
+
+              {/* Cluster de ações fica no topo à direita, alinhado com as
+                  badges. Substituiu a antiga sticky bottom bar full-width. */}
+              <div className={s.docHeaderActions}>
+                {error ? (
+                  <p className={s.saveError}><AlertCircle size={12} /> falha ao salvar</p>
+                ) : saving ? (
+                  <p className={s.savingMsg}><Clock size={11} className={s.samba_spin} /> salvando…</p>
+                ) : savedAt ? (
+                  <p className={s.savedMsg} title={savedAt.toLocaleString('pt-BR')}>
+                    <span className={s.savedDot} /> salvo {formatSavedAt(savedAt)}
+                  </p>
+                ) : (
+                  <p className={s.savedMsgIdle}>rascunho — <kbd>⌘S</kbd> para salvar</p>
+                )}
+
+                <div className={s.menuWrap} ref={moreRef}>
+                  <IconButton
+                    icon={<MoreVertical size={15} />}
+                    label="mais ações"
+                    onClick={() => { setMoreOpen(v => !v); setExportOpen(false) }}
+                    type="button"
+                  />
+                  {moreOpen && (
+                    <div className={`${s.dropdown} ${s.dropdownTopAnchor}`} role="menu">
+                      <button
+                        type="button"
+                        className={`${s.dropdownItem} ${s.dropdownItemDanger}`}
+                        onClick={() => { setMoreOpen(false); setConfirmDelete(true) }}
+                        role="menuitem"
+                      >
+                        <Trash2 size={13} /> apagar documento
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className={s.menuWrap} ref={exportRef}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => { setExportOpen(v => !v); setMoreOpen(false) }}
+                    disabled={pdfing || docxing}
+                    type="button"
+                  >{(pdfing || docxing) ? (
+                      <><Clock size={13} className={s.samba_spin} /> gerando…</>
+                    ) : (
+                      <><FileDown size={13} /> exportar <ChevronDown size={12} /></>
+                    )}</Button>
+                  {exportOpen && (
+                    <div className={`${s.dropdown} ${s.dropdownTopAnchor}`} role="menu">
+                      <button
+                        type="button"
+                        className={s.dropdownItem}
+                        onClick={() => { setExportOpen(false); generatePdf() }}
+                        role="menuitem"
+                      >
+                        <FileDown size={13} /> baixar PDF
+                      </button>
+                      {docType === 'PROJETO' && (
+                        <button
+                          type="button"
+                          className={s.dropdownItem}
+                          onClick={() => { setExportOpen(false); generateDocx() }}
+                          role="menuitem"
+                        >
+                          <FileText size={13} /> baixar Word (ABNT)
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  variant="primary"
+                  onClick={save}
+                  disabled={saving}
+                  type="button"
+                  title="salvar (⌘S)"
+                >{saving ? (
+                    <><Clock size={13} className={s.samba_spin} /> salvando…</>
+                  ) : (
+                    <><Save size={13} /> salvar</>
+                  )}</Button>
+              </div>
             </div>
-            <input
-              className={s.titleInput}
-              value={title}
+            <Input
               placeholder="Título do documento"
+              value={title}
               onChange={e => {
                 setTitle(e.target.value)
                 if (saveTimer.current) clearTimeout(saveTimer.current)
                 saveTimer.current = setTimeout(() => autoSave(e.target.value, buildContent(fields)), 1500)
               }}
+              className={s.titleInput}
             />
           </div>
 
@@ -1770,45 +1895,25 @@ export function EditorClient({ doc, isAdmin }: Props) {
 
       </div>
 
-      {/* ── Sticky bottom action bar ── */}
-      <div className={s.bottomBar}>
-        <div className={s.bottomBarLeft}>
-          {error ? (
-            <p className={s.saveError}><Clock size={12} /> {error}</p>
-          ) : saving ? (
-            <p className={s.savingMsg}><Clock size={11} /> salvando…</p>
-          ) : (
-            <p className={`${s.savedMsg} ${saved ? s.savedMsgVisible : ''}`}>
-              <CheckCircle size={11} /> salvo
-            </p>
-          )}
-        </div>
-        <div className={s.bottomBarRight}>
-          {confirmDelete ? (
-            <div className={s.deleteConfirm}>
-              <p className={s.deleteConfirmMsg}>apagar permanentemente?</p>
-              <button className={`${s.actionBtn} ${s.cancelBtn}`} onClick={() => setConfirmDelete(false)}>não</button>
-              <button className={`${s.actionBtn} ${s.delBtnFull}`} onClick={deletDoc}>sim, apagar</button>
-            </div>
-          ) : (
-            <button className={`${s.actionBtn} ${s.delBtn}`} onClick={() => setConfirmDelete(true)}>
-              <Trash2 size={13} /> apagar
-            </button>
-          )}
-          <button className={`${s.actionBtn} ${s.savBtn}`} onClick={save} disabled={saving}>
-            <Save size={13} /> {saving ? 'salvando…' : 'salvar'}
-          </button>
-          <button className={`${s.actionBtn} ${s.pdfBtn}`} onClick={generatePdf} disabled={pdfing}>
-            <FileDown size={13} /> {pdfing ? 'gerando…' : 'baixar PDF'}
-          </button>
-          {docType === 'PROJETO' && (
-            <button className={`${s.actionBtn} ${s.pdfBtn}`} onClick={generateDocx} disabled={docxing} title="Word ABNT do Projeto de Pesquisa">
-              <FileDown size={13} /> {docxing ? 'gerando…' : 'baixar Word'}
-            </button>
-          )}
-        </div>
-      </div>
+      <ConfirmDialog
+        open={confirmDelete}
+        title="apagar documento permanentemente?"
+        description="essa ação não pode ser desfeita. o documento e todo o seu conteúdo serão removidos."
+        confirmLabel="apagar"
+        onConfirm={deletDoc}
+        onCancel={() => setConfirmDelete(false)}
+      />
 
     </div>
   )
+}
+
+// formatSavedAt — retorna "agora", "há 12s", "há 3 min", "há 2 h" etc.
+function formatSavedAt(d: Date): string {
+  const diff = Math.floor((Date.now() - d.getTime()) / 1000)
+  if (diff < 5)     return 'agora'
+  if (diff < 60)    return `há ${diff}s`
+  if (diff < 3600)  return `há ${Math.floor(diff / 60)} min`
+  if (diff < 86400) return `há ${Math.floor(diff / 3600)} h`
+  return d.toLocaleDateString('pt-BR')
 }

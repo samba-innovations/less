@@ -1,0 +1,90 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.trigger {
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  color: var(--fg-secondary);
+  cursor: help;
+  border-radius: var(--radius-round);
+  opacity: 0.6;
+  transition: opacity var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
+}
+.trigger:hover {
+  opacity: 1;
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 100;
+  min-width: 180px;
+  max-width: 260px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--fg);
+  color: var(--bg);
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+  animation: ch-in 140ms var(--ease-out);
+}
+@keyframes ch-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  width: 0; height: 0;
+  border-style: solid;
+}
+
+.placement-top {
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+.placement-top::after {
+  top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px 5px 0;
+  border-color: var(--fg) transparent transparent;
+}
+
+.placement-bottom {
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+.placement-bottom::after {
+  bottom: 100%; left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 5px 5px;
+  border-color: transparent transparent var(--fg);
+}
+
+.placement-right {
+  left: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+.placement-right::after {
+  right: 100%; top: 50%;
+  transform: translateY(-50%);
+  border-width: 5px 5px 5px 0;
+  border-color: transparent var(--fg) transparent transparent;
+}

@@ -1,4 +1,5 @@
-import { jwtVerify } from 'jose'
+import { jwtVerify, importSPKI } from 'jose'
+import type { KeyLike } from 'jose'
 
 export type Role =
   | 'PRINCIPAL'
@@ -58,9 +59,20 @@ export function canProduceOEDocuments(role: string) {
   return ['ADMIN', 'TEACHER', 'TEACHER_COORDINATOR', 'COORDINATOR'].includes(role)
 }
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET!)
+// RS256 (assimétrico) — chave pública base64-encoded no env.
+// Só sso e hub têm a privada; este sistema apenas verifica.
+let _publicKey: Promise<KeyLike> | null = null
+async function getPublicKey() {
+  if (!_publicKey) {
+    const b64 = process.env.JWT_PUBLIC_KEY_B64
+    if (!b64) throw new Error('JWT_PUBLIC_KEY_B64 não setada')
+    _publicKey = importSPKI(Buffer.from(b64, 'base64').toString('utf8'), 'RS256')
+  }
+  return _publicKey
+}
 
 export async function verifyToken(token: string): Promise<JwtPayload> {
-  const { payload } = await jwtVerify(token, secret)
+  const key = await getPublicKey()
+  const { payload } = await jwtVerify(token, key, { algorithms: ['RS256'] })
   return payload as unknown as JwtPayload
 }

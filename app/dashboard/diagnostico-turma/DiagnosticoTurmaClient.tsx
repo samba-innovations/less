@@ -9,6 +9,9 @@ import s from './diagnostico.module.css'
 import { periodoLabel } from '@/lib/rs-shared'
 import { PLANO_ACAO_CATALOGO, cicloLabel } from '@/lib/diagnostico-shared'
 import type { DtTurma, DtCruzamento, DtPlanoAcaoItem, DtAcaoCatalogo } from '@/lib/diagnostico-shared'
+import { IconButton } from '../_components/IconButton'
+import { Button } from '../_components/Button'
+import { Input } from '../_components/Input'
 
 type Feedback = { kind: 'ok' | 'err'; msg: string } | null
 
@@ -97,7 +100,11 @@ export function DiagnosticoTurmaClient({ turmas: turmasInit, canManage }: { turm
                     <div className={s.muted} style={{ marginBottom: 4 }}>{t.entregues} de {t.totalDisciplinas} relatórios ({pct}%)</div>
                     <div className={s.bar}><div className={`${s.barFill} ${pct === 100 ? s.barFull : ''}`} style={{ width: `${pct}%` }} /></div>
                   </div>
-                  <button className={s.btnPrimary} onClick={() => abrir(t)} disabled={loading}>{loading ? 'Abrindo…' : 'Abrir cruzamento'}</button>
+                  <Button
+                    variant="primary"
+                    onClick={() => abrir(t)}
+                    disabled={loading}
+                  >{loading ? 'Abrindo…' : 'Abrir cruzamento'}</Button>
                 </div>
               )
             })}
@@ -112,12 +119,20 @@ export function DiagnosticoTurmaClient({ turmas: turmasInit, canManage }: { turm
   return (
     <>
       <div className={s.toolbar}>
-        <button className={s.iconBtn} onClick={voltar} title="Voltar"><ArrowLeft size={16} /></button>
+        <IconButton
+          icon={<ArrowLeft size={16} />}
+          label="Voltar"
+          onClick={voltar}
+        />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 800, fontSize: 16 }}>{cx.gradeLabel} {cx.className}</div>
           <div className={s.muted}>{cicloLabel(cx.ciclo)} · {cx.bimestres.length ? periodoLabel(cx.bimestres) : 'sem período'}</div>
         </div>
-        <button className={s.iconBtn} onClick={() => abrir(turmas.find(t => t.classId === cx.classId)!)} title="Recruzar"><RefreshCw size={16} /></button>
+        <IconButton
+          icon={<RefreshCw size={16} />}
+          label="Recruzar"
+          onClick={() => abrir(turmas.find(t => t.classId === cx.classId)!)}
+        />
       </div>
 
       {fb && <div className={`${s.feedback} ${fb.kind === 'ok' ? s.ok : s.err}`} onClick={() => setFb(null)}>{fb.msg}</div>}
@@ -184,7 +199,11 @@ export function DiagnosticoTurmaClient({ turmas: turmasInit, canManage }: { turm
           <div className={s.card}>
             <div className={s.sectionTitle}><ClipboardList size={16} /> Diagnóstico da coordenação</div>
             <div className={s.toolbar} style={{ marginBottom: 8 }}>
-              <button className={s.btnGhost} onClick={() => setIaOpen(true)}><Sparkles size={15} /> Assistente (IA)</button>
+              <Button
+                variant="ghost"
+                iconLeft={<Sparkles size={15} />}
+                onClick={() => setIaOpen(true)}
+              >Assistente (IA)</Button>
               {geradoPorIA && <span className={s.muted}>· redigido com IA</span>}
             </div>
             <textarea className={s.textarea} value={diagnostico} onChange={e => { setDiagnostico(e.target.value); setGeradoPorIA(false) }} placeholder="Síntese diagnóstica da turma: padrões, forças, fragilidades e prioridades…" />
@@ -194,22 +213,51 @@ export function DiagnosticoTurmaClient({ turmas: turmasInit, canManage }: { turm
           <div className={s.card}>
             <div className={s.sectionTitle}><CheckCircle2 size={16} /> Plano de ação</div>
             <div className={s.toolbar} style={{ marginBottom: 10 }}>
-              <button className={s.btnGhost} onClick={() => setCatOpen(true)}><Plus size={15} /> Do catálogo</button>
-              <button className={s.btnGhost} onClick={addCustom}><Plus size={15} /> Ação personalizada</button>
+              <Button
+                variant="ghost"
+                iconLeft={<Plus size={15} />}
+                onClick={() => setCatOpen(true)}
+              >Do catálogo</Button>
+              <Button
+                variant="ghost"
+                iconLeft={<Plus size={15} />}
+                onClick={addCustom}
+              >Ação personalizada</Button>
             </div>
             <div className={s.itemList} style={{ gap: 10 }}>
               {plano.length === 0 && <span className={s.muted}>Nenhuma ação adicionada.</span>}
               {plano.map((a, i) => (
                 <div key={i} className={s.planoItem}>
                   <div className={s.planoHead}>
-                    <input className={s.input} style={{ fontWeight: 700 }} value={a.titulo} onChange={e => updAcao(i, { titulo: e.target.value })} placeholder="Título da ação" />
-                    <button className={s.iconBtnDanger} onClick={() => delAcao(i)} title="Remover"><Trash2 size={15} /></button>
+                    <Input
+                      placeholder="Título da ação"
+                      value={a.titulo}
+                      onChange={e => updAcao(i, { titulo: e.target.value })}
+                      className={s.input}
+                      style={{ fontWeight: 700 }}
+                    />
+                    <IconButton
+                      icon={<Trash2 size={15} />}
+                      label="Remover"
+                      variant="danger"
+                      onClick={() => delAcao(i)}
+                    />
                   </div>
                   {a.meta && <div className={s.metaChips}>{[a.meta.foco, a.meta.evidencia, a.meta.publico].filter(Boolean).map((m, k) => <span key={k} className={s.metaChip}>{m}</span>)}</div>}
                   <textarea className={s.textarea} style={{ minHeight: 70 }} value={a.descricao} onChange={e => updAcao(i, { descricao: e.target.value })} placeholder="Descrição / como executar" />
                   <div className={s.fieldRow}>
-                    <input className={s.input} value={a.responsavel ?? ''} onChange={e => updAcao(i, { responsavel: e.target.value })} placeholder="Responsável" />
-                    <input className={s.input} value={a.prazo ?? ''} onChange={e => updAcao(i, { prazo: e.target.value })} placeholder="Prazo" />
+                    <Input
+                      placeholder="Responsável"
+                      value={a.responsavel ?? ''}
+                      onChange={e => updAcao(i, { responsavel: e.target.value })}
+                      className={s.input}
+                    />
+                    <Input
+                      placeholder="Prazo"
+                      value={a.prazo ?? ''}
+                      onChange={e => updAcao(i, { prazo: e.target.value })}
+                      className={s.input}
+                    />
                   </div>
                 </div>
               ))}
@@ -218,10 +266,25 @@ export function DiagnosticoTurmaClient({ turmas: turmasInit, canManage }: { turm
 
           {/* ações */}
           <div className={s.toolbar}>
-            <button className={s.btnPrimary} onClick={() => salvar(false)} disabled={saving}><Save size={15} /> {saving ? 'Salvando…' : 'Salvar rascunho'}</button>
-            <button className={s.btnPrimary} onClick={() => salvar(true)} disabled={saving} style={{ background: '#059669' }}><CheckCircle2 size={15} /> Finalizar</button>
+            <Button
+              variant="primary"
+              iconLeft={<Save size={15} />}
+              onClick={() => salvar(false)}
+              disabled={saving}
+            >{saving ? 'Salvando…' : 'Salvar rascunho'}</Button>
+            <Button
+              variant="primary"
+              iconLeft={<CheckCircle2 size={15} />}
+              onClick={() => salvar(true)}
+              disabled={saving}
+            >Finalizar</Button>
             {docId && <a className={s.btnGhost} href={`/api/diagnostico-turma/${docId}/docx`}><Download size={15} /> Word</a>}
-            {docId && <button className={s.iconBtnDanger} onClick={() => setConfirmDelete(true)} title="Excluir"><Trash2 size={15} /></button>}
+            {docId && <IconButton
+              icon={<Trash2 size={15} />}
+              label="Excluir"
+              variant="danger"
+              onClick={() => setConfirmDelete(true)}
+            />}
             {docStatus && <span className={docStatus === 'FINAL' ? s.tagFinal : s.tagDraft}>{docStatus === 'FINAL' ? 'finalizado' : 'rascunho'}</span>}
           </div>
         </>
@@ -234,14 +297,20 @@ export function DiagnosticoTurmaClient({ turmas: turmasInit, canManage }: { turm
           <div className={s.modal} onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <div className={s.modalHead}>
               <span className={s.modalTitle}>Excluir diagnóstico?</span>
-              <button className={s.iconBtn} onClick={() => setConfirmDelete(false)}><X size={16} /></button>
+              <IconButton
+                icon={<X size={16} />}
+                label="x"
+                onClick={() => setConfirmDelete(false)}
+              />
             </div>
             <p className={s.muted} style={{ margin: '4px 0 14px' }}>Esta ação não pode ser desfeita. O diagnóstico e o plano de ação serão removidos.</p>
             <div className={s.toolbar}>
-              <button className={s.btnGhost} onClick={() => setConfirmDelete(false)}>Cancelar</button>
-              <button className={s.btnPrimary} onClick={excluir} style={{ background: '#dc2626' }}>
-                <Trash2 size={15} /> Excluir
-              </button>
+              <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
+              <Button
+                variant="primary"
+                iconLeft={<Trash2 size={15} />}
+                onClick={excluir}
+              >Excluir</Button>
             </div>
           </div>
         </div>
@@ -258,9 +327,19 @@ function CatalogoModal({ onClose, onPick }: { onClose: () => void; onPick: (a: D
       <div className={s.modal} onClick={e => e.stopPropagation()}>
         <div className={s.modalHead}>
           <span className={s.modalTitle}>Catálogo de ações pedagógicas</span>
-          <button className={s.iconBtn} onClick={onClose}><X size={16} /></button>
+          <IconButton
+            icon={<X size={16} />}
+            label="x"
+            onClick={onClose}
+          />
         </div>
-        <input className={s.input} style={{ marginBottom: 12 }} value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar ação…" />
+        <Input
+          placeholder="Buscar ação…"
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          className={s.input}
+          style={{ marginBottom: 12 }}
+        />
         <div className={s.catGrid}>
           {list.map(a => (
             <button key={a.id} className={s.catCard} onClick={() => onPick(a)}>
@@ -305,20 +384,36 @@ function IaModal({ classId, onClose, onApply }: { classId: number; onClose: () =
       <div className={s.modal} onClick={e => e.stopPropagation()}>
         <div className={s.modalHead}>
           <span className={s.modalTitle}><Sparkles size={16} style={{ verticalAlign: -3 }} /> Assistente de diagnóstico</span>
-          <button className={s.iconBtn} onClick={onClose}><X size={16} /></button>
+          <IconButton
+            icon={<X size={16} />}
+            label="x"
+            onClick={onClose}
+          />
         </div>
         <p className={s.muted}>1) Gere o pedido com os dados da turma. 2) Cole no Copilot/ChatGPT. 3) Cole aqui a resposta (JSON) para aplicar.</p>
         {err && <div className={`${s.feedback} ${s.err}`} style={{ marginTop: 10 }}>{err}</div>}
         {!prompt ? (
-          <button className={s.btnPrimary} style={{ marginTop: 12 }} onClick={gerarPrompt} disabled={busy}>{busy ? 'Gerando…' : 'Gerar pedido'}</button>
+          <Button
+            variant="primary"
+            onClick={gerarPrompt}
+            disabled={busy}
+          >{busy ? 'Gerando…' : 'Gerar pedido'}</Button>
         ) : (
           <>
             <div className={s.lbl}>Pedido (copie para a IA)</div>
             <textarea className={s.textarea} style={{ minHeight: 120 }} readOnly value={prompt} />
-            <button className={s.btnGhost} style={{ marginTop: 8 }} onClick={copiar}><Copy size={15} /> {copied ? 'Copiado!' : 'Copiar pedido'}</button>
+            <Button
+              variant="ghost"
+              iconLeft={<Copy size={15} />}
+              onClick={copiar}
+            >{copied ? 'Copiado!' : 'Copiar pedido'}</Button>
             <div className={s.lbl}>Resposta da IA (cole o JSON)</div>
             <textarea className={s.textarea} style={{ minHeight: 120 }} value={resp} onChange={e => setResp(e.target.value)} placeholder='{"diagnostico":"…","planoAcao":[…]}' />
-            <button className={s.btnPrimary} style={{ marginTop: 10 }} onClick={aplicar} disabled={busy || !resp.trim()}>{busy ? 'Aplicando…' : 'Aplicar resposta'}</button>
+            <Button
+              variant="primary"
+              onClick={aplicar}
+              disabled={busy || !resp.trim()}
+            >{busy ? 'Aplicando…' : 'Aplicar resposta'}</Button>
           </>
         )}
       </div>

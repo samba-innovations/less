@@ -1,7 +1,9 @@
+/* Breadcrumb v2 — hierarquia refinada, separator sutil, current com destaque */
+
 .crumbs {
   display: flex;
   align-items: center;
-  gap: 0.1875rem;
+  gap: 2px;
   min-width: 0;
   overflow: hidden;
 }
@@ -9,77 +11,83 @@
 .crumb {
   display: flex;
   align-items: center;
-  gap: 0.1875rem;
+  gap: 2px;
   min-width: 0;
 }
 
 .sep {
   color: var(--fg-secondary);
-  opacity: 0.4;
+  opacity: 0.35;
   flex-shrink: 0;
-  transition: opacity 0.2s, color 0.2s, transform 0.2s;
+  transition: opacity var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
 }
 
-/* Chevron right before the current segment gets brand color */
 .crumb:last-child .sep {
   color: var(--brand);
-  opacity: 0.85;
-  transform: translateX(1px);
+  opacity: 0.75;
 }
 
 .label {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--fg-secondary);
   text-decoration: none;
   white-space: nowrap;
-  padding: 0.25rem 0.5rem;
-  border-radius: 7px;
-  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
   text-transform: lowercase;
   letter-spacing: -0.005em;
-  border: 1px solid transparent;
   position: relative;
 }
 
-a.label {
-  position: relative;
+/* Home icon (primeiro segmento tipicamente "dashboard/início") ganha tratamento visual */
+.homeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xs);
+  color: var(--fg-secondary);
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
 }
-
-a.label::after {
-  content: '';
-  position: absolute;
-  bottom: 2px;
-  left: 0.5rem;
-  right: 0.5rem;
-  height: 1px;
-  background: var(--brand);
-  opacity: 0;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: opacity 0.18s, transform 0.18s;
+.homeIcon:hover {
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 8%, transparent);
 }
 
 a.label:hover {
   color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 5%, transparent);
 }
 
-a.label:hover::after {
-  opacity: 0.6;
-  transform: scaleX(1);
-}
-
+/* Último segmento: destacado com brand */
 .current {
   color: var(--brand);
   font-weight: 700;
   background: color-mix(in srgb, var(--brand) 8%, transparent);
-  border-color: color-mix(in srgb, var(--brand) 22%, transparent);
 }
 
-/* When only one segment exists, no special styling needed */
 .crumbs > .crumb:only-child .current {
   background: transparent;
-  border-color: transparent;
   padding-left: 0;
   padding-right: 0;
+}
+
+@media (max-width: 640px) {
+  .crumbs > .crumb:not(:last-child) { display: none; }
+  .crumbs > .crumb:last-child .sep { display: none; }
+  .crumbs > .crumb:last-child .current {
+    background: transparent;
+    padding-left: 0;
+    padding-right: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    max-width: 100%;
+  }
 }

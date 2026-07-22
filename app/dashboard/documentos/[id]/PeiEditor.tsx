@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { Check, ChevronDown, Loader2, ScrollText } from 'lucide-react'
+import { Select } from '../../_components/Select'
+import { SkeletonText } from '../../_components/Skeleton'
 import {
   DIAGNOSTICO_FUNCIONAL, PEI_OBJETIVOS, PEI_ESTRAT_PEDAGOGICAS,
   PEI_INTERVENCOES, PEI_RECURSOS, PEI_AVALIACAO, PEI_LAWS, PEI_PURPOSES,
@@ -10,6 +12,8 @@ import {
 import { useFetch } from '@/lib/use-fetch'
 import { GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
 import s from './pei.module.css'
+import { DatePicker } from '../../_components/DatePicker'
+import { Input } from '../../_components/Input'
 
 type PeiStudent = {
   id: number; name: string; ra: string; turma: string
@@ -267,19 +271,20 @@ export function PeiEditor({ fields, setField, isAdmin }: Props) {
           </div>
           <div className={s.field}>
             <label className={s.label}>Disciplina</label>
-            <div className={s.selectWrap}>
-              <select className={s.select} value={fields.disciplina ?? ''} disabled={!classId}
-                onChange={e => { setField('disciplina', e.target.value); setField('habilidades', '') }}>
-                <option value="">{classId ? 'selecionar…' : 'selecione o aluno primeiro'}</option>
-                {disciplinas.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
-              </select>
-              <ChevronDown size={14} className={s.selectChevron} />
-            </div>
+            <Select
+              value={fields.disciplina ?? ''}
+              placeholder={classId ? 'selecionar…' : 'selecione o aluno primeiro'}
+              options={disciplinas.map(d => ({ value: d.name, label: d.name }))}
+              onChange={v => { setField('disciplina', v); setField('habilidades', '') }}
+            />
           </div>
           <div className={s.field}>
             <label className={s.label}>Data de elaboração</label>
-            <input type="date" className={s.input} value={fields.data_elaboracao ?? ''}
-              onChange={e => setField('data_elaboracao', e.target.value)} />
+            <DatePicker
+              value={fields.data_elaboracao ?? null}
+              onChange={v => setField('data_elaboracao', v)}
+              className={s.input}
+            />
           </div>
         </div>
       </section>
@@ -287,7 +292,7 @@ export function PeiEditor({ fields, setField, isAdmin }: Props) {
       {/* ── Habilidades do Currículo ── */}
       <section className={s.section}>
         <div className={s.sectionHead}><span className={s.sectionDot} />Habilidades do Currículo</div>
-        {loadingHabs && <p className={s.loadingRow}><Loader2 size={14} className={s.spin} /> Carregando habilidades…</p>}
+        {loadingHabs && <div style={{ padding: '12px 0' }}><SkeletonText lines={3} /></div>}
         {habMsg && !loadingHabs && <p className={s.warn}>{habMsg}</p>}
         {habList.length > 0 ? (
           <div className={s.habList}>
@@ -392,14 +397,20 @@ export function PeiEditor({ fields, setField, isAdmin }: Props) {
         )}
         <div className={s.field}>
           <label className={s.label}>Responsáveis / Família</label>
-          <input className={s.input} value={fields.responsaveis ?? ''}
+          <Input
             placeholder="Nome e contato dos responsáveis"
-            onChange={e => setField('responsaveis', e.target.value)} />
+            value={fields.responsaveis ?? ''}
+            onChange={e => setField('responsaveis', e.target.value)}
+            className={s.input}
+          />
         </div>
         <div className={s.field}>
           <label className={s.label}>Data da próxima revisão</label>
-          <input type="date" className={s.input} value={fields.proxima_revisao ?? ''}
-            onChange={e => setField('proxima_revisao', e.target.value)} />
+          <DatePicker
+            value={fields.proxima_revisao ?? null}
+            onChange={v => setField('proxima_revisao', v)}
+            className={s.input}
+          />
         </div>
       </section>
 

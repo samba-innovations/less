@@ -39,7 +39,7 @@
   font-family: inherit;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.18s, color 0.18s, transform 0.15s;
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
   flex-shrink: 0;
 }
 .stepBtn:hover:not(:disabled) { color: var(--fg); background: var(--surface-elevated); }
@@ -65,7 +65,7 @@
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
-  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  transition: background var(--duration-normal) var(--ease-out), color var(--duration-normal) var(--ease-out), border-color var(--duration-normal) var(--ease-out), transform var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out);
 }
 .stepActive .stepNum {
   background: var(--brand);
@@ -87,40 +87,39 @@
   .stepBtn { padding: 0.4375rem 0.5rem; }
 }
 .navActions { display: flex; gap: 0.5rem; margin-left: auto; }
-.backBtn { display: flex; align-items: center; gap: 0.25rem; padding: 0.4rem 0.7rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--bg); color: var(--fg-secondary); font-size: 0.75rem; font-weight: 600; }
-.nextBtn { display: flex; align-items: center; gap: 0.25rem; padding: 0.4rem 0.85rem; border: none; border-radius: 0.5rem; background: var(--brand); color: #fff; font-size: 0.75rem; font-weight: 600; }
+.backBtn { display: flex; align-items: center; gap: 0.25rem; padding: 0.4rem 0.7rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg); color: var(--fg-secondary); font-size: 0.75rem; font-weight: 600; }
+.nextBtn { display: flex; align-items: center; gap: 0.25rem; padding: 0.4rem 0.85rem; border: none; border-radius: var(--radius-md); background: var(--brand); color: #fff; font-size: 0.75rem; font-weight: 600; }
 .nextBtn:disabled { opacity: 0.4; }
 
 .field { display: flex; flex-direction: column; gap: 0.4rem; }
 .label { font-size: 0.75rem; font-weight: 600; color: var(--fg); }
-.select { width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 0.625rem; background: var(--surface); color: var(--fg); font-size: 0.875rem; outline: none; cursor: pointer; }
+.select { width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--fg); font-size: 0.875rem; outline: none; cursor: pointer; }
 .select:focus { border-color: var(--brand); }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 @media (max-width: 640px) { .grid3 { grid-template-columns: 1fr; } }
 
 .pillRow { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.pill { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.65rem; border-radius: 999px; border: 2px solid var(--border); background: var(--bg); color: var(--fg); font-size: 0.75rem; font-weight: 700; }
+.pill { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.65rem; border-radius: var(--radius-round); border: 2px solid var(--border); background: var(--bg); color: var(--fg); font-size: 0.75rem; font-weight: 700; }
 .pillOn { background: var(--brand); border-color: var(--brand); color: #fff; }
 .pillSub { font-size: 0.625rem; font-weight: 500; opacity: 0.7; }
 
 .chipRow { display: flex; gap: 0.375rem; }
-.chip { flex: 1; padding: 0.5rem 0; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--surface); color: var(--fg-secondary); font-size: 0.8125rem; font-weight: 600; }
+.chip { flex: 1; padding: 0.5rem 0; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--fg-secondary); font-size: 0.8125rem; font-weight: 600; }
 .chipOn { background: var(--brand); border-color: var(--brand); color: #fff; }
 .bimHint { font-size: 0.6875rem; color: var(--brand-dark); font-weight: 600; margin: 0; }
 
 .ctxRow { font-size: 0.75rem; color: var(--fg-secondary); }
 .ctxStrong { font-weight: 700; color: var(--fg); }
 .loadingRow { display: flex; align-items: center; gap: 0.4rem; justify-content: center; padding: 2rem 0; font-size: 0.875rem; color: var(--fg-secondary); }
-.spin { animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.noAulas { border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); border-radius: 0.75rem; padding: 1.25rem; text-align: center; }
-.noAulas p { margin: 0; font-size: 0.875rem; font-weight: 700; color: #dc2626; }
+.spin { animation: samba-spin 0.8s linear infinite; }
+.noAulas { border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); border-radius: var(--radius-lg); padding: 1.25rem; text-align: center; }
+.noAulas p { margin: 0; font-size: 0.875rem; font-weight: 700; color: var(--danger); }
 .noAulasSub { font-size: 0.75rem !important; font-weight: 400 !important; color: var(--fg-secondary) !important; margin-top: 0.25rem !important; }
 
 .selCount { font-size: 0.75rem; color: var(--fg-secondary); }
-.selBadge { font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 999px; background: var(--brand-alpha); color: var(--brand-dark); }
+.selBadge { font-weight: 700; padding: 0.1rem 0.45rem; border-radius: var(--radius-round); background: var(--brand-alpha); color: var(--brand-dark); }
 .aulaList { display: flex; flex-direction: column; gap: 0.5rem; }
-.aulaItem { display: flex; gap: 0.75rem; align-items: flex-start; text-align: left; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 0.75rem; background: var(--bg); transition: all 0.12s; }
+.aulaItem { display: flex; gap: 0.75rem; align-items: flex-start; text-align: left; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: var(--radius-lg); background: var(--bg); transition: all var(--duration-fast) var(--ease-out); }
 .aulaItem:hover:not(.aulaDisabled) { border-color: var(--brand-alpha-border); }
 .aulaOn { background: var(--brand-alpha); border-color: var(--brand); }
 .aulaDisabled { opacity: 0.4; cursor: not-allowed; }
@@ -132,8 +131,8 @@
 .aulaTitulo { font-size: 0.875rem; font-weight: 600; color: var(--fg); }
 .aulaObj { font-size: 0.6875rem; color: var(--fg-secondary); }
 
-.aulaNav { display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--brand-alpha-border); background: var(--brand-alpha); border-radius: 0.875rem; padding: 0.6rem 0.75rem; }
-.aulaNavBtn { width: 2.25rem; height: 2.25rem; border-radius: 0.625rem; border: 2px solid var(--brand-alpha-border); background: var(--bg); color: var(--brand-dark); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.aulaNav { display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--brand-alpha-border); background: var(--brand-alpha); border-radius: var(--radius-lg); padding: 0.6rem 0.75rem; }
+.aulaNavBtn { width: 2.25rem; height: 2.25rem; border-radius: var(--radius-md); border: 2px solid var(--brand-alpha-border); background: var(--bg); color: var(--brand-dark); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .aulaNavBtn:disabled { opacity: 0.3; }
 .aulaNavCenter { flex: 1; text-align: center; min-width: 0; }
 .aulaNavTop { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--brand-dark); margin: 0; }
@@ -147,19 +146,19 @@
 .slideGridWrap { width: 100%; max-width: 70%; margin: 0 auto; overflow-x: auto; }
 @media (max-width: 700px) { .slideGridWrap { max-width: 100%; } }
 .slideGrid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 0.4rem; min-width: 280px; }
-.slide { aspect-ratio: 1/1; border-radius: 0.5rem; border: 2px solid var(--border); background: var(--surface); color: var(--fg-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.12s; }
+.slide { aspect-ratio: 1/1; border-radius: var(--radius-md); border: 2px solid var(--border); background: var(--surface); color: var(--fg-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all var(--duration-fast) var(--ease-out); }
 .slide:hover { border-color: var(--brand-alpha-border); }
 .slideNum { font-weight: 800; font-size: 0.9rem; line-height: 1; }
 .slideAbbr { font-size: 0.5rem; font-weight: 700; line-height: 1; margin-top: 0.1rem; }
 
 .concluirRow { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; padding-top: 0.75rem; border-top: 1px solid var(--border); }
 .concluirInfo { font-size: 0.75rem; color: var(--fg-secondary); margin: 0; }
-.concluirBtn { display: flex; align-items: center; gap: 0.4rem; padding: 0.6rem 1.1rem; border: none; border-radius: 0.625rem; background: var(--brand); color: #fff; font-size: 0.875rem; font-weight: 700; }
+.concluirBtn { display: flex; align-items: center; gap: 0.4rem; padding: 0.6rem 1.1rem; border: none; border-radius: var(--radius-md); background: var(--brand); color: #fff; font-size: 0.875rem; font-weight: 700; }
 
 .modalOverlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(0,0,0,0.5); }
-.modal { background: var(--bg); border: 1px solid var(--border); border-radius: 1rem; padding: 1.25rem; max-width: 24rem; width: 100%; display: flex; flex-direction: column; gap: 0.875rem; box-shadow: var(--shadow-card); }
+.modal { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 1.25rem; max-width: 24rem; width: 100%; display: flex; flex-direction: column; gap: 0.875rem; box-shadow: var(--shadow-card); }
 .modalTitle { font-size: 0.9375rem; font-weight: 800; color: var(--fg); margin: 0; }
 .modalText { font-size: 0.8125rem; color: var(--fg-secondary); margin: 0; line-height: 1.5; }
 .modalActions { display: flex; justify-content: flex-end; gap: 0.5rem; }
-.modalCancel { padding: 0.5rem 0.85rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--bg); color: var(--fg-secondary); font-size: 0.75rem; font-weight: 600; }
-.modalPrimary { padding: 0.5rem 0.85rem; border: none; border-radius: 0.5rem; background: var(--brand); color: #fff; font-size: 0.75rem; font-weight: 700; }
+.modalCancel { padding: 0.5rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg); color: var(--fg-secondary); font-size: 0.75rem; font-weight: 600; }
+.modalPrimary { padding: 0.5rem 0.85rem; border: none; border-radius: var(--radius-md); background: var(--brand); color: #fff; font-size: 0.75rem; font-weight: 700; }

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { useFocusTrap } from './useFocusTrap'
 import s from './modal.module.css'
 
 type Props = {
@@ -11,11 +12,15 @@ type Props = {
   onClose:  () => void
   children: React.ReactNode
   size?:    'sm' | 'md' | 'lg'
+  // flush = body colada nas bordas (sem padding). Padrão false.
+  // Herança do mockflow — útil pra content que já traz padding próprio.
+  flush?:   boolean
 }
 
-export function Modal({ title, subtitle, onClose, children, size = 'md' }: Props) {
-  const [mounted, setMounted]  = useState(false)
-  const [closing, setClosing]  = useState(false)
+export function Modal({ title, subtitle, onClose, children, size = 'md', flush }: Props) {
+  const [mounted,  setMounted]  = useState(false)
+  const [closing,  setClosing]  = useState(false)
+  const trapRef = useFocusTrap<HTMLDivElement>(mounted && !closing)
 
   const handleClose = useCallback(() => {
     setClosing(true)
@@ -40,7 +45,7 @@ export function Modal({ title, subtitle, onClose, children, size = 'md' }: Props
       className={`${s.overlay} ${closing ? s.overlayClosing : ''}`}
       onMouseDown={e => { if (e.target === e.currentTarget) handleClose() }}
     >
-      <div className={`${s.panel} ${s[size]} ${closing ? s.panelClosing : ''}`}>
+      <div ref={trapRef} className={`${s.panel} ${s[size]} ${closing ? s.panelClosing : ''}`} role="dialog" aria-modal="true" aria-label={title}>
 
         <div className={s.header}>
           <div className={s.headerAccent} />
@@ -55,7 +60,7 @@ export function Modal({ title, subtitle, onClose, children, size = 'md' }: Props
           </div>
         </div>
 
-        <div className={s.body}>
+        <div className={s.body} style={flush ? { padding: 0 } : undefined}>
           {children}
         </div>
 

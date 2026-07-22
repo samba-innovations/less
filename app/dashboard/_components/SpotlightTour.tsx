@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 import s from './spotlight-tour.module.css'
+import { Button } from '../_components/Button'
+import { IconButton } from '../_components/IconButton'
 
 const COLOR = '#b89800'
 
@@ -129,18 +131,26 @@ function TooltipContent({ step, current, onEnd, onNext, onPrev }: {
         <span className={s.counter} style={{ color: COLOR, background: `${COLOR}18` }}>
           {step + 1} / {STEPS.length}
         </span>
-        <button className={s.closeBtn} onClick={onEnd} aria-label="Fechar tour"><X size={13} /></button>
+        <IconButton
+          icon={<X size={13} />}
+          label="Fechar tour"
+          onClick={onEnd}
+        />
       </div>
       <h3 className={s.title}>{current.title}</h3>
       <p className={s.desc}>{current.description}</p>
       <div className={s.actions}>
-        <button className={s.prevBtn} onClick={onPrev} disabled={step === 0}>
-          <ChevronLeft size={13} /> anterior
-        </button>
-        <button className={s.nextBtn} style={{ background: COLOR }} onClick={onNext}>
-          {isLast ? 'concluir' : 'próximo'}
-          {!isLast && <ChevronRight size={13} />}
-        </button>
+        <Button
+          variant="ghost"
+          iconLeft={<ChevronLeft size={13} />}
+          onClick={onPrev}
+          disabled={step === 0}
+        >anterior</Button>
+        <Button
+          variant="primary"
+          onClick={onNext}
+        >{isLast ? 'concluir' : 'próximo'}
+          {!isLast && <ChevronRight size={13} />}</Button>
       </div>
     </>
   )

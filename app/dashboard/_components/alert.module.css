@@ -1,0 +1,118 @@
+/* ── Alert ────────────────────────────────────────────────
+   4 variants × 3 tones × 2 sizes.                              */
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--fg);
+}
+.sm { padding: 0.5rem 0.7rem; font-size: 0.75rem; gap: 0.5rem; }
+
+.iconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.title {
+  font-weight: 700;
+  color: var(--fg);
+  letter-spacing: -0.005em;
+}
+.desc {
+  color: var(--fg);
+  opacity: 0.85;
+}
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+
+.dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px; height: 24px;
+  border: none;
+  background: transparent;
+  color: currentColor;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0.65;
+  flex-shrink: 0;
+  margin: -2px -4px 0 0;
+  transition: opacity var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
+}
+.dismiss:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+/* ══════════════════════════════════════════════════════
+   TONE: SUBTLE (padrão) — fundo alpha da variant
+   ══════════════════════════════════════════════════════ */
+.subtle.info    { background: color-mix(in srgb, var(--info)    8%, transparent); }
+.subtle.success { background: color-mix(in srgb, var(--success) 8%, transparent); }
+.subtle.warning { background: color-mix(in srgb, var(--warning) 8%, transparent); }
+.subtle.danger  { background: color-mix(in srgb, var(--danger)  8%, transparent); }
+
+.subtle.info    .iconWrap { color: var(--info); }
+.subtle.success .iconWrap { color: var(--success); }
+.subtle.warning .iconWrap { color: var(--warning); }
+.subtle.danger  .iconWrap { color: var(--danger); }
+
+.subtle.info    .title { color: var(--info); }
+.subtle.success .title { color: var(--success); }
+.subtle.warning .title { color: var(--warning); }
+.subtle.danger  .title { color: var(--danger); }
+
+/* ══════════════════════════════════════════════════════
+   TONE: OUTLINED — borda colorida, fundo bg
+   ══════════════════════════════════════════════════════ */
+.outlined { background: var(--bg); }
+.outlined.info    { border-color: color-mix(in srgb, var(--info)    30%, var(--border)); }
+.outlined.success { border-color: color-mix(in srgb, var(--success) 30%, var(--border)); }
+.outlined.warning { border-color: color-mix(in srgb, var(--warning) 30%, var(--border)); }
+.outlined.danger  { border-color: color-mix(in srgb, var(--danger)  30%, var(--border)); }
+
+.outlined.info    .iconWrap,
+.outlined.info    .title { color: var(--info); }
+.outlined.success .iconWrap,
+.outlined.success .title { color: var(--success); }
+.outlined.warning .iconWrap,
+.outlined.warning .title { color: var(--warning); }
+.outlined.danger  .iconWrap,
+.outlined.danger  .title { color: var(--danger); }
+
+/* ══════════════════════════════════════════════════════
+   TONE: FILLED — fundo sólido da variant, texto branco
+   ══════════════════════════════════════════════════════ */
+.filled { color: #fff; }
+.filled .title,
+.filled .desc { color: #fff; }
+.filled .desc { opacity: 0.95; }
+
+.filled.info    { background: var(--info); }
+.filled.success { background: var(--success); }
+.filled.warning { background: var(--warning); }
+.filled.danger  { background: var(--danger); }
+
+.filled .iconWrap { color: #fff; }

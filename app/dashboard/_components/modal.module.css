@@ -1,61 +1,64 @@
-﻿/* â”€â”€ Overlay â”€â”€ */
+/* ── Overlay ──
+   Performance: backdrop-filter (mesmo em 3px) forçava re-composite do
+   backdrop a cada frame — travava ao digitar em GPUs medianas. Removido
+   totalmente; a escurecida de 55% já dá contraste suficiente.
+   `contain` isola o overlay do repaint da página inteira. */
 .overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  animation: overlayIn 0.2s ease both;
+  animation: overlayIn 0.16s ease both;
+  contain: layout style paint;
 }
 
 .overlayClosing {
-  animation: overlayOut 0.2s ease forwards;
+  animation: overlayOut 0.16s ease forwards;
 }
 
-@keyframes overlayIn  { from { opacity: 0; } to { opacity: 1; } }
-@keyframes overlayOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes overlayIn  { from { opacity: 0; }               to { opacity: 1; } }
+@keyframes overlayOut { from { opacity: 1; }               to { opacity: 0; } }
 
-/* â”€â”€ Panel â”€â”€ */
+/* ── Panel ──
+   Performance: 4 box-shadows separadas custavam ~3ms de paint por frame.
+   Reduzido para 2 shadows compostas. `contain` isola repaints internos
+   (digitar em input não repinta o overlay/back). */
 .panel {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 24px;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.04),
-    0 8px 24px rgba(0,0,0,0.08),
-    0 32px 80px rgba(0,0,0,0.22),
-    0 64px 120px rgba(0,0,0,0.1);
+  border-radius: 20px;
+  box-shadow: 0 20px 48px rgba(0,0,0,0.28);
   width: 100%;
   overflow: hidden;
-  animation: panelIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: panelIn 0.2s var(--ease-out) both;
   display: flex;
   flex-direction: column;
   max-height: calc(100dvh - 4rem);
+  contain: layout style paint;
 }
 
 .panelClosing {
-  animation: panelOut 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: panelOut 0.16s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 @keyframes panelIn  {
-  from { opacity: 0; transform: translateY(28px) scale(0.95); }
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0)    scale(1);    }
 }
 @keyframes panelOut {
   from { opacity: 1; transform: translateY(0)    scale(1);    }
-  to   { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 0; transform: translateY(12px) scale(0.98); }
 }
 
 .sm  { max-width: 500px; }
 .md  { max-width: 640px; }
 .lg  { max-width: 800px; }
 
-/* â”€â”€ Header â”€â”€ */
+/* ── Header ── */
 .header {
   position: relative;
   padding: 2rem 2.25rem 1.75rem;
@@ -123,14 +126,14 @@
   transform: rotate(90deg);
 }
 
-/* â”€â”€ Body â”€â”€ */
+/* ── Body ── */
 .body {
   padding: 2rem 2.25rem 2.25rem;
   overflow-y: auto;
   flex: 1;
 }
 
-/* â”€â”€ Shared form elements â”€â”€ */
+/* ── Shared form elements ── */
 .form {
   display: flex;
   flex-direction: column;
@@ -168,6 +171,7 @@
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   width: 100%;
+  appearance: auto;
 }
 
 .input:focus {
@@ -207,7 +211,7 @@
   opacity: 0.35;
 }
 
-/* â”€â”€ Footer actions â”€â”€ */
+/* ── Footer actions ── */
 .formActions {
   display: flex;
   align-items: center;
@@ -237,7 +241,15 @@
   line-height: 1.5;
 }
 
-/* â”€â”€ Buttons â”€â”€ */
+.requiredHint {
+  font-size: 0.6875rem;
+  color: var(--fg-secondary);
+  opacity: 0.65;
+  margin-top: -0.5rem;
+  letter-spacing: 0.01em;
+}
+
+/* ── Buttons ── */
 .btnPrimary {
   display: inline-flex;
   align-items: center;
@@ -251,12 +263,14 @@
   font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.15s;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+  box-shadow: 0 2px 12px rgba(255, 0, 0, 0.4);
   white-space: nowrap;
 }
 
 .btnPrimary:hover:not(:disabled) {
-  opacity: 0.9;
+  background: var(--brand-light);
+  box-shadow: 0 4px 22px rgba(255, 0, 0, 0.5);
   transform: translateY(-1px);
 }
 
@@ -264,6 +278,7 @@
 .btnPrimary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+  box-shadow: none;
   transform: none;
 }
 
@@ -290,7 +305,7 @@
   border-color: var(--fg-secondary);
 }
 
-/* â”€â”€ Mobile: bottom sheet â”€â”€ */
+/* ── Mobile: bottom sheet ── */
 @media (max-width: 600px) {
   .overlay {
     padding: 0;

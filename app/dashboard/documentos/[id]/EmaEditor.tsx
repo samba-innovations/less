@@ -9,6 +9,7 @@ import {
 import { useFetch } from '@/lib/use-fetch'
 import g from './guia.module.css'
 import { GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
+import { Input } from '../../_components/Input'
 
 type Props = { fields: Record<string, string>; setField: (k: string, v: string) => void }
 type Turma = { id: number; name: string; grade: string; ciclo: string; serie: string }
@@ -64,7 +65,12 @@ export function EmaEditor({ fields, setField }: Props) {
           </div>
           <div className={g.field}>
             <label className={g.label}>Carga horária semanal</label>
-            <input className={g.input} value={fields.carga_horaria ?? ''} placeholder="Ex: 2 aulas / semana" onChange={e => setField('carga_horaria', e.target.value)} />
+            <Input
+              placeholder="Ex: 2 aulas / semana"
+              value={fields.carga_horaria ?? ''}
+              onChange={e => setField('carga_horaria', e.target.value)}
+              className={g.input}
+            />
           </div>
         </div>
         <div className={g.field}>
@@ -79,7 +85,12 @@ export function EmaEditor({ fields, setField }: Props) {
         </div>
         <div className={g.field}>
           <label className={g.label}>Tema / Projeto do bimestre</label>
-          <input className={g.input} value={fields.tema ?? ''} placeholder="Ex: Atletismo Paraolímpico / Canto Coral / Grafite Urbano" onChange={e => setField('tema', e.target.value)} />
+          <Input
+            placeholder="Ex: Atletismo Paraolímpico / Canto Coral / Grafite Urbano"
+            value={fields.tema ?? ''}
+            onChange={e => setField('tema', e.target.value)}
+            className={g.input}
+          />
         </div>
       </section>
 

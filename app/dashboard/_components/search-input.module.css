@@ -1,0 +1,82 @@
+/* ── SearchInput ────────────────────────────────────────────
+   Wrap flex com ícone à esquerda, input, e clear/loading à direita. */
+
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+  min-width: 220px;
+}
+.wrap:hover:not(.disabled) {
+  border-color: color-mix(in srgb, var(--brand) 40%, var(--border));
+}
+.wrap:focus-within {
+  border-color: var(--brand);
+  background: var(--bg);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 20%, transparent);
+}
+.disabled { opacity: 0.55; pointer-events: none; }
+.fullWidth { display: flex; width: 100%; }
+
+/* Sizes */
+.sm { height: 30px; padding: 0 0.6rem; gap: 0.4rem; }
+.md { height: 36px; }
+
+/* Icon esquerda */
+.icon {
+  color: var(--fg-secondary);
+  flex-shrink: 0;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.wrap:focus-within .icon { color: var(--brand); }
+
+/* Input */
+.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--fg);
+  padding: 0;
+  height: 100%;
+}
+.sm .input { font-size: 0.8125rem; }
+.input::placeholder { color: var(--fg-secondary); opacity: 0.7; }
+/* Remove o X nativo do type=search em webkit */
+.input::-webkit-search-cancel-button,
+.input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; }
+
+/* Trailing (clear / loading) */
+.trailing { color: var(--fg-secondary); flex-shrink: 0; }
+.clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--fg-secondary);
+  border-radius: var(--radius-round);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+.clear:hover {
+  background: color-mix(in srgb, var(--fg) 10%, transparent);
+  color: var(--fg);
+}
+.sm .clear { width: 18px; height: 18px; }
+
+.spin { animation: search-spin 800ms linear infinite; }
+@keyframes search-spin { to { transform: rotate(360deg); } }

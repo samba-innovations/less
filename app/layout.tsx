@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Montserrat } from 'next/font/google'
 import './globals.css'
+import './design-tokens.css'
 import { PageLoader, NavigationProgress } from './_components/PageLoader'
 
 const montserrat = Montserrat({

@@ -3,7 +3,11 @@
 import { useState, useEffect } from 'react'
 import { Loader2, ArrowRight, Check, Play, RotateCcw, BookOpen, Zap, Flag, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react'
 import { useFetch } from '@/lib/use-fetch'
+import { Select } from '../../_components/Select'
+import { Skeleton } from '../../_components/Skeleton'
 import s from './carta.module.css'
+import { Button } from '../../_components/Button'
+import { formatName } from '@/lib/format-name'
 
 type Props = { fields: Record<string, string>; setField: (k: string, v: string) => void }
 type Turma = { id: number; name: string; grade: string; ciclo: string; serie: string }
@@ -134,7 +138,11 @@ export function CartaNauticaEditor({ fields, setField }: Props) {
           })}
         </div>
         <div className={s.navActions}>
-          {step > 1 && <button className={s.backBtn} onClick={() => setStep((step - 1) as 1 | 2 | 3)}><ArrowLeft size={12} /> Voltar</button>}
+          {step > 1 && <Button
+            variant="ghost"
+            iconLeft={<ArrowLeft size={12} />}
+            onClick={() => setStep((step - 1) as 1 | 2 | 3)}
+          >Voltar</Button>}
           {step === 1 && <button className={s.nextBtn} disabled={!canAdv1} onClick={() => { if (primaryTurma) { setField('_ciclo', primaryTurma.ciclo); setField('_serie', primaryTurma.serie) } setStep(2) }}>Ver aulas <ArrowRight size={12} /></button>}
           {step === 2 && <button className={s.nextBtn} disabled={!canAdv2} onClick={() => { setCurrentAulaIndex(0); setStep(3) }}>Slides <ArrowRight size={12} /></button>}
         </div>
@@ -149,16 +157,18 @@ export function CartaNauticaEditor({ fields, setField }: Props) {
       <div className={s.field}>
         <label className={s.label}>Turma(s)</label>
         <div className={s.pillRow}>
-          {turmas.map(t => <button key={t.id} className={`${s.pill} ${selectedTurmas.includes(t.name) ? s.pillOn : ''}`} onClick={() => toggleTurma(t.name)}>{t.name}<span className={s.pillSub}>{t.grade}</span></button>)}
+          {turmas.map(t => <button key={t.id} className={`${s.pill} ${selectedTurmas.includes(t.name) ? s.pillOn : ''}`} onClick={() => toggleTurma(t.name)}>{formatName(t.name)}<span className={s.pillSub}>{t.grade}</span></button>)}
         </div>
       </div>
       <div className={s.grid3}>
         <div className={s.field}>
           <label className={s.label}>Disciplina</label>
-          <select className={s.select} value={disciplina} disabled={!classId} onChange={e => setField('disciplina', e.target.value)}>
-            <option value="">{classId ? 'Selecione' : 'selecione a turma'}</option>
-            {disciplinas.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
-          </select>
+          <Select
+            value={disciplina}
+            placeholder={classId ? 'Selecione' : 'selecione a turma'}
+            options={disciplinas.map(d => ({ value: d.name, label: d.name }))}
+            onChange={v => setField('disciplina', v)}
+          />
         </div>
         <div className={s.field}>
           <label className={s.label}>Bimestre</label>
@@ -167,9 +177,11 @@ export function CartaNauticaEditor({ fields, setField }: Props) {
         </div>
         <div className={s.field}>
           <label className={s.label}>Período</label>
-          <select className={s.select} value={periodo} onChange={e => setField('periodo', e.target.value)}>
-            {PERIODO_OPTS.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
-          </select>
+          <Select
+            value={periodo}
+            options={PERIODO_OPTS.map(o => ({ value: o.v, label: o.l }))}
+            onChange={v => setField('periodo', v)}
+          />
         </div>
       </div>
     </div>
@@ -180,7 +192,19 @@ export function CartaNauticaEditor({ fields, setField }: Props) {
     <div className={s.wrap}>
       <NavBar />
       <div className={s.ctxRow}><span className={s.ctxStrong}>{disciplina}</span> · {bimestre}º Bimestre · {PERIODO_OPTS.find(p => p.v === periodo)?.l} — selecione as aulas</div>
-      {loadingAulas ? <p className={s.loadingRow}><Loader2 size={16} className={s.spin} /> Carregando aulas…</p>
+      {loadingAulas ? (
+        <div className={s.aulaList} aria-busy="true">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className={s.aulaItem} style={{ pointerEvents: 'none', opacity: 0.6 }}>
+              <Skeleton width={22} height={22} radius="50%" />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Skeleton width="18%" height={10} />
+                <Skeleton width="72%" height={12} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )
         : noAulas ? <div className={s.noAulas}><p>Nenhuma aula encontrada.</p><p className={s.noAulasSub}>Verifique turma, disciplina e bimestre.</p></div>
         : (
         <>

@@ -11,6 +11,10 @@ import {
   type Nivel, type DificuldadeSel, type EstrategiaSel, type CoordProfessor, type DesbloqueioPainel,
 } from '@/lib/rs-shared'
 import s from './rs.module.css'
+import { IconButton } from '../_components/IconButton'
+import { Button } from '../_components/Button'
+import { Input } from '../_components/Input'
+import { formatName } from '@/lib/format-name'
 
 type Meu = { id: number; title: string; status: string; updatedAt: string; content: any } // eslint-disable-line @typescript-eslint/no-explicit-any
 type Mode = 'home' | 'wizard' | 'coord'
@@ -159,8 +163,16 @@ export function RelatorioSinteseClient({ ctx, catalogos, meus, professores, desb
       <div>
         {banEl}
         <div className={s.toolbar}>
-          {canProduce && <button className={s.btnPrimary} onClick={novo}><Plus size={15} /> Novo relatório</button>}
-          {canView && <button className={s.btnGhost} onClick={() => setMode('coord')}><Users size={15} /> Coordenação</button>}
+          {canProduce && <Button
+            variant="primary"
+            iconLeft={<Plus size={15} />}
+            onClick={novo}
+          >Novo relatório</Button>}
+          {canView && <Button
+            variant="ghost"
+            iconLeft={<Users size={15} />}
+            onClick={() => setMode('coord')}
+          >Coordenação</Button>}
         </div>
         {relatorios.length === 0 ? (
           <div className={s.empty}><FileBarChart2 size={28} className={s.emptyIcon} /><p>Nenhum relatório ainda.</p></div>
@@ -172,8 +184,17 @@ export function RelatorioSinteseClient({ ctx, catalogos, meus, professores, desb
                   <span className={m.status === 'FINAL' || m.status === 'final' ? s.tagFinal : s.tagDraft}>{m.status === 'FINAL' || m.status === 'final' ? 'finalizado' : 'rascunho'}</span>
                   <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
                     <a className={s.iconBtn} href={`/api/rs/relatorios/${m.id}/docx`} title="Baixar DOCX"><Download size={15} /></a>
-                    {canProduce && <button className={s.iconBtn} onClick={() => editar(m)} title="Editar"><Pencil size={15} /></button>}
-                    {canProduce && <button className={s.iconBtnDanger} onClick={() => excluir(m.id)} title="Excluir"><Trash2 size={15} /></button>}
+                    {canProduce && <IconButton
+                      icon={<Pencil size={15} />}
+                      label="Editar"
+                      onClick={() => editar(m)}
+                    />}
+                    {canProduce && <IconButton
+                      icon={<Trash2 size={15} />}
+                      label="Excluir"
+                      variant="danger"
+                      onClick={() => excluir(m.id)}
+                    />}
                   </div>
                 </div>
                 <p className={s.cardTitle}>{m.title}</p>
@@ -191,14 +212,18 @@ export function RelatorioSinteseClient({ ctx, catalogos, meus, professores, desb
     return (
       <div>
         {banEl}
-        <div className={s.toolbar}><button className={s.btnGhost} onClick={() => setMode('home')}><ArrowLeft size={15} /> Voltar</button></div>
+        <div className={s.toolbar}><Button
+          variant="ghost"
+          iconLeft={<ArrowLeft size={15} />}
+          onClick={() => setMode('home')}
+        >Voltar</Button></div>
         {canManage && desbloqueio && <DesbloqueioPanel painel={desbloqueio} />}
         <div className={s.sectionTitle}><Users size={16} /> Professores e relatórios</div>
         <div className={s.coordList}>
           {(professores ?? []).map(p => (
             <div key={p.id} className={s.card}>
               <div className={s.cardTop}>
-                <b>{p.name}</b>
+                <b>{formatName(p.name)}</b>
                 {!p.temDisciplinaElegivel && <span className={s.tagMuted}>sem disciplina elegível</span>}
                 <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{p.relatorios.length} relatório(s)</span>
               </div>
@@ -284,9 +309,17 @@ export function RelatorioSinteseClient({ ctx, catalogos, meus, professores, desb
       </div>
 
       <div className={s.wizardFooter}>
-        <button className={s.btnGhost} onClick={() => step === 0 ? setMode('home') : setStep(step - 1)}><ArrowLeft size={15} /> {step === 0 ? 'Sair' : 'Voltar'}</button>
+        <Button
+          variant="ghost"
+          iconLeft={<ArrowLeft size={15} />}
+          onClick={() => step === 0 ? setMode('home') : setStep(step - 1)}
+        >{step === 0 ? 'Sair' : 'Voltar'}</Button>
         <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
-          <button className={s.btnGhost} onClick={() => salvar(false)} disabled={pending || !fase1Ok}>Salvar rascunho</button>
+          <Button
+            variant="ghost"
+            onClick={() => salvar(false)}
+            disabled={pending || !fase1Ok}
+          >Salvar rascunho</Button>
           {step < STEPS.length - 1 && (
             <button className={s.btnPrimary} disabled={(stepKey === 'ident' && !fase1Ok) || (stepKey === 'apont' && !fase2Ok)}
               onClick={() => { if (stepKey === 'ident') carregarAprend(disc!.disciplineId, gradeId!, bimestres); setStep(step + 1) }}>
@@ -334,8 +367,8 @@ function ApontStep({ loading, aes, habs, aprend, onLoad, toggleAprend, toggleDes
   onLoad: () => void; toggleAprend: (a: RsAprendizagem) => void; toggleDescritor: (a: RsAprendizagem, d: string, v: 'pos' | 'neg') => void; valenciaOk: boolean
 }) {
   const sel = (a: RsAprendizagem) => aprend.find(x => aKey(x) === aKey(a))
-  if (loading) return <div className={s.card}><Loader2 size={18} className="spin" /> Carregando aprendizagens…</div>
-  if (aes.length === 0 && habs.length === 0) return <div className={s.card}><p>Nenhuma aprendizagem para o filtro.</p><button className={s.btnGhost} onClick={onLoad}>Recarregar</button></div>
+  if (loading) return <div className={s.card}><SkeletonText lines={4} /></div>
+  if (aes.length === 0 && habs.length === 0) return <div className={s.card}><p>Nenhuma aprendizagem para o filtro.</p><Button variant="ghost" onClick={onLoad}>Recarregar</Button></div>
   return (
     <div className={s.card}>
       <div className={s.sectionTitle}><ListChecks size={16} /> Aprendizagens Essenciais</div>
@@ -398,7 +431,12 @@ function EscolhaStep({ titulo, itens, selected, onToggle, outro, setOutro }: {
         ))}
       </div>
       <p className={s.lbl}>Outro (texto livre)</p>
-      <input className={s.searchInput} value={outro} onChange={e => setOutro(e.target.value)} placeholder="Registrar outra estratégia…" />
+      <Input
+        placeholder="Registrar outra estratégia…"
+        value={outro}
+        onChange={e => setOutro(e.target.value)}
+        className={s.searchInput}
+      />
     </div>
   )
 }
@@ -430,7 +468,12 @@ function DiagStep({ dificuldades, sel, setSel, outro, setOutro }: {
         ))}
       </div>
       <p className={s.lbl}>Outra dificuldade (texto livre)</p>
-      <input className={s.searchInput} value={outro} onChange={e => setOutro(e.target.value)} placeholder="Registrar outra dificuldade…" />
+      <Input
+        placeholder="Registrar outra dificuldade…"
+        value={outro}
+        onChange={e => setOutro(e.target.value)}
+        className={s.searchInput}
+      />
     </div>
   )
 }
