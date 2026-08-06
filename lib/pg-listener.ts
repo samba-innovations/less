@@ -33,6 +33,7 @@ async function connect() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let pg: any
   try {
+    // @ts-ignore — 'pg' é import nativo do Node (sem @types/pg); tipado como any acima.
     pg = await import(/* webpackIgnore: true */ 'pg')
   } catch (e) {
     console.warn('[pg-listener] pg module não carregou:', (e as Error).message)

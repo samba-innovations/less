@@ -7,6 +7,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const payload = await getSession()
   if (!payload) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
 
+  // Aluno (STUDENT) não acessa este sistema — volta pro painel do hub.
+  if (payload.role === 'STUDENT') {
+    redirect(`http://${payload.orgSlug}.${process.env.NEXT_PUBLIC_DOMAIN ?? 'sambainnovations.local'}/painel`)
+  }
+
   const user = await db.user.findUnique({
     where:  { id: payload.userId },
     select: { name: true, avatarUrl: true },

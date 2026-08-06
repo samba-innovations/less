@@ -129,6 +129,7 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
       { key: 'disciplina',         label: 'Disciplina',               type: 'text' },
       { key: 'data_elaboracao',    label: 'Data de Elaboração',       type: 'date' },
       { key: 'habilidades',        label: 'Habilidades Trabalhadas',  type: 'textarea', rows: 3 },
+      { key: 'conteudo',           label: 'Conteúdo Específico',      type: 'textarea', rows: 3 },
       { key: 'diagnostico_funcional', label: 'Diagnóstico Funcional', type: 'textarea', rows: 3 },
       { key: 'diagnostico_obs',    label: 'Observações Diagnósticas', type: 'textarea', rows: 2 },
       { key: 'objetivos',          label: 'Objetivos Específicos',    type: 'textarea', rows: 4 },

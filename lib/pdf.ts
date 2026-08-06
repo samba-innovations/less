@@ -854,9 +854,11 @@ function renderPei(doc: InstanceType<typeof PDFDocument>, c: Record<string, stri
   ])
   if (c.diagnostico_cid) infoRow2col(doc, [{ label: 'Diagnóstico / CID', value: c.diagnostico_cid, span: 2 }])
 
-  if (c.habilidades) {
-    sectionTitle(doc, 'Habilidades do Currículo')
-    textBlock(doc, 'Habilidades BNCC', c.habilidades)
+  if (c.habilidades || c.conteudo) {
+    sectionTitle(doc, 'Habilidades e Conteúdo do Currículo')
+    if (c.habilidades) textBlock(doc, 'Habilidades BNCC', c.habilidades)
+    // Regra do PEI: além da habilidade, o conteúdo específico vinculado a ela.
+    if (c.conteudo) textBlock(doc, 'Conteúdo Específico', c.conteudo)
   }
 
   sectionTitle(doc, 'Diagnóstico Funcional')

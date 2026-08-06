@@ -14,6 +14,7 @@ import s from './rs.module.css'
 import { IconButton } from '../_components/IconButton'
 import { Button } from '../_components/Button'
 import { Input } from '../_components/Input'
+import { SkeletonText } from '../_components/Skeleton'
 import { formatName } from '@/lib/format-name'
 
 type Meu = { id: number; title: string; status: string; updatedAt: string; content: any } // eslint-disable-line @typescript-eslint/no-explicit-any

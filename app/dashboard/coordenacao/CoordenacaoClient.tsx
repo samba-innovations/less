@@ -7,6 +7,7 @@ import { FileText, Users, Plus, Trash2, ChevronDown, X, Check, RotateCcw } from 
 import { useNotificationEvent } from '@/lib/useNotificationEvent'
 import { useSchoolEvent } from '@/lib/useSchoolEvent'
 import { Badge } from '../_components/Badge'
+import { RelativeDate } from '../_components/RelativeDate'
 import { ChipSelector } from '../_components/Selector'
 import s from './coordenacao.module.css'
 import { Button } from '../_components/Button'
@@ -148,7 +149,7 @@ export function CoordenacaoClient({ docs, initialPeiStudents }: Props) {
                       <span className={s.separator}>·</span>
                       <span>{doc.user.name}</span>
                       <span className={s.separator}>·</span>
-                      <span>apagado em {fmtDate(doc.deletedAt)}</span>
+                      <span>apagado <RelativeDate date={doc.deletedAt} /></span>
                     </div>
                   </div>
                   <button className={s.restoreBtn} onClick={() => restoreDoc(doc.id)}>
@@ -190,7 +191,7 @@ export function CoordenacaoClient({ docs, initialPeiStudents }: Props) {
                     <Badge tone={doc.status === 'FINAL' ? 'success' : 'amber'} withDot>
                       {doc.status === 'FINAL' ? 'final' : 'rascunho'}
                     </Badge>
-                    <span className={s.docDate}>{fmtDate(doc.updatedAt)}</span>
+                    <span className={s.docDate}><RelativeDate date={doc.updatedAt} /></span>
                   </div>
                 </Link>
               )

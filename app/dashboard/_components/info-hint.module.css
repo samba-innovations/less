@@ -1,0 +1,20 @@
+.hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  margin-left: 0.25rem;
+  color: var(--fg-secondary);
+  opacity: 0.55;
+  cursor: help;
+  border-radius: 50%;
+  transition: opacity var(--duration-fast, 0.15s) var(--ease-out, ease),
+              color var(--duration-fast, 0.15s) var(--ease-out, ease);
+}
+.hint:hover { opacity: 1; color: var(--brand); }
+.hint:focus-visible {
+  outline: none;
+  opacity: 1;
+  color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent);
+}

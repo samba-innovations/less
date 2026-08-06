@@ -47,6 +47,7 @@ function TimePickerImpl({
 }: Props) {
   const [open, setOpen] = useState(false)
   const [rect, setRect] = useState<DOMRect | null>(null)
+  const [pos,  setPos]  = useState<{ top: number; left: number } | null>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelRef   = useRef<HTMLDivElement>(null)
 
@@ -103,6 +104,21 @@ function TimePickerImpl({
     }, 20)
     return () => clearTimeout(t)
   }, [open])
+
+  // Posiciona o painel: abre pra baixo; se nao couber, vira pra cima; sempre dentro da viewport.
+  useEffect(() => {
+    if (!open) { setPos(null); return }
+    if (!rect || !panelRef.current) return
+    const ph = panelRef.current.offsetHeight
+    const gap = 6
+    const left = Math.max(8, Math.min(window.innerWidth - 248, rect.left))
+    let top = rect.bottom + gap
+    if (top + ph + 8 > window.innerHeight) {
+      const above = rect.top - ph - gap
+      top = above >= 8 ? above : Math.max(8, window.innerHeight - ph - 8)
+    }
+    setPos({ top, left })
+  }, [open, rect])
 
   function openPanel() {
     if (disabled) return
@@ -171,8 +187,9 @@ function TimePickerImpl({
       ref={panelRef}
       className={s.panel}
       style={{
-        top:  rect.bottom + 6,
-        left: Math.max(8, Math.min(window.innerWidth - 260, rect.left)),
+        top:  pos?.top ?? rect.bottom + 6,
+        left: pos?.left ?? Math.max(8, Math.min(window.innerWidth - 248, rect.left)),
+        visibility: pos ? 'visible' : 'hidden',
       }}
       role="dialog"
     >

@@ -1,0 +1,29 @@
+.copyable {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: color var(--duration-fast, 0.15s) var(--ease-out, ease);
+}
+.copyable:hover { color: var(--brand); }
+.copyable:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent);
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--fg-secondary);
+  opacity: 0;
+  transition: opacity var(--duration-fast, 0.15s) var(--ease-out, ease),
+              color var(--duration-fast, 0.15s) var(--ease-out, ease);
+}
+.copyable:hover .icon,
+.copyable:focus-visible .icon { opacity: 0.8; color: var(--brand); }
+.iconDone { opacity: 1 !important; color: var(--success) !important; }

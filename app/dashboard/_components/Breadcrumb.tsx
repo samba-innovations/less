@@ -28,8 +28,8 @@ export function Breadcrumb() {
     const href = '/' + segments.slice(0, i + 1).join('/')
     const label = dynamicLabels[seg] ?? LABELS[seg] ?? seg
     const isLast = i === segments.length - 1
-    const isDynamicSeg = /^\d+$/.test(seg)
-    return { label, href, isLast, isDynamicSeg }
+    const isDynamic = /^\d+$/.test(seg)
+    return { label, href, isLast, isDynamic }
   })
 
   return (
@@ -39,7 +39,7 @@ export function Breadcrumb() {
         return (
           <span key={c.href} className={s.crumb}>
             {i > 0 && <ChevronRight size={12} className={s.sep} />}
-            {c.isLast || c.isDynamicSeg ? (
+            {c.isLast || c.isDynamic ? (
               <span className={`${s.label} ${c.isLast ? s.current : ''}`}>{c.label}</span>
             ) : isFirst ? (
               <Link href={c.href} className={s.homeIcon} title={c.label} aria-label={c.label}>

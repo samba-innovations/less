@@ -22,6 +22,11 @@ export async function middleware(req: NextRequest) {
     const { payload } = await jwtVerify(token, await getPubKey(), { algorithms: ["RS256"] }) as {
       payload: { systems?: string[]; isAdmin?: boolean }
     }
+    // Primeiro acesso pendente: sessão restrita só à troca de senha.
+    if ((payload as { pwReset?: boolean }).pwReset) {
+      return NextResponse.redirect(`${SSO_URL}/trocar-senha?next=${encodeURIComponent(req.url)}`)
+    }
+
     const hasAccess = payload.isAdmin || payload.systems?.includes('less')
     if (!hasAccess) return NextResponse.redirect(HUB_URL + '/painel')
     return NextResponse.next()

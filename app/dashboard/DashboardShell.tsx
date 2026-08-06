@@ -10,7 +10,6 @@ import {
 import type { JwtPayload } from '@/lib/jwt'
 import { formatName } from '@/lib/format-name'
 import { isManager, effectiveRole } from '@/lib/jwt'
-import { formatName } from '@/lib/format-name'
 import { NotificationBell } from './_components/NotificationBell'
 import { useDensity } from './_components/useDensity'
 import { SupportWidget } from './_components/SupportWidget'

@@ -41,6 +41,15 @@ function currentBimestre() {
   return m <= 4 ? '1' : m <= 7 ? '2' : m <= 9 ? '3' : '4'
 }
 
+// Quebra o conteúdo de uma aula em itens (linhas / bullets / separadores comuns).
+function parseConteudo(raw?: string | null): string[] {
+  if (!raw) return []
+  return raw
+    .split(/\r?\n|[;•·]|•/)
+    .map(x => x.replace(/^[-–—\s]+/, '').trim())
+    .filter(Boolean)
+}
+
 // ─── Card grid (multi-select por nome) ────────────────────────────────────────
 
 function CardGrid({ options, selected, onToggle }: {
@@ -167,7 +176,7 @@ export function PeiEditor({ fields, setField, isAdmin }: Props) {
   }
 
   function clearStudent() {
-    ['aluno', 'ra', 'turma', 'diagnostico_cid', 'profissionais', 'habilidades'].forEach(k => setField(k, ''))
+    ['aluno', 'ra', 'turma', 'diagnostico_cid', 'profissionais', 'habilidades', 'conteudo', '_conteudo_opcoes'].forEach(k => setField(k, ''))
     setField('_selectedStudentIds', '')
   }
 
@@ -195,13 +204,19 @@ export function PeiEditor({ fields, setField, isAdmin }: Props) {
     setLoadingHabs(true); setHabMsg(null)
     try {
       const url = `/api/less/aulas?disciplina=${encodeURIComponent(aulasNome)}&serie=${cl.serie}&ciclo=${cl.ciclo}&bimestre=${fields.bimestre}`
-      const rows: { habilidadeCodigo?: string; habilidadeTexto?: string }[] = await fetch(url).then(r => r.ok ? r.json() : [])
+      const rows: { habilidadeCodigo?: string; habilidadeTexto?: string; conteudo?: string | null }[] = await fetch(url).then(r => r.ok ? r.json() : [])
       if (!rows || rows.length === 0) {
         setHabMsg(`Nenhuma aula encontrada para ${fields.disciplina} / ${fields.turma} / ${fields.bimestre}º Bimestre no currículo.`)
         return
       }
       const habs = rows.map(a => [a.habilidadeCodigo, a.habilidadeTexto].filter(Boolean).join(' ')).filter(Boolean).join('\n')
       if (habs) setField('habilidades', habs)
+      // Regra do PEI: além da habilidade, o conteúdo específico ligado a ela — das MESMAS aulas.
+      const conts = [...new Set(rows.flatMap(a => parseConteudo(a.conteudo)))]
+      if (conts.length > 0) {
+        setField('_conteudo_opcoes', conts.join('\n'))
+        setField('conteudo', conts.join('\n'))
+      }
     } finally { setLoadingHabs(false) }
   }
 
@@ -222,6 +237,15 @@ export function PeiEditor({ fields, setField, isAdmin }: Props) {
   }
 
   const habList = (fields.habilidades ?? '').split('\n').map(x => x.trim()).filter(Boolean)
+
+  // Conteúdo específico da habilidade — opções (das aulas) + seleção atual
+  const conteudoOpcoes = (fields._conteudo_opcoes ?? '').split('\n').map(x => x.trim()).filter(Boolean)
+  const conteudoSel    = new Set((fields.conteudo ?? '').split('\n').map(x => x.trim()).filter(Boolean))
+  function toggleConteudo(opt: string) {
+    const next = new Set(conteudoSel)
+    next.has(opt) ? next.delete(opt) : next.add(opt)
+    setField('conteudo', [...next].join('\n'))
+  }
 
   return (
     <div className={s.wrap}>
@@ -275,7 +299,7 @@ export function PeiEditor({ fields, setField, isAdmin }: Props) {
               value={fields.disciplina ?? ''}
               placeholder={classId ? 'selecionar…' : 'selecione o aluno primeiro'}
               options={disciplinas.map(d => ({ value: d.name, label: d.name }))}
-              onChange={v => { setField('disciplina', v); setField('habilidades', '') }}
+              onChange={v => { setField('disciplina', v); setField('habilidades', ''); setField('conteudo', ''); setField('_conteudo_opcoes', '') }}
             />
           </div>
           <div className={s.field}>
@@ -289,9 +313,9 @@ export function PeiEditor({ fields, setField, isAdmin }: Props) {
         </div>
       </section>
 
-      {/* ── Habilidades do Currículo ── */}
+      {/* ── Habilidades e Conteúdo do Currículo ── */}
       <section className={s.section}>
-        <div className={s.sectionHead}><span className={s.sectionDot} />Habilidades do Currículo</div>
+        <div className={s.sectionHead}><span className={s.sectionDot} />Habilidades e Conteúdo do Currículo</div>
         {loadingHabs && <div style={{ padding: '12px 0' }}><SkeletonText lines={3} /></div>}
         {habMsg && !loadingHabs && <p className={s.warn}>{habMsg}</p>}
         {habList.length > 0 ? (
@@ -303,6 +327,23 @@ export function PeiEditor({ fields, setField, isAdmin }: Props) {
         ) : (!loadingHabs && !habMsg && (
           <p className={s.hint}>Selecione o aluno, disciplina e bimestre para carregar as habilidades automaticamente.</p>
         ))}
+
+        {/* Conteúdo específico da habilidade — exigência do PEI, puxado das mesmas aulas */}
+        {conteudoOpcoes.length > 0 && (
+          <div className={s.field} style={{ marginTop: '0.875rem' }}>
+            <label className={s.label}>
+              Conteúdo específico da habilidade
+              <span className={s.labelHint}>puxado das aulas — clique para incluir/excluir</span>
+            </label>
+            <div className={s.chipRow} style={{ flexWrap: 'wrap' }}>
+              {conteudoOpcoes.map((opt, i) => (
+                <button key={i} type="button"
+                  className={`${s.chip} ${conteudoSel.has(opt) ? s.chipOn : ''}`}
+                  onClick={() => toggleConteudo(opt)}>{opt}</button>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ── Diagnóstico Funcional ── */}

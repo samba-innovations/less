@@ -64,6 +64,7 @@ function DatePickerImpl({ value, onChange, min, max, placeholder = 'selecionar d
   const [viewDate, setViewDate] = useState<Date>(() => parseISO(value) ?? new Date())
   const [focusDate, setFocusDate] = useState<Date | null>(null)
   const [rect, setRect]         = useState<DOMRect | null>(null)
+  const [pos,  setPos]          = useState<{ top: number; left: number } | null>(null)
   const triggerRef              = useRef<HTMLButtonElement>(null)
   const panelRef                = useRef<HTMLDivElement>(null)
 
@@ -120,6 +121,21 @@ function DatePickerImpl({ value, onChange, min, max, placeholder = 'selecionar d
       window.removeEventListener('scroll',      onScroll, true)
     }
   }, [open, focusDate, viewDate, onChange, canSelect])
+
+  // Posiciona o painel: abre pra baixo; se nao couber, vira pra cima; sempre dentro da viewport.
+  useEffect(() => {
+    if (!open) { setPos(null); return }
+    if (!rect || !panelRef.current) return
+    const ph = panelRef.current.offsetHeight
+    const gap = 6
+    const left = Math.max(8, Math.min(window.innerWidth - 348, rect.left))
+    let top = rect.bottom + gap
+    if (top + ph + 8 > window.innerHeight) {
+      const above = rect.top - ph - gap
+      top = above >= 8 ? above : Math.max(8, window.innerHeight - ph - 8)
+    }
+    setPos({ top, left })
+  }, [open, rect])
 
   function openPanel() {
     if (disabled) return
@@ -210,8 +226,9 @@ function DatePickerImpl({ value, onChange, min, max, placeholder = 'selecionar d
           ref={panelRef}
           className={s.panel}
           style={{
-            top:  rect.bottom + 6,
-            left: Math.max(8, Math.min(window.innerWidth - 340, rect.left)),
+            top:  pos?.top ?? rect.bottom + 6,
+            left: pos?.left ?? Math.max(8, Math.min(window.innerWidth - 340, rect.left)),
+            visibility: pos ? 'visible' : 'hidden',
           }}
           role="dialog"
         >
