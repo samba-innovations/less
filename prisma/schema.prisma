@@ -9,16 +9,6 @@ datasource db {
 
 // â”€â”€â”€ Enums â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-enum SystemSlug {
-  mockflow
-  occurrences
-  less
-  control
-  gate
-  reserves
-  guardian
-  stock
-}
 
 enum SubscriptionStatus {
   ACTIVE
@@ -144,7 +134,7 @@ model OrganizationSystem {
 
 model System {
   id    Int        @id @default(autoincrement())
-  slug  SystemSlug @unique
+  slug  String @unique
   label String
 
   planSystems PlanSystem[]
@@ -306,7 +296,7 @@ model SsoToken {
   id             String     @id @default(uuid())
   userId         Int
   organizationId Int
-  system         SystemSlug
+  system         String
   used           Boolean    @default(false)
   expiresAt      DateTime
   createdAt      DateTime   @default(now())
