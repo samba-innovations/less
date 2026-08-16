@@ -1,3 +1,18 @@
 
 # shared/ui — populado por scripts/sync-shared-ui.sh (prod) ou mount (dev)
 /lib/ui/
+
+node_modules/
+.next/
+out/
+dist/
+.env
+.env.local
+.env.*.local
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+public/uploads/
