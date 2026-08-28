@@ -1,0 +1,20 @@
+.card {
+  position: fixed; bottom: 20px; left: 20px; right: 20px; max-width: 380px; z-index: 9999;
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+  background: var(--surface, #fff); border: 1px solid var(--border, #e5e8ef);
+  border-radius: 14px; box-shadow: 0 12px 40px rgba(8, 12, 24, 0.14);
+  animation: pwaSlideIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes pwaSlideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+.icon { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: color-mix(in oklab, var(--brand, #0053d4) 8%, transparent); display: flex; align-items: center; justify-content: center; }
+.icon img { width: 40px; height: 40px; object-fit: contain; }
+.body { flex: 1; min-width: 0; }
+.title { margin: 0 0 2px; font-size: 0.8125rem; font-weight: 700; color: var(--fg, #0a0e1a); letter-spacing: -0.005em; }
+.desc { margin: 0; font-size: 0.6875rem; color: var(--fg-secondary, #6b7590); line-height: 1.4; }
+.actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.installBtn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border: 0; border-radius: 8px; background: var(--brand, #0053d4); color: #fff; font-family: inherit; font-size: 0.6875rem; font-weight: 600; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+.installBtn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px color-mix(in oklab, var(--brand, #0053d4) 32%, transparent); }
+.dismissBtn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 0; border-radius: 6px; background: transparent; color: var(--fg-secondary, #6b7590); cursor: pointer; transition: background 0.15s, color 0.15s; }
+.dismissBtn:hover { background: var(--hover, rgba(0,0,0,0.05)); color: var(--fg, #0a0e1a); }
+@media (max-width: 480px) { .card { bottom: 12px; left: 12px; right: 12px; padding: 12px 14px; } .icon { width: 40px; height: 40px; } .icon img { width: 36px; height: 36px; } }
