@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Download, X } from 'lucide-react'
 import s from './pwa-bootstrap.module.css'
 
 type BIPEvent = Event & {
@@ -11,6 +10,13 @@ type BIPEvent = Event & {
 
 const DISMISSED_KEY = 'samba-pwa-install-dismissed'
 const REPROMPT_DAYS = 21
+
+function DownloadIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+}
+function XIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+}
 
 export function PwaBootstrap() {
   const [prompt, setPrompt] = useState<BIPEvent | null>(null)
@@ -73,10 +79,10 @@ export function PwaBootstrap() {
       </div>
       <div className={s.actions}>
         <button type="button" className={s.installBtn} onClick={install}>
-          <Download size={13} /> instalar
+          <DownloadIcon /> instalar
         </button>
         <button type="button" className={s.dismissBtn} onClick={dismiss} aria-label="Dispensar">
-          <X size={13} />
+          <XIcon />
         </button>
       </div>
     </div>
