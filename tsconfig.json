@@ -14,7 +14,7 @@
     "jsx": "preserve",
     "incremental": true,
     "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./*"], "@ui/*": ["./lib/ui/*"] }
+    "paths": { "@/*": ["./*"], "@ui/*": ["./lib/ui/*"], "@pdf": ["./lib/pdf-shared"], "@pdf/*": ["./lib/pdf-shared/*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]

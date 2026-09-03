@@ -1,149 +1,109 @@
 /**
- * Layout do PDF: header minimalista com a logotipo do less (SVG),
- * mini-header em páginas seguintes e footer com paginação.
+ * Layout do PDF do less.
  *
- * Design minimalista — só preto/branco/cinzas. Sem faixas coloridas, sem
- * sub-barra escura. A identidade visual vem só da logotipo "less".
+ * A partir de agora este arquivo é um WRAPPER FINO sobre `@pdf` (shared/pdf).
+ * Header e footer são canônicos institucionais do samba education
+ * (filete brand + brasão + logotipo do sistema + rodapé institucional
+ * com endereço/contato da escola).
+ *
+ * As assinaturas (fullHeader, miniHeader, paginate) foram preservadas pra
+ * NÃO quebrar os renderers existentes (render-plano-aula, render-guia,
+ * ata-pdf, render-generic). Internamente delegam ao shared.
  */
 
-import fs from 'fs'
-import path from 'path'
 import type PDFDocument from 'pdfkit'
-import SVGtoPDF from 'svg-to-pdfkit'
-import { DOC_TYPES, type DocType } from '../doc-types'
+import { db } from '@/lib/db'
 import {
-  PAGE_W, PAGE_H, MARGIN_LEFT, MARGIN_RIGHT,
-  CONTENT_W, COLORS, FONT, SIZE,
-} from './theme'
+  renderFullHeader, renderMiniHeader, renderFooter as sharedFooter,
+  paginateAndFooter, setLogoDir, type HeaderCtx, type SchoolInfo,
+} from '@pdf'
+import { DOC_TYPES, type DocType } from '../doc-types'
+
+// Aponta o loader pra pasta dos SVGs (bind mount do compose)
+setLogoDir(process.env.PDF_LOGOS_DIR ?? '/app/pdf-logos')
 
 type PDFDoc = InstanceType<typeof PDFDocument>
 
+// ── Contract preservado (usado por render-plano-aula.ts, render-guia.ts…) ──
 export type DocHeaderInfo = {
   type:       DocType
   title:      string
   schoolName: string
   authorName: string
   createdAt:  Date
+  // extras opcionais — se vierem, entram no rodapé institucional
+  school?:    SchoolInfo
 }
 
-// ── Cache do SVG da logo (lê do disco uma vez por processo) ─────────────────
-let _logoSvg: string | null = null
-function getLogoSvg(): string | null {
-  if (_logoSvg !== null) return _logoSvg || null
-  try {
-    const file = path.join(process.cwd(), 'public', 'less-isotipo.svg')
-    _logoSvg = fs.readFileSync(file, 'utf-8')
-    return _logoSvg
-  } catch {
-    _logoSvg = ''
-    return null
+// Cache leve da SchoolInfo por schoolName (evita hit no banco em cada página)
+const _schoolCache = new Map<string, SchoolInfo>()
+async function _loadSchool(name: string): Promise<SchoolInfo> {
+  if (_schoolCache.has(name)) return _schoolCache.get(name)!
+  const row = await db.school.findFirst({
+    where: {
+      OR: [
+        { officialName: name },
+        { organization: { name: name } },
+      ],
+    },
+    select: {
+      officialName: true, addressStreet: true, addressNumber: true, addressExtra: true,
+      neighborhood: true, city: true, state: true, postalCode: true,
+      phone: true, contactEmail: true, website: true, cnpj: true, inepCode: true, logoUrl: true,
+    },
+  }).catch(() => null)
+  const s: SchoolInfo = row ?? { officialName: name }
+  if (!s.officialName) s.officialName = name
+  _schoolCache.set(name, s)
+  return s
+}
+
+// Ctx é construído sync na primeira chamada. Pra evitar await no meio do
+// render, o consumidor pode chamar `prepareSchoolInfo(name)` antes.
+export async function prepareSchoolInfo(schoolName: string): Promise<SchoolInfo> {
+  return _loadSchool(schoolName)
+}
+
+function _ctx(info: DocHeaderInfo): HeaderCtx {
+  const school: SchoolInfo = info.school
+    ?? _schoolCache.get(info.schoolName)
+    ?? { officialName: info.schoolName }
+  return {
+    meta: {
+      system:   'less',
+      docTitle: info.title || DOC_TYPES[info.type]?.label || 'Documento',
+      docSub:   DOC_TYPES[info.type]?.label,
+      id:       `${info.type.toUpperCase()}-${info.createdAt.getFullYear()}-${_shortId(info.createdAt)}`,
+      date:     info.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+    },
+    school,
   }
 }
 
-// ── Posiciona a logo no PDF (largura fixa, altura proporcional) ─────────────
-function placeLogo(doc: PDFDoc, x: number, y: number, width: number) {
-  const svg = getLogoSvg()
-  if (!svg) {
-    // Fallback: texto "less" estilizado
-    doc.fontSize(SIZE.brand).font(FONT.bold).fillColor(COLORS.fg)
-      .text('less', x, y, { lineBreak: false })
-    return
-  }
-  // SVG original tem viewBox 0 0 1713.61 492.85 → altura = width * 492.85/1713.61
-  SVGtoPDF(doc, svg, x, y, { width, assumePt: true, preserveAspectRatio: 'xMinYMin meet' })
+function _shortId(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const t = Math.floor(d.getTime() / 1000).toString(36).slice(-4).toUpperCase()
+  return `${m}${day}-${t}`
 }
 
-// ── Header completo (1ª página) ──────────────────────────────────────────────
+// ── API preservada ────────────────────────────────────────────────────────────
 export function fullHeader(doc: PDFDoc, info: DocHeaderInfo) {
-  const typeMeta = DOC_TYPES[info.type]
-
-  // Isotipo (quadrado 1080x1080 → uso 28pt)
-  const logoW = 28
-  const logoY = 38
-  placeLogo(doc, MARGIN_LEFT, logoY, logoW)
-
-  // Nome da escola à direita
-  doc.fontSize(SIZE.small).font(FONT.regular).fillColor(COLORS.fgMuted)
-    .text(info.schoolName, MARGIN_LEFT, 44, {
-      width: CONTENT_W, align: 'right', lineBreak: false, ellipsis: true,
-    })
-
-  // Linha sutil abaixo do header
-  const lineY = 72
-  doc.save()
-    .moveTo(MARGIN_LEFT, lineY).lineTo(PAGE_W - MARGIN_RIGHT, lineY)
-    .lineWidth(0.4).strokeColor(COLORS.border).stroke().restore()
-
-  // Tipo do documento como "tag" textual sutil abaixo da linha
-  doc.fontSize(SIZE.tiny).font(FONT.bold).fillColor(COLORS.fgMuted)
-    .text(typeMeta.label.toUpperCase(), MARGIN_LEFT, lineY + 6, {
-      width: CONTENT_W, lineBreak: false, characterSpacing: 0.5,
-    })
-
-  // Reset estado do PDFKit pra defaults do corpo (evita herança ao paginar)
-  doc.font(FONT.regular).fontSize(SIZE.body).fillColor(COLORS.fg).fillOpacity(1).strokeOpacity(1)
-  doc.y = lineY + 28
+  const ctx = _ctx(info)
+  renderFullHeader(doc, ctx)
 }
 
-// ── Mini-header (páginas 2+) ─────────────────────────────────────────────────
 export function miniHeader(doc: PDFDoc, info: DocHeaderInfo) {
-  const logoW = 18
-  placeLogo(doc, MARGIN_LEFT, 32, logoW)
-
-  doc.fontSize(SIZE.tiny).font(FONT.regular).fillColor(COLORS.fgMuted)
-    .text(info.title, MARGIN_LEFT, 36, {
-      width: CONTENT_W, align: 'right', lineBreak: false, ellipsis: true,
-    })
-
-  doc.save()
-    .moveTo(MARGIN_LEFT, 56).lineTo(PAGE_W - MARGIN_RIGHT, 56)
-    .lineWidth(0.3).strokeColor(COLORS.borderSoft).stroke().restore()
-
-  // Reset estado do PDFKit pra defaults do corpo (essencial: text() em
-  // auto-pagination continua usando este estado na nova página)
-  doc.font(FONT.regular).fontSize(SIZE.body).fillColor(COLORS.fg).fillOpacity(1).strokeOpacity(1)
-  doc.y = 72
+  const ctx = _ctx(info)
+  renderMiniHeader(doc, ctx)
 }
 
-// ── Footer (paginação + metadados) ──────────────────────────────────────────
-// IMPORTANTE: o footer é desenhado em y = PAGE_H - 40 (fora da área "útil"
-// definida por margins.bottom). PDFKit auto-pagina se text() tentar escrever
-// além da margem inferior, criando páginas em branco. Por isso suspendemos
-// temporariamente o bottom margin durante o footer.
 export function drawFooter(doc: PDFDoc, info: DocHeaderInfo, pageNum: number, totalPages: number) {
-  const y = PAGE_H - 40
-
-  const originalBottom = doc.page.margins.bottom
-  doc.page.margins.bottom = 0
-
-  doc.save()
-    .moveTo(MARGIN_LEFT, y - 4).lineTo(PAGE_W - MARGIN_RIGHT, y - 4)
-    .lineWidth(0.3).strokeColor(COLORS.borderSoft).stroke().restore()
-
-  const dateStr = info.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  doc.fontSize(SIZE.metadata).font(FONT.regular).fillColor(COLORS.fgFaint)
-    .text(`${info.schoolName}  ·  ${dateStr}`, MARGIN_LEFT, y + 4, {
-      width: CONTENT_W * 0.7, lineBreak: false, ellipsis: true,
-    })
-
-  doc.fontSize(SIZE.metadata).font(FONT.bold).fillColor(COLORS.fgMuted)
-    .text(`${pageNum} / ${totalPages}`, MARGIN_LEFT, y + 4, {
-      width: CONTENT_W, align: 'right', lineBreak: false,
-    })
-
-  doc.fontSize(6.5).font(FONT.regular).fillColor(COLORS.fgFaint)
-    .text('documento gerado por less', MARGIN_LEFT, y + 16, {
-      width: CONTENT_W, align: 'center', lineBreak: false,
-    })
-
-  doc.page.margins.bottom = originalBottom
+  const ctx = _ctx(info)
+  sharedFooter(doc, ctx, pageNum, totalPages)
 }
 
 export function paginate(doc: PDFDoc, info: DocHeaderInfo) {
-  const range = doc.bufferedPageRange()
-  const total = range.count
-  for (let i = 0; i < total; i++) {
-    doc.switchToPage(range.start + i)
-    drawFooter(doc, info, i + 1, total)
-  }
+  const ctx = _ctx(info)
+  paginateAndFooter(doc, ctx)
 }
