@@ -16,8 +16,8 @@
   width: 100%;
   padding: 0.8125rem 1rem;
   border-radius: 11px;
-  border: 1.5px solid var(--border);
-  background: var(--surface);
+  border: 1.5px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--fg);
   font-family: inherit;
   font-size: 0.9375rem;
@@ -40,12 +40,12 @@
 }
 
 .inputError {
-  border-color: #ef4444;
+  border-color: var(--danger);
 }
 
 .inputError:focus {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+  border-color: var(--danger);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 12%, transparent);
 }
 
 .input:disabled {
@@ -71,7 +71,7 @@
 .error {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #ef4444;
+  color: var(--danger);
   line-height: 1.3;
 }
 

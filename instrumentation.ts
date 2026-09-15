@@ -1,3 +1,5 @@
+import type { Instrumentation } from 'next'
+
 export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return
 
@@ -31,4 +33,48 @@ export async function register() {
     const { startNotificationListener } = await import('./lib/pg-listener')
     startNotificationListener()
   } catch { /* sistema sem SSE (ex: sso) */ }
+}
+
+/**
+ * Todo erro de servidor que ninguém tratou passa por aqui — rota, render,
+ * server action e middleware. É o hook oficial do Next, então não precisamos
+ * embrulhar handler nenhum: nenhuma rota muda para o erro dela ser registrado.
+ *
+ * O que NÃO chega aqui é erro engolido por catch. Esses, quando merecem, são
+ * relatados explicitamente no ponto em que são tratados.
+ */
+export const onRequestError: Instrumentation.onRequestError = async (err, request, context) => {
+  if (process.env.NEXT_RUNTIME !== 'nodejs') return
+  try {
+    const { reportError } = await import('./lib/report-error')
+    const e = err as { message?: string; stack?: string }
+
+    // Identidade é best-effort: um erro sem usuário identificado ainda vale
+    // muito mais registrado do que perdido.
+    let userId: number | null = null
+    let orgSlug: string | null = null
+    try {
+      const raw = request.headers.cookie
+      const cookie = Array.isArray(raw) ? raw.join('; ') : raw
+      const token = cookie?.split(/;\s*/).find(c => c.startsWith('samba_token='))?.slice('samba_token='.length)
+      if (token) {
+        const { verifyToken } = await import('./lib/jwt')
+        const payload = await verifyToken(token)
+        userId  = payload.userId
+        orgSlug = payload.orgSlug || null
+      }
+    } catch { /* sem sessão, ou token expirado */ }
+
+    await reportError({
+      message: e?.message ?? String(err),
+      stack:   e?.stack ?? null,
+      path:    `${request.method} ${request.path}`,
+      origin:  'server',
+      userId,
+      orgSlug,
+    })
+    console.error(`[onRequestError] ${context.routeType} ${context.routePath}`, err)
+  } catch {
+    // Registrar erro nunca pode virar erro.
+  }
 }

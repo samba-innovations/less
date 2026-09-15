@@ -101,7 +101,7 @@
   font-weight: 700;
   letter-spacing: 0.04em;
 }
-.statusDraft { background: rgba(245,158,11,0.12); color: #d97706; }
+.statusDraft { background: color-mix(in srgb, var(--warning) 12%, transparent); color: #d97706; }
 .statusFinal { background: rgba(16,185,129,0.1);  color: var(--success); }
 
 .titleInput {
@@ -892,8 +892,8 @@
 .errMsg {
   font-size: 0.75rem;
   color: var(--danger);
-  background: rgba(220,38,38,0.07);
-  border: 1px solid rgba(220,38,38,0.2);
+  background: color-mix(in srgb, var(--danger) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 20%, transparent);
   border-radius: 8px;
   padding: 0.375rem 0.75rem;
 }
@@ -1000,7 +1000,7 @@
 
 .savBtn    { background: var(--brand); color: #fff; box-shadow: 0 2px 8px var(--brand-alpha); }
 .pdfBtn    { background: #2563eb; color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.2); }
-.delBtn    { background: rgba(220,38,38,0.08); color: var(--danger); border: 1px solid rgba(220,38,38,0.2); }
+.delBtn    { background: color-mix(in srgb, var(--danger) 8%, transparent); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 20%, transparent); }
 .cancelBtn { background: var(--surface-elevated); color: var(--fg-secondary); border: 1px solid var(--border); }
 .delBtnFull { background: var(--danger); color: #fff; }
 
@@ -1746,8 +1746,8 @@
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  background: rgba(5,150,105,0.05);
-  border: 1.5px solid rgba(5,150,105,0.2);
+  background: color-mix(in srgb, var(--success) 5%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--success) 20%, transparent);
   border-radius: var(--radius-md);
   padding: 0.5rem 0.75rem;
 }
@@ -1756,7 +1756,7 @@
   font-size: 0.5rem;
   font-weight: 900;
   color: var(--success);
-  background: rgba(5,150,105,0.1);
+  background: color-mix(in srgb, var(--success) 10%, transparent);
   border-radius: var(--radius-round);
   padding: 0.125rem 0.375rem;
   flex-shrink: 0;
@@ -1851,7 +1851,7 @@
 .seqSectionHeaderEmerald { /* placeholder pra manter API compat */ }
 
 /* Quando o header tem variante, sobe o --seq-color pro section inteiro via ancestor selector */
-.seqSection:has(.seqSectionHeaderAmber)   { --seq-color: #f59e0b; }
+.seqSection:has(.seqSectionHeaderAmber)   { --seq-color: var(--warning); }
 .seqSection:has(.seqSectionHeaderEmerald) { --seq-color: #10b981; }
 
 .seqDot {

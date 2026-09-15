@@ -55,7 +55,7 @@
   position: relative;
   max-width: 100%;
 }
-.errorState { border-color: #dc2626; box-shadow: 0 0 0 3px color-mix(in srgb, #dc2626 10%, transparent); }
+.errorState { border-color: var(--danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 10%, transparent); }
 
 .input {
   flex: 1;
@@ -105,10 +105,10 @@
   left: 0;
   margin-top: 4px;
   font-size: 0.6875rem;
-  color: #dc2626;
+  color: var(--danger);
   background: var(--bg);
   padding: 2px 6px;
-  border: 1px solid color-mix(in srgb, #dc2626 30%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
   border-radius: var(--radius-sm);
   white-space: nowrap;
   z-index: 10;

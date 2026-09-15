@@ -1,18 +1,31 @@
 import PDFDocument from 'pdfkit'
+import type { SchoolInfo } from '@pdf'
 import { type AtaCsvData, type AtaMeta, type ClassTeacher, type GenericCsvData, isNumeric, isInactiveRow, parseFreq } from './ata'
 
 const DARK   = '#0f0714'
 const NAVY   = '#1F3864'
 const INACT  = '#FFFF00'
 
-function govtHeader(doc: InstanceType<typeof PDFDocument>, pageW: number, ml: number, mr: number, escola: string, diretoria: string) {
+/** "E.E. X · documento gerado em DD/MM/AAAA pelo sistema less" */
+function ataFooterLine(escola: string): string {
+  const nome = (escola || '').trim()
+  const data = new Date().toLocaleDateString('pt-BR')
+  return `${nome ? nome + '  ·  ' : ''}documento gerado em ${data} pelo sistema less`
+}
+
+function govtHeader(doc: InstanceType<typeof PDFDocument>, pageW: number, ml: number, mr: number, escola: string, diretoria: string, school?: SchoolInfo) {
   const GOVT_H = 60
   doc.rect(0, 0, pageW, GOVT_H).fill('#ffffff')
   doc.moveTo(ml, GOVT_H - 0.5).lineTo(pageW - mr, GOVT_H - 0.5).strokeColor('#ddc8e8').lineWidth(0.8).stroke()
+  // Brasão da escola à esquerda. O texto oficial (Governo/SEDUC) é exigência
+  // do documento e continua centralizado — não vira cabeçalho do samba.
+  if (school?.logoBuffer) {
+    try { doc.image(school.logoBuffer, ml, 8, { fit: [42, 42], align: 'center', valign: 'center' }) } catch { /* segue sem brasão */ }
+  }
   const textW = pageW - ml - mr
-  doc.font('Helvetica-Bold').fontSize(7).fillColor(DARK)
+  doc.font('Times-Bold').fontSize(7).fillColor(DARK)
     .text('GOVERNO DO ESTADO DE SÃO PAULO – SECRETARIA DE ESTADO DA EDUCAÇÃO', ml, 10, { width: textW, align: 'center', lineBreak: false })
-  doc.font('Helvetica').fontSize(6.5).fillColor(DARK)
+  doc.font('Times-Roman').fontSize(6.5).fillColor(DARK)
     .text(escola || 'Escola', ml, 24, { width: textW, align: 'center', lineBreak: false })
     .text(diretoria || '', ml, 36, { width: textW, align: 'center', lineBreak: false })
   return GOVT_H
@@ -47,8 +60,8 @@ export function buildAtaPdf(data: AtaCsvData): Promise<Buffer> {
       if (!isFirst) doc.addPage()
       const h = govtHeader(doc, PAGE_W, ML, MR, data.meta.escola, data.meta.diretoria)
       const y = h + 10
-      doc.font('Helvetica-Bold').fontSize(9.5).fillColor(DARK).text('ATA DE RESULTADO DO RENDIMENTO ESCOLAR', ML, y, { width: CONTENT_W, align: 'center', lineBreak: false })
-      doc.font('Helvetica').fontSize(6.5).fillColor('#444')
+      doc.font('Times-Bold').fontSize(9.5).fillColor(DARK).text('ATA DE RESULTADO DO RENDIMENTO ESCOLAR', ML, y, { width: CONTENT_W, align: 'center', lineBreak: false })
+      doc.font('Times-Roman').fontSize(6.5).fillColor('#444')
         .text(`${data.meta.diretoria}  ·  ${data.meta.tipoEnsino}  ·  Turma: ${data.meta.turma}  ·  Ano Letivo: ${data.meta.anoLetivo}`, ML, y + 18, { width: CONTENT_W, align: 'center', lineBreak: false })
       doc.moveTo(ML, y + 32).lineTo(PAGE_W - MR, y + 32).strokeColor('#cccccc').lineWidth(0.5).stroke()
       return y + 38
@@ -57,23 +70,23 @@ export function buildAtaPdf(data: AtaCsvData): Promise<Buffer> {
     const drawHeaders = (y: number): number => {
       let x = ML
       doc.rect(x, y, NAME_W, HDR1_H).fill(NAVY).stroke()
-      doc.font('Helvetica-Bold').fontSize(7).fillColor('#fff').text('Nome do(a) Aluno(a)', x + 2, y + HDR1_H / 2 - 4, { width: NAME_W - 4, align: 'center', lineBreak: false })
+      doc.font('Times-Bold').fontSize(7).fillColor('#fff').text('Nome do(a) Aluno(a)', x + 2, y + HDR1_H / 2 - 4, { width: NAME_W - 4, align: 'center', lineBreak: false })
       x += NAME_W
       for (let di = 0; di < mainDiscs.length; di++) {
         const fill = di % 2 === 0 ? '#2E5090' : '#3B62B0'
         doc.save(); doc.rect(x, y, DISC_W, HDR1_H).clip(); doc.rect(x, y, DISC_W, HDR1_H).fill(fill)
         const raw = mainDiscs[di]; const name = raw.length > 30 ? raw.slice(0, 29) + '…' : raw
         doc.translate(x + DISC_W / 2, y + HDR1_H - 4); doc.rotate(-90)
-        doc.font('Helvetica-Bold').fontSize(5).fillColor('#fff').text(name, 3, -(DISC_W / 2 - 1), { lineBreak: false })
+        doc.font('Times-Bold').fontSize(5).fillColor('#fff').text(name, 3, -(DISC_W / 2 - 1), { lineBreak: false })
         doc.restore(); doc.rect(x, y, DISC_W, HDR1_H).strokeColor('#4a7acc').lineWidth(0.4).stroke()
         x += DISC_W
       }
       doc.rect(x, y, FREQ_W, HDR1_H).fill(NAVY).stroke()
       doc.save(); doc.rect(x, y, FREQ_W, HDR1_H).clip(); doc.translate(x + FREQ_W / 2, y + HDR1_H - 4); doc.rotate(-90)
-      doc.font('Helvetica-Bold').fontSize(6).fillColor('#fff').text('Frequência', 3, -(FREQ_W / 2 - 1), { lineBreak: false }); doc.restore()
+      doc.font('Times-Bold').fontSize(6).fillColor('#fff').text('Frequência', 3, -(FREQ_W / 2 - 1), { lineBreak: false }); doc.restore()
       x += FREQ_W
       doc.rect(x, y, RESULT_W, HDR1_H).fill(NAVY).stroke()
-      doc.font('Helvetica-Bold').fontSize(6.5).fillColor('#fff').text('Resultado\nFinal', x + 2, y + HDR1_H / 2 - 8, { width: RESULT_W - 4, align: 'center' })
+      doc.font('Times-Bold').fontSize(6.5).fillColor('#fff').text('Resultado\nFinal', x + 2, y + HDR1_H / 2 - 8, { width: RESULT_W - 4, align: 'center' })
       return y + HDR1_H
     }
 
@@ -81,25 +94,25 @@ export function buildAtaPdf(data: AtaCsvData): Promise<Buffer> {
       const inactive = isInactiveRow(s.situacao)
       const bg = inactive ? INACT : (rowIdx % 2 === 0 ? '#ffffff' : '#f2f6fc')
       let x = ML
-      doc.rect(x, y, NAME_W, ROW_H).fill(bg).stroke(); cellText(s.name, x, y, NAME_W, ROW_H, 'Helvetica', FONT, DARK, 'left'); x += NAME_W
+      doc.rect(x, y, NAME_W, ROW_H).fill(bg).stroke(); cellText(s.name, x, y, NAME_W, ROW_H, 'Times-Roman', FONT, DARK, 'left'); x += NAME_W
       for (let di = 0; di < mainDiscs.length; di++) {
         const g = s.grades[mainDiscs[di]]; const media = g?.media ?? '-'
-        let cf = inactive ? INACT : bg, cc = DARK, fnt = 'Helvetica'
+        let cf = inactive ? INACT : bg, cc = DARK, fnt = 'Times-Roman'
         if (!inactive) {
           if (String(media) === '-' || media === '' || media === null) cf = '#ffffc0'
-          else if (isNumeric(media)) { if (Number(media) < 5) { cf = '#ffc7ce'; cc = '#9c0006'; fnt = 'Helvetica-Bold' } else { cc = '#0070c0'; fnt = 'Helvetica-Bold' } }
+          else if (isNumeric(media)) { if (Number(media) < 5) { cf = '#ffc7ce'; cc = '#9c0006'; fnt = 'Times-Bold' } else { cc = '#0070c0'; fnt = 'Times-Bold' } }
         }
         doc.rect(x, y, DISC_W, ROW_H).fill(cf).strokeColor('#cccccc').lineWidth(0.4).stroke()
         cellText(String(media), x, y, DISC_W, ROW_H, fnt, FONT, cc); x += DISC_W
       }
       const fp = parseFreq(s.freqPct); let ff = inactive ? INACT : bg
       if (!inactive) { if (fp >= 90) ff = '#c6efce'; else if (fp >= 75) ff = '#ffffc0'; else if (fp > 0) ff = '#ffc7ce' }
-      doc.rect(x, y, FREQ_W, ROW_H).fill(ff).stroke(); cellText(s.freqPct, x, y, FREQ_W, ROW_H, 'Helvetica', FONT, DARK); x += FREQ_W
+      doc.rect(x, y, FREQ_W, ROW_H).fill(ff).stroke(); cellText(s.freqPct, x, y, FREQ_W, ROW_H, 'Times-Roman', FONT, DARK); x += FREQ_W
       const hasInsuf = mainDiscs.some(d => { const m = s.grades[d]?.media; return isNumeric(m) && Number(m) < 5 })
       const resultado = inactive ? (s.situacao || '—') : (s.situacao === 'Encerrado' || !hasInsuf ? 'Aprovado' : 'Reprovado')
       let rf = inactive ? INACT : bg, rc = DARK
       if (!inactive) { if (resultado === 'Aprovado') { rf = '#c6efce'; rc = '#1a5e1a' } else if (resultado === 'Reprovado') { rf = '#ffc7ce'; rc = '#9c0006' } else { rf = '#fff2cc'; rc = '#7f6000' } }
-      doc.rect(x, y, RESULT_W, ROW_H).fill(rf).stroke(); cellText(resultado, x, y, RESULT_W, ROW_H, 'Helvetica-Bold', FONT, rc)
+      doc.rect(x, y, RESULT_W, ROW_H).fill(rf).stroke(); cellText(resultado, x, y, RESULT_W, ROW_H, 'Times-Bold', FONT, rc)
     }
 
     let y = drawPage(true); y = drawHeaders(y)
@@ -108,7 +121,8 @@ export function buildAtaPdf(data: AtaCsvData): Promise<Buffer> {
       if (y + ROW_H > usableH) { y = drawPage(false); y = drawHeaders(y) }
       drawRow(students[si], y, si); y += ROW_H
     }
-    doc.font('Helvetica').fontSize(5.5).fillColor('#999').text(`less · Gerado em ${new Date().toLocaleDateString('pt-BR')}`, ML, PAGE_H - 24, { lineBreak: false })
+    doc.font('Times-Roman').fontSize(5.5).fillColor('#999')
+      .text(ataFooterLine(data.meta.escola), ML, PAGE_H - 24, { width: CONTENT_W, lineBreak: false, ellipsis: true })
     doc.end()
   })
 }
@@ -130,21 +144,21 @@ export function buildMapaoPdf(data: AtaCsvData): Promise<Buffer> {
       if (!isFirst) doc.addPage()
       const h = govtHeader(doc, PAGE_W, ML, MR, data.meta.escola, data.meta.diretoria)
       const y = h + 8
-      doc.font('Helvetica-Bold').fontSize(9).fillColor(DARK).text(`MAPÃO — ${data.meta.turma}  ·  Ano Letivo ${data.meta.anoLetivo}`, ML, y, { width: CONTENT_W, align: 'center', lineBreak: false })
+      doc.font('Times-Bold').fontSize(9).fillColor(DARK).text(`MAPÃO — ${data.meta.turma}  ·  Ano Letivo ${data.meta.anoLetivo}`, ML, y, { width: CONTENT_W, align: 'center', lineBreak: false })
       return y + 18
     }
     const drawHeaders = (y: number): number => {
       let x = ML
       doc.rect(x, y, NAME_W, ROW_H * 2).fill(NAVY).stroke()
-      doc.font('Helvetica-Bold').fontSize(6).fillColor('#fff').text('Aluno', x + 3, y + ROW_H - 3, { lineBreak: false }); x += NAME_W
+      doc.font('Times-Bold').fontSize(6).fillColor('#fff').text('Aluno', x + 3, y + ROW_H - 3, { lineBreak: false }); x += NAME_W
       for (let di = 0; di < data.disciplines.length; di++) {
         const fill = di % 2 === 0 ? '#2E5090' : '#3B62B0'
         doc.rect(x, y, GRP, ROW_H).fill(fill).stroke()
         doc.save(); doc.rect(x, y, GRP, ROW_H).clip()
-        doc.font('Helvetica-Bold').fontSize(5).fillColor('#fff').text(data.disciplines[di].slice(0, 24), x + 2, y + 3, { lineBreak: false }); doc.restore()
+        doc.font('Times-Bold').fontSize(5).fillColor('#fff').text(data.disciplines[di].slice(0, 24), x + 2, y + 3, { lineBreak: false }); doc.restore()
         ;['Nº', 'M', 'F', 'AC'].forEach((hh, i) => {
           doc.rect(x + i * SUB, y + ROW_H, SUB, ROW_H).fill('#dde6f5').strokeColor('#bbb').lineWidth(0.3).stroke()
-          doc.font('Helvetica-Bold').fontSize(5).fillColor(DARK).text(hh, x + i * SUB, y + ROW_H + 4, { width: SUB, align: 'center', lineBreak: false })
+          doc.font('Times-Bold').fontSize(5).fillColor(DARK).text(hh, x + i * SUB, y + ROW_H + 4, { width: SUB, align: 'center', lineBreak: false })
         })
         x += GRP
       }
@@ -160,7 +174,7 @@ export function buildMapaoPdf(data: AtaCsvData): Promise<Buffer> {
       const bg = inactive ? INACT : (si % 2 === 0 ? '#ffffff' : '#f2f6fc')
       let x = ML
       doc.rect(x, y, NAME_W, ROW_H).fill(bg).strokeColor('#ccc').lineWidth(0.3).stroke()
-      doc.font('Helvetica').fontSize(FONT).fillColor(DARK).text(s.name.slice(0, 32), x + 2, y + 4, { lineBreak: false }); x += NAME_W
+      doc.font('Times-Roman').fontSize(FONT).fillColor(DARK).text(s.name.slice(0, 32), x + 2, y + 4, { lineBreak: false }); x += NAME_W
       for (const d of data.disciplines) {
         const g = s.grades[d]; const media = g?.media ?? '-'
         let cf = bg, cc = DARK
@@ -169,14 +183,14 @@ export function buildMapaoPdf(data: AtaCsvData): Promise<Buffer> {
         const vals = [String(g?.num ?? ''), String(media), String(g?.faltas ?? ''), String(g?.ac ?? '')]
         vals.forEach((v, i) => {
           doc.rect(x + i * SUB, y, SUB, ROW_H).fill(i === 1 ? cf : bg).strokeColor('#ddd').lineWidth(0.25).stroke()
-          doc.font(i === 1 ? 'Helvetica-Bold' : 'Helvetica').fontSize(FONT).fillColor(i === 1 ? cc : '#555').text(v, x + i * SUB, y + 4, { width: SUB, align: 'center', lineBreak: false })
+          doc.font(i === 1 ? 'Times-Bold' : 'Times-Roman').fontSize(FONT).fillColor(i === 1 ? cc : '#555').text(v, x + i * SUB, y + 4, { width: SUB, align: 'center', lineBreak: false })
         })
         x += GRP
       }
       y += ROW_H
     })
     void colsW
-    doc.font('Helvetica').fontSize(5.5).fillColor('#999').text(`less · Mapão · ${new Date().toLocaleDateString('pt-BR')}`, ML, PAGE_H - 20, { lineBreak: false })
+    doc.font('Times-Roman').fontSize(5.5).fillColor('#999').text(`less · Mapão · ${new Date().toLocaleDateString('pt-BR')}`, ML, PAGE_H - 20, { lineBreak: false })
     doc.end()
   })
 }
@@ -196,21 +210,21 @@ export function buildReuniaoPdf(meta: AtaMeta, bimestre: string, notas: string, 
     const newPage = (first: boolean): number => { if (!first) doc.addPage(); const h = govtHeader(doc, PAGE_W, ML, MR, meta.escola, meta.diretoria); return h + 8 }
     const sectionBar = (y: number, text: string): number => {
       doc.rect(ML, y, CONTENT_W, 17).fill(NAVY)
-      doc.font('Helvetica-Bold').fontSize(8).fillColor('#fff').text(text, ML + 7, y + 4.5, { width: CONTENT_W - 14, lineBreak: false })
+      doc.font('Times-Bold').fontSize(8).fillColor('#fff').text(text, ML + 7, y + 4.5, { width: CONTENT_W - 14, lineBreak: false })
       return y + 17
     }
 
     let y = newPage(true)
     const title = `ATA DE REUNIÃO DO CONSELHO — ${meta.anoLetivo} — ${meta.turma} — ${BIM_UP[bimestre] ?? bimestre}`
     doc.rect(ML, y, CONTENT_W, 26).fill('#dae3f3')
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(NAVY).text(title, ML + 8, y + 8, { width: CONTENT_W - 16, align: 'center', lineBreak: false })
+    doc.font('Times-Bold').fontSize(10).fillColor(NAVY).text(title, ML + 8, y + 8, { width: CONTENT_W - 16, align: 'center', lineBreak: false })
     y += 36
 
     y = sectionBar(y, 'OBSERVAÇÕES')
     const notasH = notas?.trim() ? doc.heightOfString(notas.trim(), { width: CONTENT_W - 18 }) + 16 : 50
     if (y + notasH > usableH) y = newPage(false)
     doc.rect(ML, y, CONTENT_W, notasH).fill('#ffffff').strokeColor('#e0e0e0').lineWidth(0.4).stroke()
-    if (notas?.trim()) doc.font('Helvetica').fontSize(8.5).fillColor(DARK).text(notas.trim(), ML + 8, y + 8, { width: CONTENT_W - 18 })
+    if (notas?.trim()) doc.font('Times-Roman').fontSize(8.5).fillColor(DARK).text(notas.trim(), ML + 8, y + 8, { width: CONTENT_W - 18 })
     y += notasH + 12
 
     if (csvData2 && csvData2.headers.length > 0) {
@@ -227,7 +241,7 @@ export function buildReuniaoPdf(meta: AtaMeta, bimestre: string, notas: string, 
         csvData2.headers.forEach((h, i) => {
           doc.rect(colX[i], yy, colW[i], hH).fill('#2E5090').strokeColor('#1a3a70').lineWidth(0.3).stroke()
           doc.save(); doc.rect(colX[i], yy, colW[i], hH).clip()
-          doc.font('Helvetica-Bold').fontSize(FONT_DC).fillColor('#fff').text(h, colX[i] + PAD, yy + PAD, { width: colW[i] - PAD * 2 }); doc.restore()
+          doc.font('Times-Bold').fontSize(FONT_DC).fillColor('#fff').text(h, colX[i] + PAD, yy + PAD, { width: colW[i] - PAD * 2 }); doc.restore()
         })
         return yy + hH
       }
@@ -241,7 +255,7 @@ export function buildReuniaoPdf(meta: AtaMeta, bimestre: string, notas: string, 
           if (i >= colW.length) return
           doc.rect(colX[i], y, colW[i], rowH).fill(bg).strokeColor('#d0d0d0').lineWidth(0.25).stroke()
           doc.save(); doc.rect(colX[i], y, colW[i], rowH).clip()
-          doc.font('Helvetica').fontSize(FONT_DC).fillColor(DARK).text(cell ?? '', colX[i] + PAD, y + 3, { width: colW[i] - PAD * 2, lineBreak: false }); doc.restore()
+          doc.font('Times-Roman').fontSize(FONT_DC).fillColor(DARK).text(cell ?? '', colX[i] + PAD, y + 3, { width: colW[i] - PAD * 2, lineBreak: false }); doc.restore()
         })
         y += rowH
       })
@@ -254,7 +268,7 @@ export function buildReuniaoPdf(meta: AtaMeta, bimestre: string, notas: string, 
       const bh = Math.max(20, doc.heightOfString(topicos.trim(), { width: CONTENT_W - 16 }) + 12)
       if (y + bh > usableH) y = newPage(false)
       doc.rect(ML, y, CONTENT_W, bh).fill('#ffffff').strokeColor('#e0e0e0').lineWidth(0.3).stroke()
-      doc.font('Helvetica').fontSize(8.5).fillColor(DARK).text(topicos.trim(), ML + 8, y + 6, { width: CONTENT_W - 16 })
+      doc.font('Times-Roman').fontSize(8.5).fillColor(DARK).text(topicos.trim(), ML + 8, y + 6, { width: CONTENT_W - 16 })
       y += bh + 12
     }
 
@@ -267,8 +281,8 @@ export function buildReuniaoPdf(meta: AtaMeta, bimestre: string, notas: string, 
       if (y + ROW > usableH) { y = newPage(false); y = sectionBar(y, 'ASSINATURAS (cont.)'); y += 8 }
       signers.slice(i, i + COLS).forEach((sg, gi) => {
         const sx = ML + gi * (colW + GAP)
-        doc.font('Helvetica').fontSize(8).fillColor(DARK).text(sg.name, sx, y, { width: colW, lineBreak: false })
-        doc.font('Helvetica').fontSize(6.5).fillColor('#666').text(sg.role, sx, y + 12, { width: colW, lineBreak: false })
+        doc.font('Times-Roman').fontSize(8).fillColor(DARK).text(sg.name, sx, y, { width: colW, lineBreak: false })
+        doc.font('Times-Roman').fontSize(6.5).fillColor('#666').text(sg.role, sx, y + 12, { width: colW, lineBreak: false })
         doc.moveTo(sx, y + 40).lineTo(sx + colW, y + 40).strokeColor('#999').lineWidth(0.7).stroke()
       })
       y += ROW
@@ -277,7 +291,9 @@ export function buildReuniaoPdf(meta: AtaMeta, bimestre: string, notas: string, 
     const range = doc.bufferedPageRange()
     for (let i = 0; i < range.count; i++) {
       doc.switchToPage(range.start + i)
-      doc.font('Helvetica').fontSize(5.5).fillColor('#aaa').text(`less · ${new Date().toLocaleDateString('pt-BR')} · ${meta.turma}`, ML, PAGE_H - 18, { lineBreak: false })
+      doc.font('Times-Roman').fontSize(5.5).fillColor('#aaa')
+        .text(`${ataFooterLine(meta.escola)}  ·  turma ${meta.turma}  ·  página ${i + 1} de ${range.count}`,
+          ML, PAGE_H - 18, { lineBreak: false })
     }
     doc.end()
   })

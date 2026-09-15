@@ -17,6 +17,9 @@ const LABELS: Record<string, string> = {
   oe:            'orientação de estudos',
   suporte:       'suporte',
   lixeira:       'lixeira',
+  'diagnostico-turma': 'diagnóstico turma',
+  preferencias: 'preferências',
+  'relatorio-sintese': 'relatório-síntese',
 }
 
 export function Breadcrumb() {

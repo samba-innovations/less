@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit'
 import { DOC_TYPES, type DocType, type FieldDef } from './doc-types'
 import { DIMENSOES_PDI } from './pdi-data'
+import { fullHeader, miniHeader, paginate, type DocHeaderInfo } from './pdf/layout'
 import { generateGenericPdf } from './pdf/render-generic'
 import { generatePlanoAulaPdf } from './pdf/render-plano-aula'
 import { generateGuiaPdf } from './pdf/render-guia'
@@ -19,6 +20,9 @@ const PAGE_H   = 841.89
 const MARGIN   = 50
 const BOTTOM_M = 60
 const CONTENT_W = PAGE_W - MARGIN * 2
+
+// Cabeçalho/rodapé institucionais alinhados ao corpo legado (MARGIN fixo).
+const LEGACY_LAYOUT = { marginX: MARGIN }
 
 const BRAND   = '#1a0f00'
 const YELLOW  = '#fce375'
@@ -62,52 +66,19 @@ function ensureSpace(doc: InstanceType<typeof PDFDocument>, needed: number) {
   if (doc.y + needed > PAGE_H - BOTTOM_M) doc.addPage()
 }
 
-function header(doc: InstanceType<typeof PDFDocument>, input: PdfInput) {
-  const typeMeta = DOC_TYPES[input.type]
-
-  doc.rect(0, 0, PAGE_W, 56).fill(YELLOW)
-
-  doc.fontSize(18).font('Helvetica-Bold').fillColor(BRAND)
-    .text('less', MARGIN, 18, { continued: true })
-  doc.fontSize(9).font('Helvetica').fillColor('#5a3d00')
-    .text(` · ${typeMeta.label}`, { continued: false })
-
-  doc.fontSize(8).font('Helvetica').fillColor(BRAND)
-    .text(input.schoolName, MARGIN, 38, { width: CONTENT_W, align: 'right' })
-
-  doc.rect(0, 56, PAGE_W, 22).fill(DARK)
-  doc.fontSize(7.5).font('Helvetica').fillColor(WHITE)
-    .text(input.title, MARGIN, 63, { width: CONTENT_W * 0.7 })
-  doc.fontSize(7.5).fillColor('#9ca3af')
-    .text(input.authorName, MARGIN, 63, { width: CONTENT_W, align: 'right' })
-
-  doc.y = 90
-}
-
-function miniHeader(doc: InstanceType<typeof PDFDocument>, input: PdfInput) {
-  doc.rect(0, 0, PAGE_W, 22).fill(YELLOW)
-  doc.fontSize(7.5).font('Helvetica-Bold').fillColor(BRAND)
-    .text('less', MARGIN, 6, { continued: true })
-  doc.fontSize(7.5).font('Helvetica').fillColor('#5a3d00')
-    .text(` · ${input.title}`)
-  doc.y = 32
-}
-
-function footer(doc: InstanceType<typeof PDFDocument>, input: PdfInput) {
-  const y = PAGE_H - 32
-  doc.fontSize(6.5).font('Helvetica').fillColor('#9ca3af')
-    .text(
-      `Gerado em ${input.createdAt.toLocaleDateString('pt-BR')} · less · ${input.schoolName}`,
-      MARGIN, y, { width: CONTENT_W, align: 'center' }
-    )
-}
-
 function sectionTitle(doc: InstanceType<typeof PDFDocument>, text: string) {
   ensureSpace(doc, 24)
-  doc.rect(MARGIN, doc.y, CONTENT_W, 18).fill(DARK)
-  doc.fontSize(7).font('Helvetica-Bold').fillColor(WHITE)
-    .text(text.toUpperCase(), MARGIN + 8, doc.y - 13, { characterSpacing: 0.8 })
-  doc.y += 6
+  // O texto vai DENTRO da faixa. Antes era desenhado em `doc.y - 13`, ou seja
+  // acima dela, em branco sobre o bloco anterior; e o cursor não avançava a
+  // altura da faixa, então o conteúdo seguinte subia por cima.
+  const BAR_H = 18
+  const y = doc.y
+  doc.rect(MARGIN, y, CONTENT_W, BAR_H).fill(DARK)
+  doc.fontSize(7).font('Times-Bold').fillColor(WHITE)
+    .text(text.toUpperCase(), MARGIN + 8, y + 5.5, {
+      width: CONTENT_W - 16, characterSpacing: 0.8, lineBreak: false, ellipsis: true,
+    })
+  doc.y = y + BAR_H + 6
 }
 
 function infoRow(
@@ -124,9 +95,9 @@ function infoRow(
   doc.rect(MARGIN, y, labelW, rowH).fill(LIGHT).stroke(BORDER)
   doc.rect(MARGIN + labelW, y, CONTENT_W - labelW, rowH).fill(WHITE).stroke(BORDER)
 
-  doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY)
+  doc.fontSize(7).font('Times-Bold').fillColor(GRAY)
     .text(label, MARGIN + 6, y + 5, { width: labelW - 10 })
-  doc.fontSize(7.5).font('Helvetica').fillColor(DARK)
+  doc.fontSize(7.5).font('Times-Roman').fillColor(DARK)
     .text(value || '—', MARGIN + labelW + 6, y + 5, { width: CONTENT_W - labelW - 10 })
 
   doc.y = y + rowH + (last ? 0 : 0)
@@ -144,7 +115,7 @@ function infoRow2col(doc: InstanceType<typeof PDFDocument>, cells: Cell2[]) {
   const heights = cells.map(cell => {
     if (!cell.value?.trim()) return minH
     const cellW = (cell.span === 2 ? CONTENT_W : colW) - pad * 2
-    doc.font('Helvetica').fontSize(9)
+    doc.font('Times-Roman').fontSize(9)
     const h = doc.heightOfString(cell.value, { width: cellW }) + labelH + pad * 2
     return Math.max(h, minH)
   })
@@ -158,10 +129,10 @@ function infoRow2col(doc: InstanceType<typeof PDFDocument>, cells: Cell2[]) {
 
     doc.rect(x, startY, w, rowH).fill(LIGHT).strokeColor(BORDER).lineWidth(0.4).stroke()
 
-    doc.font('Helvetica-Bold').fontSize(7).fillColor(GRAY)
+    doc.font('Times-Bold').fontSize(7).fillColor(GRAY)
       .text(cell.label, x + pad, startY + pad, { width: w - pad * 2, lineBreak: false })
 
-    doc.font('Helvetica').fontSize(8.5).fillColor(DARK)
+    doc.font('Times-Roman').fontSize(8.5).fillColor(DARK)
       .text(cell.value?.trim() || '—', x + pad, startY + pad + labelH, { width: w - pad * 2, lineGap: 1.5 })
 
     x += w
@@ -181,7 +152,7 @@ function textBlock(
   const y = doc.y
 
   doc.rect(MARGIN, y, CONTENT_W, headerH).fill(LIGHT).stroke(BORDER)
-  doc.fontSize(6.5).font('Helvetica-Bold').fillColor(GRAY)
+  doc.fontSize(6.5).font('Times-Bold').fillColor(GRAY)
     .text(label.toUpperCase(), MARGIN + 6, y + 4, { characterSpacing: 0.5 })
 
   doc.y = y + headerH
@@ -192,7 +163,7 @@ function textBlock(
 
   const bodyY = doc.y
   doc.rect(MARGIN, bodyY, CONTENT_W, textH).fill(WHITE).stroke(BORDER)
-  doc.fontSize(8.5).font('Helvetica').fillColor(DARK)
+  doc.fontSize(8.5).font('Times-Roman').fillColor(DARK)
     .text(text, MARGIN + 8, bodyY + 6, { width: CONTENT_W - 16, lineGap: 1.5 })
 
   doc.y = bodyY + textH + 6
@@ -205,7 +176,7 @@ function subLabel(doc: InstanceType<typeof PDFDocument>, text: string) {
   const y0  = doc.y
   doc.rect(MARGIN, y0, CONTENT_W, 16).fill(LIGHT)
   doc.rect(MARGIN, y0, CONTENT_W, 16).strokeColor(BORDER).lineWidth(0.3).stroke()
-  doc.font('Helvetica-Bold').fontSize(7.5).fillColor(GRAY)
+  doc.font('Times-Bold').fontSize(7.5).fillColor(GRAY)
   doc.text(text, MARGIN + pad, y0 + 4, { lineBreak: false })
   doc.y = y0 + 16
 }
@@ -230,7 +201,7 @@ function habilidadesTable(doc: InstanceType<typeof PDFDocument>, raw: string) {
 
   subLabel(doc, 'Habilidades BNCC / Currículo Paulista')
 
-  doc.font('Helvetica').fontSize(9)
+  doc.font('Times-Roman').fontSize(9)
   const headerH = 18
   const rowHeights = rows.map(row => {
     const descH = row.desc ? doc.heightOfString(row.desc, { width: descW - pad * 2 }) : 0
@@ -242,7 +213,7 @@ function habilidadesTable(doc: InstanceType<typeof PDFDocument>, raw: string) {
   const y0 = doc.y
   doc.rect(MARGIN, y0, codeW, headerH).fill(DARK)
   doc.rect(MARGIN + codeW, y0, descW, headerH).fill(DARK)
-  doc.font('Helvetica-Bold').fontSize(7.5).fillColor(WHITE)
+  doc.font('Times-Bold').fontSize(7.5).fillColor(WHITE)
   doc.text('CÓDIGO', MARGIN + pad, y0 + 5, { width: codeW - pad, lineBreak: false })
   doc.text('DESCRIÇÃO', MARGIN + codeW + pad, y0 + 5, { width: descW - pad, lineBreak: false })
 
@@ -254,7 +225,7 @@ function habilidadesTable(doc: InstanceType<typeof PDFDocument>, raw: string) {
       rowY = doc.y
       doc.rect(MARGIN, rowY, codeW, headerH).fill(DARK)
       doc.rect(MARGIN + codeW, rowY, descW, headerH).fill(DARK)
-      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(WHITE)
+      doc.font('Times-Bold').fontSize(7.5).fillColor(WHITE)
       doc.text('CÓDIGO', MARGIN + pad, rowY + 5, { width: codeW - pad, lineBreak: false })
       doc.text('DESCRIÇÃO', MARGIN + codeW + pad, rowY + 5, { width: descW - pad, lineBreak: false })
       rowY += headerH
@@ -263,10 +234,10 @@ function habilidadesTable(doc: InstanceType<typeof PDFDocument>, raw: string) {
     doc.rect(MARGIN, rowY, codeW, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.3).stroke()
     doc.rect(MARGIN + codeW, rowY, descW, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.3).stroke()
     if (row.code) {
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(DARK)
+      doc.font('Times-Bold').fontSize(8.5).fillColor(DARK)
       doc.text(row.code, MARGIN + pad, rowY + pad, { width: codeW - pad * 2, lineBreak: false })
     }
-    doc.font('Helvetica').fontSize(9).fillColor(DARK)
+    doc.font('Times-Roman').fontSize(9).fillColor(DARK)
     doc.text(row.desc || '—', MARGIN + codeW + pad, rowY + pad, { width: descW - pad * 2, lineGap: 1.5 })
     rowY += rowH
   })
@@ -282,7 +253,7 @@ function aesTable(doc: InstanceType<typeof PDFDocument>, aes: AprendizagemEssenc
 
   subLabel(doc, 'Aprendizagens Essenciais — Currículo Paulista')
 
-  doc.font('Helvetica').fontSize(9)
+  doc.font('Times-Roman').fontSize(9)
   const headerH = 18
   const rowHeights = aes.map(ae => {
     const h = ae.descricao ? doc.heightOfString(ae.descricao, { width: descW - pad * 2 }) : 0
@@ -294,7 +265,7 @@ function aesTable(doc: InstanceType<typeof PDFDocument>, aes: AprendizagemEssenc
   const y0 = doc.y
   doc.rect(MARGIN, y0, codeW, headerH).fill(EMERALD)
   doc.rect(MARGIN + codeW, y0, descW, headerH).fill(EMERALD)
-  doc.font('Helvetica-Bold').fontSize(7.5).fillColor(WHITE)
+  doc.font('Times-Bold').fontSize(7.5).fillColor(WHITE)
   doc.text('CÓDIGO', MARGIN + pad, y0 + 5, { width: codeW - pad, lineBreak: false })
   doc.text('APRENDIZAGEM ESSENCIAL', MARGIN + codeW + pad, y0 + 5, { width: descW - pad, lineBreak: false })
 
@@ -306,7 +277,7 @@ function aesTable(doc: InstanceType<typeof PDFDocument>, aes: AprendizagemEssenc
       rowY = doc.y
       doc.rect(MARGIN, rowY, codeW, headerH).fill(EMERALD)
       doc.rect(MARGIN + codeW, rowY, descW, headerH).fill(EMERALD)
-      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(WHITE)
+      doc.font('Times-Bold').fontSize(7.5).fillColor(WHITE)
       doc.text('CÓDIGO', MARGIN + pad, rowY + 5, { width: codeW - pad, lineBreak: false })
       doc.text('APRENDIZAGEM ESSENCIAL', MARGIN + codeW + pad, rowY + 5, { width: descW - pad, lineBreak: false })
       rowY += headerH
@@ -314,9 +285,9 @@ function aesTable(doc: InstanceType<typeof PDFDocument>, aes: AprendizagemEssenc
     const bg = i % 2 === 0 ? WHITE : LIGHT
     doc.rect(MARGIN, rowY, codeW, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.3).stroke()
     doc.rect(MARGIN + codeW, rowY, descW, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.3).stroke()
-    doc.font('Helvetica-Bold').fontSize(8.5).fillColor(EMERALD)
+    doc.font('Times-Bold').fontSize(8.5).fillColor(EMERALD)
     doc.text(ae.codigo, MARGIN + pad, rowY + pad, { width: codeW - pad * 2, lineBreak: false })
-    doc.font('Helvetica').fontSize(9).fillColor(DARK)
+    doc.font('Times-Roman').fontSize(9).fillColor(DARK)
     doc.text(ae.descricao || '—', MARGIN + codeW + pad, rowY + pad, { width: descW - pad * 2, lineGap: 1.5 })
     rowY += rowH
   })
@@ -336,7 +307,7 @@ function aulasTable(doc: InstanceType<typeof PDFDocument>, aulas: AulaSelecionad
     doc.rect(MARGIN, y, tituloW, headerH).fill(DARK)
     doc.rect(MARGIN + tituloW, y, conteudoW, headerH).fill(DARK)
     doc.rect(MARGIN + tituloW + conteudoW, y, objetivosW, headerH).fill(DARK)
-    doc.font('Helvetica-Bold').fontSize(7).fillColor(WHITE)
+    doc.font('Times-Bold').fontSize(7).fillColor(WHITE)
     doc.text('TÍTULO DA AULA', MARGIN + pad, y + 7, { width: tituloW - pad, lineBreak: false })
     doc.text('CONTEÚDOS',      MARGIN + tituloW + pad, y + 7, { width: conteudoW - pad, lineBreak: false })
     doc.text('OBJETIVOS',      MARGIN + tituloW + conteudoW + pad, y + 7, { width: objetivosW - pad, lineBreak: false })
@@ -358,9 +329,9 @@ function aulasTable(doc: InstanceType<typeof PDFDocument>, aulas: AulaSelecionad
     const col2      = truncate(aula.conteudo?.trim() ?? '—')
     const col3      = truncate(aula.objetivos?.trim() ?? '—')
 
-    doc.font('Helvetica-Bold').fontSize(7.5)
+    doc.font('Times-Bold').fontSize(7.5)
     const titleH = doc.heightOfString(aulaNum, { width: tituloW - pad * 2 })
-    doc.font('Helvetica').fontSize(7.5)
+    doc.font('Times-Roman').fontSize(7.5)
     const subH   = aulaTitle ? doc.heightOfString(aulaTitle, { width: tituloW - pad * 2, lineGap: 1 }) : 0
     const col2H  = doc.heightOfString(col2, { width: conteudoW - pad * 2, lineGap: 1 })
     const col3H  = doc.heightOfString(col3, { width: objetivosW - pad * 2, lineGap: 1 })
@@ -378,15 +349,15 @@ function aulasTable(doc: InstanceType<typeof PDFDocument>, aulas: AulaSelecionad
     doc.rect(MARGIN + tituloW, rowY, conteudoW, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.3).stroke()
     doc.rect(MARGIN + tituloW + conteudoW, rowY, objetivosW, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.3).stroke()
 
-    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(DARK)
+    doc.font('Times-Bold').fontSize(7.5).fillColor(DARK)
     doc.text(aulaNum, MARGIN + pad, rowY + pad, { width: tituloW - pad * 2, lineBreak: false })
     if (aulaTitle) {
       const afterNum = doc.y + 2
-      doc.font('Helvetica').fontSize(7).fillColor(GRAY)
+      doc.font('Times-Roman').fontSize(7).fillColor(GRAY)
       doc.text(aulaTitle, MARGIN + pad, afterNum, { width: tituloW - pad * 2, lineGap: 1, ellipsis: true })
     }
 
-    doc.font('Helvetica').fontSize(7.5).fillColor(DARK)
+    doc.font('Times-Roman').fontSize(7.5).fillColor(DARK)
     doc.text(col2, MARGIN + tituloW + pad,             rowY + pad, { width: conteudoW - pad * 2, lineGap: 1 })
     doc.text(col3, MARGIN + tituloW + conteudoW + pad, rowY + pad, { width: objetivosW - pad * 2, lineGap: 1 })
 
@@ -406,7 +377,7 @@ function bulletBlock(doc: InstanceType<typeof PDFDocument>, label: string, value
   const y0 = doc.y
   doc.rect(MARGIN, y0, CONTENT_W, 16).fill(LIGHT)
   doc.rect(MARGIN, y0, CONTENT_W, 16).strokeColor(BORDER).lineWidth(0.3).stroke()
-  doc.font('Helvetica-Bold').fontSize(7.5).fillColor(GRAY)
+  doc.font('Times-Bold').fontSize(7.5).fillColor(GRAY)
   doc.text(label, MARGIN + pad, y0 + 4, { lineBreak: false })
 
   const bodyY = y0 + 16
@@ -418,9 +389,9 @@ function bulletBlock(doc: InstanceType<typeof PDFDocument>, label: string, value
       doc.addPage()
       itemY = doc.y + pad
     }
-    doc.font('Helvetica').fontSize(9).fillColor(DARK)
+    doc.font('Times-Roman').fontSize(9).fillColor(DARK)
     doc.text('•', MARGIN + pad, itemY, { lineBreak: false })
-    doc.font('Helvetica').fontSize(9).fillColor(DARK)
+    doc.font('Times-Roman').fontSize(9).fillColor(DARK)
     doc.text(item, MARGIN + pad + 10, itemY, { width: CONTENT_W - pad * 2 - 10, lineGap: 1 })
     itemY = doc.y + 2
   })
@@ -444,7 +415,7 @@ function referencesBlock(doc: InstanceType<typeof PDFDocument>, label: string, v
   const y0 = doc.y
   doc.rect(MARGIN, y0, CONTENT_W, 16).fill(LIGHT)
   doc.rect(MARGIN, y0, CONTENT_W, 16).strokeColor(BORDER).lineWidth(0.3).stroke()
-  doc.font('Helvetica-Bold').fontSize(7.5).fillColor(GRAY)
+  doc.font('Times-Bold').fontSize(7.5).fillColor(GRAY)
   doc.text(label, MARGIN + pad, y0 + 4, { lineBreak: false })
 
   const firstBodyY = y0 + 16
@@ -454,7 +425,7 @@ function referencesBlock(doc: InstanceType<typeof PDFDocument>, label: string, v
   let curY = firstBodyY + pad
 
   refs.forEach((ref, idx) => {
-    doc.font('Helvetica').fontSize(8.5)
+    doc.font('Times-Roman').fontSize(8.5)
     const refH = doc.heightOfString(ref, { width: refW, lineGap: 1 })
 
     if (curY + refH > pageBottom) {
@@ -466,7 +437,7 @@ function referencesBlock(doc: InstanceType<typeof PDFDocument>, label: string, v
       curY = pageBodyY + pad
     }
 
-    doc.font('Helvetica').fontSize(8.5).fillColor(DARK)
+    doc.font('Times-Roman').fontSize(8.5).fillColor(DARK)
     doc.text(ref, MARGIN + pad, curY, { width: refW, lineGap: 1 })
     curY = doc.y + (idx < refs.length - 1 ? 4 : 0)
   })
@@ -484,9 +455,9 @@ function timeSectionRow(doc: InstanceType<typeof PDFDocument>, time: string, lab
   doc.rect(MARGIN, y0, 3, 18).fill(YELLOW)
   doc.rect(MARGIN + 3, y0, CONTENT_W - 3, 18).fill(LIGHT)
   doc.rect(MARGIN + 3, y0, CONTENT_W - 3, 18).strokeColor(BORDER).lineWidth(0.3).stroke()
-  doc.font('Helvetica-Bold').fontSize(8).fillColor(DARK)
+  doc.font('Times-Bold').fontSize(8).fillColor(DARK)
   doc.text(time, MARGIN + 3 + pad, y0 + 5, { lineBreak: false })
-  doc.font('Helvetica').fillColor(GRAY)
+  doc.font('Times-Roman').fillColor(GRAY)
   doc.text('  —  ' + label, { lineBreak: false })
   doc.y = y0 + 20
 }
@@ -499,7 +470,7 @@ function seqBadgeList(doc: InstanceType<typeof PDFDocument>, content: string, in
     ensureSpace(doc, 16)
     const y0 = doc.y
     doc.circle(MARGIN + pad + 3, y0 + 5, 2).fill(YELLOW)
-    doc.font('Helvetica').fontSize(9).fillColor(DARK)
+    doc.font('Times-Roman').fontSize(9).fillColor(DARK)
     doc.text(item, MARGIN + pad + 10, y0, { width: CONTENT_W - pad - 12, lineGap: 1.5 })
   })
   doc.y += 3
@@ -515,9 +486,9 @@ function seqPartsBlock(doc: InstanceType<typeof PDFDocument>, p1?: string, p2?: 
     ensureSpace(doc, 18)
     const y0    = doc.y
     const items = text!.split(/[/\n]/).map((s: string) => s.trim()).filter(Boolean)
-    doc.font('Helvetica-Bold').fontSize(8).fillColor(DARK)
+    doc.font('Times-Bold').fontSize(8).fillColor(DARK)
     doc.text(label + ':  ', MARGIN + pad, y0, { continued: true, lineBreak: false })
-    doc.font('Helvetica').fillColor(DARK).fontSize(9)
+    doc.font('Times-Roman').fillColor(DARK).fontSize(9)
     doc.text(items.join(' · '), { width: CONTENT_W - pad * 2 - 45, lineBreak: true })
     doc.y += 2
   })
@@ -574,7 +545,7 @@ function renderPlanoDeAula(
 
     const tipoY = doc.y
     doc.rect(MARGIN, tipoY, CONTENT_W, 18).fill(DARK)
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(WHITE)
+    doc.font('Times-Bold').fontSize(9).fillColor(WHITE)
     doc.text(cfg.titulo, MARGIN + 8, tipoY + 5, { lineBreak: false })
     doc.y = tipoY + 22
 
@@ -785,11 +756,11 @@ function peiItemBlock(doc: InstanceType<typeof PDFDocument>, nome: string, desc:
   doc.rect(MARGIN, y0, 3, blockH).fill(DARK)
   doc.rect(MARGIN + 3, y0, CONTENT_W - 3, blockH).fill(LIGHT).strokeColor(BORDER).lineWidth(0.3).stroke()
 
-  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(DARK)
+  doc.font('Times-Bold').fontSize(8.5).fillColor(DARK)
   doc.text(nome, MARGIN + 3 + pad, y0 + 4, { width: CONTENT_W - 3 - pad * 2, lineBreak: false })
 
   if (desc) {
-    doc.font('Helvetica').fontSize(7.5).fillColor(GRAY)
+    doc.font('Times-Roman').fontSize(7.5).fillColor(GRAY)
     doc.text(desc, MARGIN + 3 + pad, y0 + 17, { width: CONTENT_W - 3 - pad * 2, lineGap: 1 })
     doc.y = Math.max(doc.y, y0 + blockH) + 3
   } else {
@@ -805,7 +776,7 @@ function legalBasisBlock(doc: InstanceType<typeof PDFDocument>) {
 
   sectionTitle(doc, 'Embasamento Legal e Técnico')
 
-  doc.font('Helvetica').fontSize(7.5).fillColor(GRAY)
+  doc.font('Times-Roman').fontSize(7.5).fillColor(GRAY)
   doc.text(
     'Estrutura fundamentada em normativas oficiais vigentes, garantindo validade pedagógica, intencionalidade educacional e proteção jurídica ao documento.',
     MARGIN, doc.y, { width: CONTENT_W }
@@ -816,7 +787,7 @@ function legalBasisBlock(doc: InstanceType<typeof PDFDocument>) {
 
   const hdrY = doc.y
   doc.rect(MARGIN, hdrY, CONTENT_W, 14).fill(DARK).strokeColor(BORDER).lineWidth(0.3).stroke()
-  doc.font('Helvetica-Bold').fontSize(6.5).fillColor(WHITE)
+  doc.font('Times-Bold').fontSize(6.5).fillColor(WHITE)
   doc.text('NORMATIVA / BASE LEGAL', MARGIN + pad, hdrY + 4, { lineBreak: false })
   doc.text('REFERÊNCIA', MARGIN + pad + codeW + pad, hdrY + 4, { lineBreak: false })
   doc.y = hdrY + 14
@@ -827,9 +798,9 @@ function legalBasisBlock(doc: InstanceType<typeof PDFDocument>) {
     const bg = i % 2 === 0 ? WHITE : LIGHT
     doc.rect(MARGIN, ry, CONTENT_W, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.2).stroke()
     doc.rect(MARGIN + codeW + pad, ry, 0.5, rowH).fill(BORDER)
-    doc.font('Helvetica-Bold').fontSize(7).fillColor(DARK)
+    doc.font('Times-Bold').fontSize(7).fillColor(DARK)
     doc.text(law.code, MARGIN + pad, ry + 3, { width: codeW - pad, lineBreak: false })
-    doc.font('Helvetica').fontSize(7).fillColor(GRAY)
+    doc.font('Times-Roman').fontSize(7).fillColor(GRAY)
     doc.text(law.desc, MARGIN + codeW + pad * 2, ry + 3, { width: descW, lineBreak: false })
     doc.y = ry + rowH
   })
@@ -947,10 +918,10 @@ function renderGuiaAprendizagem(
         ensureSpace(doc, desc ? 30 : 16)
         const y0 = doc.y
         doc.circle(MARGIN + 9, y0 + 5, 2).fill(YELLOW)
-        doc.font('Helvetica-Bold').fontSize(8.5).fillColor(DARK)
+        doc.font('Times-Bold').fontSize(8.5).fillColor(DARK)
         doc.text(nomePart, MARGIN + 16, y0, { width: CONTENT_W - 18, lineBreak: false })
         if (desc) {
-          doc.font('Helvetica').fontSize(7.5).fillColor(GRAY)
+          doc.font('Times-Roman').fontSize(7.5).fillColor(GRAY)
           doc.text(desc, MARGIN + 16, doc.y + 2, { width: CONTENT_W - 18, lineGap: 1 })
         }
         doc.y += 5
@@ -989,7 +960,7 @@ function renderPdiTable(doc: InstanceType<typeof PDFDocument>, atividades: Recor
     doc.rect(MARGIN, y, w1, headerH).fill(DARK)
     doc.rect(MARGIN + w1, y, w2, headerH).fill(DARK)
     doc.rect(MARGIN + w1 + w2, y, w3, headerH).fill(DARK)
-    doc.font('Helvetica-Bold').fontSize(7).fillColor(WHITE)
+    doc.font('Times-Bold').fontSize(7).fillColor(WHITE)
     doc.text('DIMENSÃO', MARGIN + pad, y + 3, { width: w1 - pad * 2, lineBreak: false })
     doc.text('ATIVIDADE', MARGIN + w1 + pad, y + 3, { width: w2 - pad * 2, lineBreak: false })
     doc.text('PRAZO / OBJETIVOS / META', MARGIN + w1 + w2 + pad, y + 3, { width: w3 - pad * 2 })
@@ -1007,7 +978,7 @@ function renderPdiTable(doc: InstanceType<typeof PDFDocument>, atividades: Recor
     const meta = ativ.meta?.substring(0, 150) || '—'
     const rightText = `PRAZO: ${prazo}\n\nOBJETIVOS: ${objetivos}\n\nMETA: ${meta}`
 
-    doc.font('Helvetica').fontSize(8)
+    doc.font('Times-Roman').fontSize(8)
     const dimH = Math.ceil(doc.heightOfString(dimensao, { width: w1 - pad * 2 }))
     const rightH = Math.ceil(doc.heightOfString(rightText, { width: w3 - pad * 2 }))
     let rowH = Math.max(dimH, rightH) + pad * 2
@@ -1025,15 +996,15 @@ function renderPdiTable(doc: InstanceType<typeof PDFDocument>, atividades: Recor
     doc.rect(MARGIN + w1, rowY, w2, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.4).stroke()
     doc.rect(MARGIN + w1 + w2, rowY, w3, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.4).stroke()
 
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(DARK)
+    doc.font('Times-Bold').fontSize(9).fillColor(DARK)
     doc.text(dimensao, MARGIN + pad, rowY + pad, { width: w1 - pad * 2, align: 'center', lineBreak: false })
 
     const dimObj = DIMENSOES_PDI[parseInt(dimensao)]
     const atividadeTitulo = dimObj?.atividades.find(a => a.id === ativ.atividade)?.titulo || '—'
-    doc.font('Helvetica').fontSize(8.5).fillColor(DARK)
+    doc.font('Times-Roman').fontSize(8.5).fillColor(DARK)
     doc.text(atividadeTitulo, MARGIN + w1 + pad, rowY + pad, { width: w2 - pad * 2, lineGap: 1.5 })
 
-    doc.font('Helvetica').fontSize(7.5).fillColor(DARK)
+    doc.font('Times-Roman').fontSize(7.5).fillColor(DARK)
     doc.text(rightText, MARGIN + w1 + w2 + pad, rowY + pad, { width: w3 - pad * 2, lineGap: 1.2 })
 
     rowY += rowH
@@ -1055,13 +1026,13 @@ function renderPdi(doc: InstanceType<typeof PDFDocument>, c: Record<string, stri
   try {
     const atividades = c.atividades_json ? JSON.parse(c.atividades_json) : []
     if (atividades.length === 0) {
-      doc.font('Helvetica').fontSize(9.5).fillColor(GRAY).text('Nenhuma atividade registrada.', MARGIN + 8, doc.y + 4)
+      doc.font('Times-Roman').fontSize(9.5).fillColor(GRAY).text('Nenhuma atividade registrada.', MARGIN + 8, doc.y + 4)
       doc.y += 20
     } else {
       renderPdiTable(doc, atividades)
     }
   } catch {
-    doc.font('Helvetica').fontSize(9.5).fillColor(GRAY).text('Erro ao processar atividades.', MARGIN + 8, doc.y + 4)
+    doc.font('Times-Roman').fontSize(9.5).fillColor(GRAY).text('Erro ao processar atividades.', MARGIN + 8, doc.y + 4)
     doc.y += 20
   }
 }
@@ -1072,7 +1043,7 @@ function sciSection(doc: InstanceType<typeof PDFDocument>, num: string, title: s
   ensureSpace(doc, 50)
   doc.moveDown(0.5)
   const y = doc.y
-  doc.font('Helvetica-Bold').fontSize(11).fillColor(DARK)
+  doc.font('Times-Bold').fontSize(11).fillColor(DARK)
   doc.text(`${num}.  ${title.toUpperCase()}`, MARGIN, y, { lineBreak: false })
   doc.moveDown(0.15)
   doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + CONTENT_W * 0.35, doc.y).strokeColor(YELLOW).lineWidth(1.2).stroke()
@@ -1087,11 +1058,11 @@ function renderProjeto(doc: InstanceType<typeof PDFDocument>, c: Record<string, 
   // Título
   ensureSpace(doc, 90)
   doc.moveDown(0.6)
-  doc.font('Helvetica-Bold').fontSize(17).fillColor(DARK)
+  doc.font('Times-Bold').fontSize(17).fillColor(DARK)
   doc.text(c.titulo?.trim() || 'Projeto de Pesquisa', MARGIN, doc.y, { width: CONTENT_W, align: 'center', lineGap: 3 })
   doc.moveDown(0.4)
   if (c.tema_sugerido?.trim()) {
-    doc.font('Helvetica').fontSize(10).fillColor(GRAY)
+    doc.font('Times-Roman').fontSize(10).fillColor(GRAY)
     doc.text(c.tema_sugerido.trim(), MARGIN, doc.y, { width: CONTENT_W, align: 'center' })
     doc.moveDown(0.35)
   }
@@ -1101,7 +1072,7 @@ function renderProjeto(doc: InstanceType<typeof PDFDocument>, c: Record<string, 
   // Metadados
   const meta = [c.grande_area, c.subarea, c.linha_aplicacao, c.tipo_projeto].map(x => x?.trim()).filter(Boolean)
   if (meta.length > 0) {
-    doc.font('Helvetica').fontSize(7.5).fillColor(GRAY)
+    doc.font('Times-Roman').fontSize(7.5).fillColor(GRAY)
     doc.text(meta.join('  ·  '), MARGIN, doc.y, { width: CONTENT_W, align: 'center', lineBreak: false })
     doc.moveDown(0.4)
   }
@@ -1111,7 +1082,7 @@ function renderProjeto(doc: InstanceType<typeof PDFDocument>, c: Record<string, 
   if (c.acao?.trim())        escopo.push(`Ação: ${c.acao.trim()}`)
   if (periodo)               escopo.push(`Período: ${periodo}`)
   if (escopo.length > 0) {
-    doc.font('Helvetica').fontSize(8).fillColor(GRAY)
+    doc.font('Times-Roman').fontSize(8).fillColor(GRAY)
     doc.text(escopo.join('   |   '), MARGIN, doc.y, { width: CONTENT_W, align: 'center', lineBreak: false })
     doc.moveDown(0.8)
   }
@@ -1120,27 +1091,27 @@ function renderProjeto(doc: InstanceType<typeof PDFDocument>, c: Record<string, 
   if (c.resumo?.trim()) {
     ensureSpace(doc, 80)
     const boxY = doc.y
-    doc.font('Helvetica').fontSize(8.5)
+    doc.font('Times-Roman').fontSize(8.5)
     const resumoH = doc.heightOfString(c.resumo.trim(), { width: CONTENT_W - 22 })
     const boxH = resumoH + 28
     doc.rect(MARGIN, boxY, CONTENT_W, boxH).fill(LIGHT)
     doc.rect(MARGIN, boxY, 3, boxH).fill(DARK)
-    doc.font('Helvetica-Bold').fontSize(6.5).fillColor(DARK)
+    doc.font('Times-Bold').fontSize(6.5).fillColor(DARK)
     doc.text('RESUMO', MARGIN + 10, boxY + 8, { characterSpacing: 1.5, lineBreak: false })
-    doc.font('Helvetica').fontSize(8.5).fillColor(DARK)
+    doc.font('Times-Roman').fontSize(8.5).fillColor(DARK)
     doc.text(c.resumo.trim(), MARGIN + 10, boxY + 18, { width: CONTENT_W - 18, lineGap: 1.5 })
     doc.y = boxY + boxH + 6
   }
   if (c.palavras_chave?.trim()) {
-    doc.font('Helvetica-Bold').fontSize(8).fillColor(GRAY)
+    doc.font('Times-Bold').fontSize(8).fillColor(GRAY)
     doc.text('Palavras-chave: ', MARGIN, doc.y, { continued: true, lineBreak: false })
-    doc.font('Helvetica').fontSize(8).fillColor(GRAY).text(c.palavras_chave.trim())
+    doc.font('Times-Roman').fontSize(8).fillColor(GRAY).text(c.palavras_chave.trim())
     doc.moveDown(0.8)
   }
   doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + CONTENT_W, doc.y).strokeColor(BORDER).lineWidth(0.5).stroke()
   doc.moveDown(0.6)
 
-  const para = (txt: string) => { doc.font('Helvetica').fontSize(9.5).fillColor(DARK).text(txt.trim(), MARGIN, doc.y, { width: CONTENT_W, lineGap: 2 }); doc.moveDown(0.6) }
+  const para = (txt: string) => { doc.font('Times-Roman').fontSize(9.5).fillColor(DARK).text(txt.trim(), MARGIN, doc.y, { width: CONTENT_W, lineGap: 2 }); doc.moveDown(0.6) }
 
   let n = 1
   if (c.problema?.trim())      { sciSection(doc, String(n++), 'Problema de Pesquisa'); para(c.problema) }
@@ -1148,14 +1119,14 @@ function renderProjeto(doc: InstanceType<typeof PDFDocument>, c: Record<string, 
   if (c.objetivo_geral?.trim() || c.objetivos_especificos?.trim()) {
     sciSection(doc, String(n++), 'Objetivos')
     if (c.objetivo_geral?.trim()) {
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(GRAY).text('Objetivo Geral', MARGIN, doc.y)
+      doc.font('Times-Bold').fontSize(8.5).fillColor(GRAY).text('Objetivo Geral', MARGIN, doc.y)
       para(c.objetivo_geral)
     }
     if (c.objetivos_especificos?.trim()) {
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(GRAY).text('Objetivos Específicos', MARGIN, doc.y)
+      doc.font('Times-Bold').fontSize(8.5).fillColor(GRAY).text('Objetivos Específicos', MARGIN, doc.y)
       c.objetivos_especificos.trim().split('\n').filter(Boolean).forEach(item => {
         ensureSpace(doc, 20)
-        doc.font('Helvetica').fontSize(9.5).fillColor(DARK).text(item.trim(), MARGIN + 10, doc.y, { width: CONTENT_W - 10, lineGap: 1.5 })
+        doc.font('Times-Roman').fontSize(9.5).fillColor(DARK).text(item.trim(), MARGIN + 10, doc.y, { width: CONTENT_W - 10, lineGap: 1.5 })
       })
       doc.moveDown(0.4)
     }
@@ -1168,7 +1139,7 @@ function renderProjeto(doc: InstanceType<typeof PDFDocument>, c: Record<string, 
     sciSection(doc, String(n++), 'Referências')
     c.referencias.trim().split('\n').filter(Boolean).forEach((ref, i) => {
       ensureSpace(doc, 22)
-      doc.font('Helvetica').fontSize(8.5).fillColor(DARK).text(`${i + 1}.  ${ref.trim()}`, MARGIN + 14, doc.y, { width: CONTENT_W - 14, lineGap: 1.5 })
+      doc.font('Times-Roman').fontSize(8.5).fillColor(DARK).text(`${i + 1}.  ${ref.trim()}`, MARGIN + 14, doc.y, { width: CONTENT_W - 14, lineGap: 1.5 })
     })
   }
 }
@@ -1190,14 +1161,14 @@ function cronogramaTable(doc: InstanceType<typeof PDFDocument>, raw: string) {
   ensureSpace(doc, headerH + 20)
   let y0 = doc.y
   doc.rect(MARGIN, y0, CONTENT_W, headerH).fill(DARK)
-  doc.font('Helvetica-Bold').fontSize(7).fillColor(WHITE)
+  doc.font('Times-Bold').fontSize(7).fillColor(WHITE)
   doc.text('#', MARGIN + pad, y0 + 4, { width: numW - pad, lineBreak: false })
   doc.text('DATA', MARGIN + numW + pad, y0 + 4, { width: dateW - pad, lineBreak: false })
   doc.text('ATIVIDADE / TEMA', MARGIN + numW + dateW + pad, y0 + 4, { width: acaoW - pad, lineBreak: false })
   let rowY = y0 + headerH
 
   rows.forEach((row, i) => {
-    doc.font('Helvetica').fontSize(8)
+    doc.font('Times-Roman').fontSize(8)
     const acaoH = doc.heightOfString(row.acao || '—', { width: acaoW - pad * 2 })
     const rowH = Math.max(acaoH + pad * 2, 18)
     if (rowY + rowH > PAGE_H - BOTTOM_M) { doc.addPage(); rowY = doc.y }
@@ -1205,7 +1176,7 @@ function cronogramaTable(doc: InstanceType<typeof PDFDocument>, raw: string) {
     doc.rect(MARGIN, rowY, numW, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.3).stroke()
     doc.rect(MARGIN + numW, rowY, dateW, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.3).stroke()
     doc.rect(MARGIN + numW + dateW, rowY, acaoW, rowH).fill(bg).strokeColor(BORDER).lineWidth(0.3).stroke()
-    doc.font('Helvetica').fontSize(7.5).fillColor(GRAY).text(String(i + 1).padStart(2, '0'), MARGIN + pad, rowY + pad, { width: numW - pad, lineBreak: false })
+    doc.font('Times-Roman').fontSize(7.5).fillColor(GRAY).text(String(i + 1).padStart(2, '0'), MARGIN + pad, rowY + pad, { width: numW - pad, lineBreak: false })
     doc.fillColor(DARK).text(row.date, MARGIN + numW + pad, rowY + pad, { width: dateW - pad, lineBreak: false })
     doc.text(row.acao || '—', MARGIN + numW + dateW + pad, rowY + pad, { width: acaoW - pad * 2, lineGap: 1 })
     rowY += rowH
@@ -1289,7 +1260,7 @@ function renderCartaNautica(doc: InstanceType<typeof PDFDocument>, c: Record<str
 
   if (aulas.length === 0) {
     sectionTitle(doc, 'Mapa de Slides')
-    doc.font('Helvetica').fontSize(9.5).fillColor(GRAY).text('Nenhuma aula mapeada.', MARGIN + 8, doc.y + 4)
+    doc.font('Times-Roman').fontSize(9.5).fillColor(GRAY).text('Nenhuma aula mapeada.', MARGIN + 8, doc.y + 4)
     doc.y += 20
     return
   }
@@ -1354,17 +1325,28 @@ export function generatePdf(input: PdfInput): Promise<Buffer> {
   }
 
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 0, autoFirstPage: true })
+    // bufferPages: o rodapé institucional é aplicado no fim, em todas as páginas.
+    const doc = new PDFDocument({ size: 'A4', margin: 0, autoFirstPage: true, bufferPages: true })
     const chunks: Buffer[] = []
 
     doc.on('data', (c: Buffer) => chunks.push(c))
     doc.on('end',  () => resolve(Buffer.concat(chunks)))
     doc.on('error', reject)
 
-    header(doc, input)
+    // Cabeçalho e rodapé institucionais. Estes documentos (PEI, PDI, ATA…)
+    // posicionam o corpo por coordenada com MARGIN fixo, então o layout do
+    // shared recebe a mesma margem em vez das espelhadas.
+    const info: DocHeaderInfo = {
+      type:       input.type,
+      title:      input.title,
+      schoolName: input.schoolName,
+      authorName: input.authorName,
+      createdAt:  input.createdAt,
+    }
+    fullHeader(doc, info, LEGACY_LAYOUT)
 
     doc.on('pageAdded', () => {
-      miniHeader(doc, input)
+      miniHeader(doc, info, LEGACY_LAYOUT)
     })
 
     if (input.type === 'PLANO_AULA' || input.type === 'OE_PLANO_AULA') {
@@ -1399,7 +1381,7 @@ export function generatePdf(input: PdfInput): Promise<Buffer> {
       renderGeneric(doc, input)
     }
 
-    footer(doc, input)
+    paginate(doc, info, LEGACY_LAYOUT)
     doc.end()
   })
 }

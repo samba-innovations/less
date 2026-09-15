@@ -59,9 +59,9 @@ export function ExportButton<T extends Record<string, unknown>>({
     const a = document.createElement('a')
     a.href = url
     a.download = `${filename}.${ext}`
-    document.body.appendChild(a)
+    // Sem anexar ao DOM: o clique sintético num elemento solto não percorre o
+    // document, então nada que escute cliques globais o confunde com navegação.
     a.click()
-    document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
 

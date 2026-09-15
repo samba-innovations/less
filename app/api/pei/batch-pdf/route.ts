@@ -3,6 +3,7 @@ import { getAuthCookie } from '@/lib/cookie'
 import { verifyToken } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { generatePdf } from '@/lib/pdf'
+import { prepareSchoolInfo } from '@/lib/pdf/layout'
 
 type StudentInput = {
   id?: number; name: string; ra: string; turma: string
@@ -34,6 +35,10 @@ export async function POST(req: NextRequest) {
   const students = body.students ?? []
   const shared   = body.sharedContent ?? {}
   const title    = body.title ?? 'PEI'
+
+  // Pré-carrega SchoolInfo (dados institucionais + logoBuffer) uma vez pra
+  // que todos os PDFs do batch usem o cache.
+  await prepareSchoolInfo(school.organization.name).catch(() => {})
 
   if (students.length === 0) {
     return NextResponse.json({ error: 'Nenhum aluno selecionado.' }, { status: 400 })

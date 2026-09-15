@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle2, Layers, ChevronDown, ArrowUpDown } from 'lucide-react'
+import { Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle2, ChevronDown, ArrowUpDown } from 'lucide-react'
 import type { ConsideracoesInput, StudentRow, AreaData } from '@/lib/docx-consideracoes'
 import s from './consideracoes.module.css'
+import { PageHeader } from '../_components/PageHeader'
 import { ChipSelector } from '../_components/Selector'
 import { Input } from '../_components/Input'
+import { Button } from '../_components/Button'
 
 // ── CSV parser ────────────────────────────────────────────────────────────────
 
@@ -86,9 +88,11 @@ function AreaChip({ label, data }: { label: string; data: AreaData }) {
   return (
     <div className={s.areaChip}>
       <span className={s.areaLabel}>{label}</span>
-      {des > 0 && <span className={s.tagGreen}>{des} destaque</span>}
-      {pon > 0 && <span className={s.tagRed}>{pon} atenção</span>}
-      {des === 0 && pon === 0 && <span className={s.tagEmpty}>sem registros</span>}
+      <div className={s.areaTags}>
+        {des > 0 && <span className={s.tagGood}>{des} destaque</span>}
+        {pon > 0 && <span className={s.tagWarn}>{pon} atenção</span>}
+        {des === 0 && pon === 0 && <span className={s.tagEmpty}>sem registros</span>}
+      </div>
     </div>
   )
 }
@@ -104,11 +108,10 @@ export function ConsideracoesClient() {
   const [generating, setGen]      = useState(false)
   const [error,     setError]     = useState<string | null>(null)
   const [showDrop,  setShowDrop]  = useState(false)
+  const [dragOver,  setDragOver]  = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+  async function processFile(file: File) {
     setLoading(true); setParsed(null); setError(null)
     try {
       let loaded: SheetData[]
@@ -123,12 +126,23 @@ export function ConsideracoesClient() {
       setTurma(loaded[0].name)
       setParsed(p)
     } catch (err) {
-      setError('Erro ao processar o arquivo. Verifique se é um Excel (.xlsx) ou CSV válido.')
+      setError('erro ao processar o arquivo. verifique se é um Excel (.xlsx) ou CSV válido.')
       console.error(err)
     } finally {
       setLoading(false)
       if (fileRef.current) fileRef.current.value = ''
     }
+  }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) await processFile(file)
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault(); setDragOver(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) processFile(file)
   }
 
   function selectSheet(idx: number) {
@@ -153,7 +167,7 @@ export function ConsideracoesClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      if (!res.ok) { setError('Erro ao gerar o DOCX.'); return }
+      if (!res.ok) { setError('erro ao gerar o DOCX.'); return }
       const blob = await res.blob()
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')
@@ -162,7 +176,7 @@ export function ConsideracoesClient() {
       a.click()
       URL.revokeObjectURL(url)
     } catch {
-      setError('Falha ao gerar o documento.')
+      setError('falha ao gerar o documento.')
     } finally { setGen(false) }
   }
 
@@ -172,44 +186,43 @@ export function ConsideracoesClient() {
 
   return (
     <div className={s.page}>
-
-      <div className={s.pageHeader}>
-        <div className={s.pageHeaderIcon}><Layers size={18} /></div>
-        <div>
-          <h1 className={s.pageTitle}>Considerações de Desempenho</h1>
-          <p className={s.pageSub}>Upload da planilha → DOCX por turma</p>
-        </div>
-      </div>
-
-      {/* Upload zone */}
-      <div className={s.uploadZone} onClick={() => fileRef.current?.click()}>
-        <input ref={fileRef} type="file" accept=".xlsx,.csv" className={s.hiddenInput} onChange={handleFile} />
-        <div className={s.uploadIcon}>
-          {loading
-            ? <div className={s.spinner} />
-            : <FileSpreadsheet size={26} />
-          }
-        </div>
-        <p className={s.uploadTitle}>{loading ? 'Processando…' : 'Clique para enviar a planilha'}</p>
-        <p className={s.uploadSub}>Excel (.xlsx) com múltiplas abas ou arquivo CSV (.csv)</p>
-        {sheets.length > 0 && !loading && (
-          <div className={s.uploadSuccess}>
-            <CheckCircle2 size={13} /> {sheets.length} aba{sheets.length > 1 ? 's' : ''} carregada{sheets.length > 1 ? 's' : ''}
-          </div>
-        )}
-      </div>
+      <PageHeader
+        title="considerações"
+        subtitle="upload da planilha → DOCX por turma com destaques e pontos de atenção"
+      />
 
       {error && (
         <div className={s.errorBox}><AlertCircle size={14} /> {error}</div>
       )}
 
-      {parsed && (
-        <div className={s.formSection}>
+      <div className={s.grid}>
+        {/* ── Coluna esquerda: upload + config ── */}
+        <div className={s.gridLeft}>
+          <div
+            className={`${s.uploadZone} ${dragOver ? s.uploadZoneOver : ''}`}
+            onClick={() => fileRef.current?.click()}
+            onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}
+          >
+            <input ref={fileRef} type="file" accept=".xlsx,.csv" className={s.hiddenInput} onChange={handleFile} />
+            <div className={s.uploadIcon}>
+              {loading ? <div className={s.spinner} /> : <Upload size={22} />}
+            </div>
+            <p className={s.uploadTitle}>
+              {loading ? 'processando…' : 'clique ou arraste a planilha'}
+            </p>
+            <p className={s.uploadSub}>Excel (.xlsx) com múltiplas abas ou CSV (.csv)</p>
+            {sheets.length > 0 && !loading && (
+              <div className={s.uploadOk}>
+                <CheckCircle2 size={13} /> {sheets.length} aba{sheets.length > 1 ? 's' : ''} carregada{sheets.length > 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
 
-          {/* Sheet selector */}
-          {sheets.length > 1 && (
+          {parsed && sheets.length > 1 && (
             <div className={s.card}>
-              <p className={s.cardLabel}>Turma / Aba</p>
+              <span className={s.cardLabel}>turma / aba</span>
               <ChipSelector
                 size="sm"
                 value={String(selected)}
@@ -219,95 +232,108 @@ export function ConsideracoesClient() {
             </div>
           )}
 
-          {/* Turma name */}
-          <div className={s.card}>
-            <p className={s.cardLabel}>Nome da Turma no Documento</p>
-            <Input
-              placeholder="Ex: 6ºA — Tarde"
-              value={turma}
-              onChange={e => setTurma(e.target.value)}
-              className={s.input}
-            />
-          </div>
-
-          {/* Summary */}
-          <div className={s.card}>
-            <p className={s.cardLabel}>Registros encontrados — {totalAlunos} aluno{totalAlunos !== 1 ? 's' : ''} com comentários</p>
-            <div className={s.areaGrid}>
-              <AreaChip label="LGG" data={parsed.lgg} />
-              <AreaChip label="CHS" data={parsed.chs} />
-              <AreaChip label="CNT/MAT" data={parsed.cnt} />
-            </div>
-            {totalAlunos === 0 && (
-              <div className={s.warnBox}><AlertCircle size={13} /> Nenhum comentário encontrado. Verifique o formato do arquivo.</div>
-            )}
-          </div>
-
-          {/* General considerations preview */}
-          {(parsed.lgg.geral || parsed.chs.geral || parsed.cnt.geral) && (
+          {parsed && (
             <div className={s.card}>
-              <p className={s.cardLabel}>Considerações Gerais</p>
-              {[
-                { label: 'LGG', text: parsed.lgg.geral },
-                { label: 'CHS', text: parsed.chs.geral },
-                { label: 'CNT/MAT', text: parsed.cnt.geral },
-              ].filter(a => a.text).map(a => (
-                <div key={a.label} className={s.geralRow}>
-                  <span className={s.geralLabel}>{a.label}</span>
-                  <p className={s.geralText}>{a.text}</p>
-                </div>
-              ))}
+              <span className={s.cardLabel}>nome da turma no documento</span>
+              <Input
+                placeholder="ex: 6ºA — tarde"
+                value={turma}
+                onChange={e => setTurma(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ── Coluna direita: preview + gerar ── */}
+        <div className={s.gridRight}>
+          {!parsed && !loading && (
+            <div className={s.empty}>
+              <FileSpreadsheet size={36} strokeWidth={1.2} />
+              <p>envie a planilha para começar. o DOCX incluirá apenas alunos com comentários registrados.</p>
             </div>
           )}
 
-          {/* Generate */}
-          <div className={s.generateWrap}>
-            <div className={`${s.generateRow} ${(generating || totalAlunos === 0) ? s.generateDisabled : ''}`}>
-              <button
-                className={s.generateBtn}
-                onClick={() => handleGenerate('original')}
-                disabled={generating || totalAlunos === 0}
-              >
-                {generating ? <><div className={s.spinnerSm} /> Gerando DOCX…</> : <><Download size={16} /> Gerar DOCX — {turma || 'Turma'}</>}
-              </button>
-              <button
-                className={s.generateChevron}
-                onClick={() => setShowDrop(v => !v)}
-                disabled={generating || totalAlunos === 0}
-              >
-                <ChevronDown size={14} className={showDrop ? s.chevronUp : ''} />
-              </button>
-            </div>
-
-            {showDrop && (
-              <div className={s.dropdown}>
-                <button className={s.dropItem} onClick={() => handleGenerate('original')}>
-                  <Download size={13} />
-                  <div>
-                    <p className={s.dropItemTitle}>Ordem da planilha</p>
-                    <p className={s.dropItemSub}>Mesmo formato do arquivo</p>
+          {parsed && (
+            <>
+              <div className={s.card}>
+                <span className={s.cardLabel}>
+                  registros encontrados — {totalAlunos} aluno{totalAlunos !== 1 ? 's' : ''} com comentários
+                </span>
+                <div className={s.areaGrid}>
+                  <AreaChip label="LGG"     data={parsed.lgg} />
+                  <AreaChip label="CHS"     data={parsed.chs} />
+                  <AreaChip label="CNT/MAT" data={parsed.cnt} />
+                </div>
+                {totalAlunos === 0 && (
+                  <div className={s.warnBox}>
+                    <AlertCircle size={13} /> nenhum comentário encontrado. verifique o formato do arquivo.
                   </div>
-                </button>
-                <button className={s.dropItem} onClick={() => handleGenerate('destaques-primeiro')}>
-                  <ArrowUpDown size={13} />
-                  <div>
-                    <p className={s.dropItemTitle}>Destaques primeiro</p>
-                    <p className={s.dropItemSub}>Alunos com destaque antes dos com ponto de atenção</p>
-                  </div>
-                </button>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-      )}
 
-      {!parsed && !loading && (
-        <div className={s.emptyState}>
-          <FileSpreadsheet size={40} className={s.emptyIcon} />
-          <p className={s.emptyTitle}>Envie a planilha para começar</p>
-          <p className={s.emptySub}>O DOCX incluirá somente alunos com comentários registrados</p>
+              {(parsed.lgg.geral || parsed.chs.geral || parsed.cnt.geral) && (
+                <div className={s.card}>
+                  <span className={s.cardLabel}>considerações gerais</span>
+                  <div className={s.geralList}>
+                    {[
+                      { label: 'LGG',     text: parsed.lgg.geral },
+                      { label: 'CHS',     text: parsed.chs.geral },
+                      { label: 'CNT/MAT', text: parsed.cnt.geral },
+                    ].filter(a => a.text).map(a => (
+                      <div key={a.label} className={s.geralRow}>
+                        <span className={s.geralLabel}>{a.label}</span>
+                        <p className={s.geralText}>{a.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className={s.generateWrap}>
+                <div className={s.generateRow}>
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    onClick={() => handleGenerate('original')}
+                    disabled={generating || totalAlunos === 0}
+                    iconLeft={generating ? <div className={s.spinnerSm} /> : <Download size={14} />}
+                    className={s.generateBtn}
+                  >
+                    {generating ? 'gerando DOCX…' : `gerar DOCX — ${turma || 'turma'}`}
+                  </Button>
+                  <button
+                    className={s.generateChevron}
+                    onClick={() => setShowDrop(v => !v)}
+                    disabled={generating || totalAlunos === 0}
+                    aria-label="opções de ordenação"
+                  >
+                    <ChevronDown size={14} className={showDrop ? s.chevronUp : ''} />
+                  </button>
+                </div>
+
+                {showDrop && (
+                  <div className={s.dropdown}>
+                    <button className={s.dropItem} onClick={() => handleGenerate('original')}>
+                      <Download size={14} />
+                      <div>
+                        <p className={s.dropItemTitle}>ordem da planilha</p>
+                        <p className={s.dropItemSub}>mesmo formato do arquivo</p>
+                      </div>
+                    </button>
+                    <button className={s.dropItem} onClick={() => handleGenerate('destaques-primeiro')}>
+                      <ArrowUpDown size={14} />
+                      <div>
+                        <p className={s.dropItemTitle}>destaques primeiro</p>
+                        <p className={s.dropItemSub}>alunos com destaque antes dos com atenção</p>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

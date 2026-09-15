@@ -13,9 +13,9 @@
   width: 100%;
   min-width: 0;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--input-border);
   border-radius: var(--radius-md);
-  background: var(--surface);
+  background: var(--input-bg);
   color: var(--fg);
   font-family: inherit;
   font-size: 0.875rem;
@@ -27,8 +27,8 @@
               box-shadow var(--duration-fast) var(--ease-out);
 }
 .trigger:hover:not(.triggerDisabled) {
-  border-color: color-mix(in srgb, var(--brand) 40%, var(--border));
-  background: color-mix(in srgb, var(--brand) 3%, var(--surface));
+  border-color: color-mix(in srgb, var(--brand) 40%, var(--input-border));
+  background: color-mix(in srgb, var(--brand) 3%, var(--input-bg));
 }
 .trigger:focus-visible {
   border-color: var(--brand);
@@ -62,7 +62,7 @@
 .panel {
   position: fixed;
   z-index: 99999;
-  width: 240px;
+  width: 268px;
   padding: 0.75rem;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -106,9 +106,9 @@
 /* ── Colunas de scroll ──────────────────────────────────── */
 .columns {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 0.35rem;
-  align-items: center;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  align-items: start;
 }
 
 .col {
@@ -134,18 +134,21 @@
 .colStep:hover { background: var(--surface); color: var(--brand); }
 
 .colScroll {
+  /* contexto de posicionamento: offsetTop dos itens precisa ser medido a partir
+     daqui, senão o scroll calculado soma a altura do preview e dos rótulos. */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  height: 168px;                  /* ~ 6 items visíveis */
+  height: 140px;                  /* ~ 5 itens visíveis */
   overflow-y: auto;
   scroll-snap-type: y mandatory;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--fg) 15%, transparent) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   padding: 0 2px;
   mask-image: linear-gradient(to bottom, transparent 0, black 15%, black 85%, transparent 100%);
 }
-.colScroll::-webkit-scrollbar { width: 4px; }
+.colScroll::-webkit-scrollbar { width: 0; height: 0; }
 .colScroll::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--fg) 15%, transparent);
   border-radius: var(--radius-round);
@@ -179,8 +182,6 @@
   background: var(--brand);
   color: #fff !important;
   font-weight: 700;
-  transform: scale(1.02);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--brand) 40%, transparent);
 }
 .colItemDisabled {
   opacity: 0.35;
@@ -188,7 +189,7 @@
   text-decoration: line-through;
 }
 
-.colSepWrap { display: flex; align-items: center; justify-content: center; padding: 0 2px; }
+.colSepWrap { display: none; }
 .colSep {
   font-size: 1.5rem;
   font-weight: 700;
@@ -244,3 +245,19 @@
 }
 .confirmBtn:hover  { filter: brightness(1.06); transform: translateY(-1px); }
 .confirmBtn:active { transform: scale(0.98); }
+
+/* Cabeçalho de cada coluna: diz o que se está escolhendo sem depender do ':' */
+.colLabel {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-secondary);
+  text-align: center;
+  padding-bottom: 0.15rem;
+}
+
+/* Rodapé: as ações rápidas dividem a primeira linha, confirmar ocupa a segunda */
+.footer { flex-wrap: wrap; }
+.footer > .quickBtn { flex: 1 1 0; min-width: 0; }
+.footer > button:last-child { flex: 1 1 100%; }

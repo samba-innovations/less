@@ -38,9 +38,9 @@
   justify-content: center;
   flex-shrink: 0;
   width: 18px; height: 18px;
-  border: 1.5px solid var(--border);
+  border: 1.5px solid var(--input-border);
   border-radius: 5px;
-  background: var(--surface);
+  background: var(--input-bg);
   color: #fff;                              /* cor do SVG check */
   transition: background var(--duration-fast) var(--ease-out),
               border-color var(--duration-fast) var(--ease-out),

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Renderer pra PLANO_AULA e OE_PLANO_AULA.
  *
  * Inclui contexto curricular (turma/disciplina/bimestre), aulas selecionadas,
@@ -14,9 +14,9 @@ import {
   signatureLine, divider, spacer, lightTable, bulletList,
 } from './primitives'
 import {
-  CONTENT_W, CONTENT_X, COLORS, FONT, SIZE, SPACE, BODY_BOTTOM_Y,
-  MARGIN_LEFT, MARGIN_RIGHT, PDF_MARGIN_TOP, PDF_MARGIN_BOTTOM,
+  cw, cx, COLORS, FONT, SIZE, SPACE, BODY_BOTTOM_Y,
 } from './theme'
+import { firstPageOptions, addMirroredPage } from '@pdf'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
 
@@ -58,7 +58,7 @@ function badgeListBlock(doc: PDFDoc, value: string) {
 }
 
 function ensureSpace(doc: PDFDoc, needed: number) {
-  if (doc.y + needed > BODY_BOTTOM_Y) doc.addPage()
+  if (doc.y + needed > BODY_BOTTOM_Y) addMirroredPage(doc)
 }
 
 // ── Bloco "tempo - título" (ex: "0–10 min · Momentos Iniciais") ──────────────
@@ -66,9 +66,9 @@ function timeBlock(doc: PDFDoc, time: string, label: string) {
   ensureSpace(doc, 24)
   doc.y += SPACE.sm
   doc.font(FONT.bold).fontSize(SIZE.tiny).fillColor(COLORS.fgMuted)
-    .text(time.toUpperCase(), CONTENT_X, doc.y, { width: 80, lineBreak: false, characterSpacing: 0.5 })
+    .text(time.toUpperCase(), cx(doc), doc.y, { width: 80, lineBreak: false, characterSpacing: 0.5 })
   doc.font(FONT.bold).fontSize(SIZE.small).fillColor(COLORS.fg)
-    .text(label, CONTENT_X + 85, doc.y, { width: CONTENT_W - 85, lineBreak: false })
+    .text(label, cx(doc) + 85, doc.y, { width: cw(doc) - 85, lineBreak: false })
   doc.y += 16
 }
 
@@ -83,11 +83,11 @@ function partesDesenvBlock(doc: PDFDoc, p1: string, p2: string, p3: string) {
   if (partes.length === 0) return
 
   ensureSpace(doc, 60)
-  const colW = (CONTENT_W - SPACE.sm * (partes.length - 1)) / partes.length
+  const colW = (cw(doc) - SPACE.sm * (partes.length - 1)) / partes.length
   const startY = doc.y
 
   for (let i = 0; i < partes.length; i++) {
-    const x = CONTENT_X + i * (colW + SPACE.sm)
+    const x = cx(doc) + i * (colW + SPACE.sm)
     doc.font(FONT.bold).fontSize(SIZE.tiny).fillColor(COLORS.fgMuted)
       .text(partes[i].label.toUpperCase(), x, startY, { width: colW, characterSpacing: 0.4 })
 
@@ -107,12 +107,7 @@ function partesDesenvBlock(doc: PDFDoc, p1: string, p2: string, p3: string) {
 
 export function generatePlanoAulaPdf(input: PlanoAulaInput): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({
-      size: 'A4',
-      margins: { top: PDF_MARGIN_TOP, bottom: PDF_MARGIN_BOTTOM, left: MARGIN_LEFT, right: MARGIN_RIGHT },
-      autoFirstPage: true,
-      bufferPages: true,
-    })
+    const doc = new PDFDocument({ ...firstPageOptions(), autoFirstPage: true })
     const chunks: Buffer[] = []
 
     doc.on('data', (c: Buffer) => chunks.push(c))
@@ -134,9 +129,9 @@ export function generatePlanoAulaPdf(input: PlanoAulaInput): Promise<Buffer> {
     const c    = input.content
     const dateLong = input.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 
-    docTitle(doc, input.title, `${meta.label}  ·  ${dateLong}`)
-    paragraph(doc, `${input.schoolName} — ${dateLong}`, { small: true })
-    divider(doc)
+    // O título e a data já são desenhados pelo shared/pdf renderFullHeader.
+    // Aqui só damos um respiro antes do corpo iniciar.
+    spacer(doc, 'md')
 
     // ── Identificação ────────────────────────────────────────────────────────
     const bimNum = c.bimestre ? Number(c.bimestre) : 0
@@ -144,11 +139,22 @@ export function generatePlanoAulaPdf(input: PlanoAulaInput): Promise<Buffer> {
       ? `${bimNum}º Bimestre — ${BIMESTRE_DATAS[bimNum]}`
       : (c.bimestre ? `${c.bimestre}º Bimestre` : '—')
 
+    // Formata data: aceita ISO (2026-09-03), BR (03/09/2026) ou vazio
+    function fmtData(s: string | undefined): string {
+      if (!s) return dateLong
+      const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
+      if (iso) {
+        const d = new Date(`${iso[1]}-${iso[2]}-${iso[3]}T12:00:00`)
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+      }
+      return s
+    }
+
     sectionTitle(doc, 'Identificação')
     kv(doc, 'Turma',      c.turmas || c.turma || '—', { inline: true })
     kv(doc, 'Disciplina', c.disciplina || '—',        { inline: true })
     kv(doc, 'Bimestre',   bimLabel,                   { inline: true })
-    kv(doc, 'Data',       c.data || dateLong,         { inline: true })
+    kv(doc, 'Data',       fmtData(c.data),            { inline: true })
     if (c.tema) kv(doc, 'Tema / Título da Aula', c.tema, { inline: true })
     spacer(doc, 'md')
 
@@ -196,7 +202,7 @@ export function generatePlanoAulaPdf(input: PlanoAulaInput): Promise<Buffer> {
       const tipo = ((c.tipo_aula ?? 'individual') as TipoAula)
       const cfg  = TIPO_AULA_CFG[tipo] ?? TIPO_AULA_CFG.individual
       doc.font(FONT.italic).fontSize(SIZE.small).fillColor(COLORS.fgMuted)
-        .text(cfg.titulo, CONTENT_X, doc.y, { width: CONTENT_W })
+        .text(cfg.titulo, cx(doc), doc.y, { width: cw(doc) })
       doc.y += SPACE.sm
 
       if (c.desenvolvimento_inicial) {

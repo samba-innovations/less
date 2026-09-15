@@ -1,12 +1,12 @@
 'use server'
 
 import { db } from '@/lib/db'
+
+const SYSTEM = 'control'
 import { getAuthCookie } from '@/lib/cookie'
 import { verifyToken } from '@/lib/jwt'
 import { getSchoolFromPayload } from '@/lib/school'
 import { revalidatePath } from 'next/cache'
-
-const SYSTEM = 'less'
 
 async function getContext() {
   const token = await getAuthCookie()

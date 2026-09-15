@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import s from './loader.module.css'
 
 const LOGO  = '/identidade/less-isotipo1.svg'
-const COLOR = '#fce375'
 
 export function PageLoader() {
   const [phase, setPhase] = useState<'in' | 'out' | 'gone'>('in')
@@ -23,7 +22,7 @@ export function PageLoader() {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={LOGO} alt="logo" className={s.splashLogo} />
       <div className={s.splashBar}>
-        <div className={s.splashProgress} style={{ '--loader-color': COLOR } as React.CSSProperties} />
+        <div className={s.splashProgress} />
       </div>
     </div>
   )
@@ -68,7 +67,7 @@ export function NavigationProgress() {
   return (
     <div
       className={s.navBar}
-      style={{ width: `${width}%`, '--loader-color': COLOR } as React.CSSProperties}
+      style={{ width: `${width}%` }}
     />
   )
 }

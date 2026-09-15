@@ -257,8 +257,8 @@
   overflow: hidden;
 }
 
-.logoutBtn:hover { color: #dc2626; }
-.logoutBtn:hover svg { color: #dc2626; }
+.logoutBtn:hover { color: var(--danger); }
+.logoutBtn:hover svg { color: var(--danger); }
 
 .logoutBtn svg { stroke-width: 1.75; transition: color 0.18s; }
 
@@ -406,7 +406,7 @@
   text-decoration: none;
 }
 
-.topbarLogout:hover { color: #ef4444; }
+.topbarLogout:hover { color: var(--danger); }
 
 /* User info — typography-first */
 .userMenuWrap {
@@ -590,6 +590,8 @@
   .topbar { padding: 0 1rem; grid-template-columns: 1fr auto; }
   .topbarCenter { grid-column: 1 / -1; grid-row: 2; display: none; }
   .userText { display: none; }
+  /* Permite que o breadcrumb encolha em vez de empurrar a topbar */
+  .topbarLeft { min-width: 0; }
 }
 
 @media (max-width: 768px) {
@@ -597,8 +599,36 @@
 }
 
 @media (max-width: 640px) {
-  .topbar { padding: 0 0.75rem; }
+  .topbar { padding: 0 0.75rem; gap: 0.4rem; }
   .topbarRight { gap: 0.25rem; }
   .content { padding: 1rem 0.875rem 1.5rem; }
   .avatarWrap { width: 30px; height: 30px; }
+  .topbarBtn { width: 32px; height: 32px; }
+  /* Breadcrumb com elipse — evita "iníciot" emendado por overflow */
+  .topbarLeft :global(nav[aria-label="breadcrumb"]) {
+    min-width: 0;
+    overflow: hidden;
+    flex-shrink: 1;
+  }
+  .topbarLeft :global(nav[aria-label="breadcrumb"]) > span {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .topbarLeft :global(nav[aria-label="breadcrumb"]) > span:last-child > * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    max-width: 100%;
+  }
 }
+
+@media (max-width: 480px) {
+  .topbar { padding: 0 0.5rem; }
+  .topbarRight { gap: 0.15rem; }
+  .avatarWrap { width: 28px; height: 28px; font-size: 0.6875rem; }
+  .topbarBtn { width: 30px; height: 30px; }
+  .content { padding: 0.875rem 0.625rem 1.25rem; }
+  .sidebarMobile { width: min(280px, 88vw); }
+}
+

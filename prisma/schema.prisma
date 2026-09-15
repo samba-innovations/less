@@ -178,6 +178,22 @@ model School {
   openTime       String?
   closeTime      String?
 
+  // Dados institucionais (rodapé dos PDFs oficiais — vêm do control)
+  officialName   String?
+  addressStreet  String?
+  addressNumber  String?
+  addressExtra   String?
+  neighborhood   String?
+  city           String?
+  state          String?    @db.VarChar(2)
+  postalCode     String?
+  phone          String?
+  contactEmail   String?
+  website        String?
+  cnpj           String?
+  inepCode       String?
+  logoUrl        String?
+
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   schoolYears         SchoolYear[]

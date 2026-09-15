@@ -54,6 +54,18 @@
 
 :root[data-theme="dark"],
 :root.dark {
+  /* No escuro o campo RECUA: mais escuro que o card. surface-elevated fica
+     a ~3% de luminância do card e o campo somia dentro dele. */
+  --input-bg:     var(--bg);
+  --input-border: #33333c;
+
+  /* Semantic colors — tons mais claros: os do tema claro perdem contraste
+     sobre fundo escuro. */
+  --success: #10b981;
+  --danger:  #f87171;
+  --warning: #fbbf24;
+  --info:    #38bdf8;
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.30);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.20);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.25);

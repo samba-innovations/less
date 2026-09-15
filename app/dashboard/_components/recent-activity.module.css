@@ -38,8 +38,8 @@
   border-left: 3px solid transparent;
 }
 .row:hover { background: color-mix(in srgb, var(--fg) 4%, transparent); }
-.urgent { border-left-color: #dc2626; }
-.high   { border-left-color: #f59e0b; }
+.urgent { border-left-color: var(--danger); }
+.high   { border-left-color: var(--warning); }
 
 .rowInfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .rowHead { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }

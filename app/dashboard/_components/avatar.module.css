@@ -58,5 +58,5 @@
 
 .online  { background: #10b981; }
 .offline { background: #9ca3af; }
-.busy    { background: #ef4444; }
-.away    { background: #f59e0b; }
+.busy    { background: var(--danger); }
+.away    { background: var(--warning); }

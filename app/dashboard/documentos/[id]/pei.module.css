@@ -89,7 +89,7 @@
 .studentOn .studentCheck { background: var(--brand); border-color: var(--brand); }
 
 .studentTags { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-.tagTurma { font-size: 0.625rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 0.3rem; background: rgba(245,158,11,0.15); color: #b45309; }
+.tagTurma { font-size: 0.625rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 0.3rem; background: color-mix(in srgb, var(--warning) 15%, transparent); color: #b45309; }
 .tagDiag  { font-size: 0.625rem; font-weight: 500; padding: 0.1rem 0.35rem; border-radius: 0.3rem; background: rgba(139,92,246,0.15); color: #6d28d9; }
 
 .batchNote { font-size: 0.75rem; color: var(--brand-dark); font-weight: 600; margin: 0; }

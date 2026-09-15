@@ -21,13 +21,5 @@ export default async function DiagnosticoTurmaPage() {
 
   const r = await getTurmasParaDiagnostico()
 
-  return (
-    <div>
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>diagnóstico de turma</h1>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '2px 0 0' }}>fechamento pedagógico da coordenação — cruza os relatórios-síntese por turma</p>
-      </div>
-      <DiagnosticoTurmaClient turmas={r.turmas ?? []} canManage={canManage} />
-    </div>
-  )
+  return <DiagnosticoTurmaClient turmas={r.turmas ?? []} canManage={canManage} />
 }

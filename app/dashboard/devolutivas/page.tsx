@@ -7,6 +7,7 @@ import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { DOC_TYPES, type DocType } from '@/lib/doc-types'
 import { MessageSquare, FileText, CheckCircle2, Clock } from 'lucide-react'
+import { PageHeader } from '../_components/PageHeader'
 import { Badge } from '../_components/Badge'
 import s from './devolutivas.module.css'
 
@@ -31,65 +32,61 @@ export default async function DevolutivasPage() {
 
   return (
     <div className={s.page}>
-
-      <div className={s.header}>
-        <div className={s.headerIcon}><MessageSquare size={20} /></div>
-        <div>
-          <h1 className={s.title}>Devolutivas recebidas</h1>
-          <p className={s.sub}>Feedbacks da coordenação sobre seus documentos</p>
-        </div>
-        <span className={s.countBadge}>{feedbacks.length}</span>
-      </div>
+      <PageHeader
+        title="devolutivas"
+        subtitle={feedbacks.length === 0 ? 'nenhuma devolutiva recebida ainda' : `${feedbacks.length} feedback${feedbacks.length === 1 ? '' : 's'} da coordenação`}
+      />
 
       {feedbacks.length === 0 ? (
         <div className={s.empty}>
           <MessageSquare size={40} strokeWidth={1.2} />
-          <p className={s.emptyTitle}>Nenhuma devolutiva recebida ainda</p>
+          <p className={s.emptyTitle}>Sem devolutivas por enquanto</p>
           <p className={s.emptySub}>Quando a coordenação revisar seus documentos, os comentários aparecem aqui.</p>
         </div>
       ) : (
         <div className={s.list}>
           {feedbacks.map(fb => {
-            const meta = DOC_TYPES[fb.document.type as DocType]
+            const meta   = DOC_TYPES[fb.document.type as DocType]
+            const color  = meta?.color ?? 'var(--fg-secondary)'
+            const isFinal = fb.document.status === 'FINAL'
             return (
               <Link key={fb.id} href={`/dashboard/documentos/${fb.document.id}`} className={s.card}>
-                <div className={s.cardAccent} style={{ background: meta?.color ?? '#6b7280' }} />
+                <span className={s.accent} style={{ background: color }} aria-hidden />
 
-                <div className={s.cardTop}>
+                <header className={s.cardTop}>
                   <div className={s.docInfo}>
-                    <div className={s.docIcon} style={{ background: (meta?.color ?? '#6b7280') + '18' }}>
-                      <FileText size={14} color={meta?.color ?? '#6b7280'} />
-                    </div>
-                    <div>
-                      <p className={s.docTitle}>{fb.document.title}</p>
-                      <p className={s.docMeta}>{meta?.label ?? fb.document.type}</p>
+                    <span className={s.docIcon} style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}>
+                      <FileText size={13} />
+                    </span>
+                    <div className={s.docText}>
+                      <span className={s.docTitle}>{fb.document.title}</span>
+                      <span className={s.docMeta}>{meta?.label ?? fb.document.type}</span>
                     </div>
                   </div>
                   <Badge
-                    tone={fb.document.status === 'FINAL' ? 'success' : 'amber'}
-                    icon={fb.document.status === 'FINAL' ? <CheckCircle2 size={11} /> : <Clock size={11} />}
+                    tone={isFinal ? 'success' : 'amber'}
+                    icon={isFinal ? <CheckCircle2 size={11} /> : <Clock size={11} />}
                   >
-                    {fb.document.status === 'FINAL' ? 'final' : 'rascunho'}
+                    {isFinal ? 'final' : 'rascunho'}
                   </Badge>
-                </div>
+                </header>
 
                 <blockquote className={s.feedbackText}>{fb.text}</blockquote>
 
-                <div className={s.cardMeta}>
+                <footer className={s.cardFoot}>
                   <span className={s.coordName}>{fb.coordinator.name}</span>
-                  <span className={s.dot}>·</span>
+                  <span aria-hidden>·</span>
                   <span className={s.date}>
                     {new Date(fb.createdAt).toLocaleDateString('pt-BR', {
                       day: '2-digit', month: '2-digit', year: 'numeric',
                     })}
                   </span>
-                </div>
+                </footer>
               </Link>
             )
           })}
         </div>
       )}
-
     </div>
   )
 }

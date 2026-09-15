@@ -43,7 +43,7 @@ export function CommandPaletteTrigger() {
       <button className={s.trigger} onClick={() => setOpen(true)} aria-label="Buscar">
         <Search size={14} className={s.triggerIcon} />
         <span className={s.triggerText}>buscar...</span>
-        <kbd className={s.kbd}>{mac ? 'âŒ˜' : 'Ctrl'} K</kbd>
+        <kbd className={s.kbd}>{mac ? '⌘' : 'Ctrl'} K</kbd>
       </button>
       {open && <CommandPalette onClose={() => setOpen(false)} />}
     </>
@@ -135,7 +135,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
             value={q}
             onChange={e => setQ(e.target.value)}
             onKeyDown={onKey}
-            placeholder="buscar alunos, turmas, professores, pÃ¡ginas..."
+            placeholder="buscar alunos, turmas, professores, páginas..."
             className={s.searchInput}
           />
           {loading && <Loader2 size={14} className={s.spinner} />}
@@ -144,7 +144,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
 
         <div className={s.list} ref={listRef}>
           {filteredPages.length > 0 && (
-            <Group title="pÃ¡ginas">
+            <Group title="páginas">
               {filteredPages.map(p => {
                 runningIndex++
                 const idx = runningIndex
@@ -208,7 +208,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
           )}
 
           {q.trim().length >= 2 && !loading && flat.length === 0 && (
-            <div className={s.empty}>nenhum resultado para â€œ{q}â€</div>
+            <div className={s.empty}>nenhum resultado para “{q}”</div>
           )}
           {q.trim().length < 2 && (
             <div className={s.hint}>digite ao menos 2 caracteres para buscar</div>
@@ -216,8 +216,8 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className={s.footer}>
-          <span className={s.fk}><kbd>â†‘</kbd><kbd>â†“</kbd> navegar</span>
-          <span className={s.fk}><kbd>â†µ</kbd> abrir</span>
+          <span className={s.fk}><kbd>↑</kbd><kbd>↓</kbd> navegar</span>
+          <span className={s.fk}><kbd>↵</kbd> abrir</span>
           <span className={s.fk}><kbd>esc</kbd> fechar</span>
         </div>
       </div>

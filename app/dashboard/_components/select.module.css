@@ -16,8 +16,8 @@
   width: 100%;
   padding: 0.8125rem 1rem;
   border-radius: 11px;
-  border: 1.5px solid var(--border);
-  background: var(--surface);
+  border: 1.5px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--fg);
   font-family: inherit;
   font-size: 0.9375rem;

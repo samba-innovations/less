@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { Plus, X, ChevronDown } from 'lucide-react'
 import { DIMENSOES_PDI, OBJETIVOS_OPCOES, getAtividade, getMetaDefault } from '@/lib/pdi-data'
 import s from './pdi.module.css'
+import { MonthPicker } from '../../_components/MonthPicker'
 import { ChipSelector } from '../../_components/Selector'
 import { DatePicker } from '../../_components/DatePicker'
 import { Button } from '../../_components/Button'
@@ -149,11 +150,11 @@ export function PdiEditor({ fields, setField }: Props) {
             <div className={s.grid2}>
               <div className={s.field}>
                 <label className={s.label}>Prazo — Início</label>
-                <input type="month" className={s.input} value={ativ.prazo_inicio} onChange={e => changeAtividade(ativ.id, 'prazo_inicio', e.target.value)} />
+                <MonthPicker value={ativ.prazo_inicio || null} onChange={v => changeAtividade(ativ.id, 'prazo_inicio', v)} />
               </div>
               <div className={s.field}>
                 <label className={s.label}>Prazo — Fim</label>
-                <input type="month" className={s.input} value={ativ.prazo_fim} onChange={e => changeAtividade(ativ.id, 'prazo_fim', e.target.value)} />
+                <MonthPicker value={ativ.prazo_fim || null} onChange={v => changeAtividade(ativ.id, 'prazo_fim', v)} min={ativ.prazo_inicio || undefined} />
               </div>
             </div>
 

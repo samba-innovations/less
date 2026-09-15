@@ -112,7 +112,7 @@
 .ctxStrong { font-weight: 700; color: var(--fg); }
 .loadingRow { display: flex; align-items: center; gap: 0.4rem; justify-content: center; padding: 2rem 0; font-size: 0.875rem; color: var(--fg-secondary); }
 .spin { animation: samba-spin 0.8s linear infinite; }
-.noAulas { border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); border-radius: var(--radius-lg); padding: 1.25rem; text-align: center; }
+.noAulas { border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent); background: color-mix(in srgb, var(--danger) 5%, transparent); border-radius: var(--radius-lg); padding: 1.25rem; text-align: center; }
 .noAulas p { margin: 0; font-size: 0.875rem; font-weight: 700; color: var(--danger); }
 .noAulasSub { font-size: 0.75rem !important; font-weight: 400 !important; color: var(--fg-secondary) !important; margin-top: 0.25rem !important; }
 
@@ -155,7 +155,7 @@
 .concluirInfo { font-size: 0.75rem; color: var(--fg-secondary); margin: 0; }
 .concluirBtn { display: flex; align-items: center; gap: 0.4rem; padding: 0.6rem 1.1rem; border: none; border-radius: var(--radius-md); background: var(--brand); color: #fff; font-size: 0.875rem; font-weight: 700; }
 
-.modalOverlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(0,0,0,0.5); }
+.modalOverlay { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(0,0,0,0.5); }
 .modal { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 1.25rem; max-width: 24rem; width: 100%; display: flex; flex-direction: column; gap: 0.875rem; box-shadow: var(--shadow-card); }
 .modalTitle { font-size: 0.9375rem; font-weight: 800; color: var(--fg); margin: 0; }
 .modalText { font-size: 0.8125rem; color: var(--fg-secondary); margin: 0; line-height: 1.5; }

@@ -33,21 +33,15 @@ export default async function RelatorioSintesePage() {
   ])
 
   return (
-    <div>
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>relatório-síntese</h1>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '2px 0 0' }}>apontamento pedagógico por disciplina e turma</p>
-      </div>
-      <RelatorioSinteseClient
-        ctx={ctxR.ctx ?? null}
-        catalogos={catR.catalogos ?? null}
-        meus={(meus ?? []).map(m => ({ ...m, updatedAt: (m.updatedAt as Date).toISOString?.() ?? String(m.updatedAt) }))}
-        professores={coordR.professores ?? null}
-        desbloqueio={desbR.painel ?? null}
-        canProduce={canProduce}
-        canView={canView}
-        canManage={canView}
-      />
-    </div>
+    <RelatorioSinteseClient
+      ctx={ctxR.ctx ?? null}
+      catalogos={catR.catalogos ?? null}
+      meus={(meus ?? []).map(m => ({ ...m, updatedAt: (m.updatedAt as Date).toISOString?.() ?? String(m.updatedAt) }))}
+      professores={coordR.professores ?? null}
+      desbloqueio={desbR.painel ?? null}
+      canProduce={canProduce}
+      canView={canView}
+      canManage={canView}
+    />
   )
 }

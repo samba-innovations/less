@@ -26,7 +26,7 @@
 .cardHead { display: flex; align-items: center; justify-content: space-between; }
 .cardTitle { font-size: 0.8125rem; font-weight: 700; color: var(--fg); }
 .removeBtn { width: 1.75rem; height: 1.75rem; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); color: var(--danger); transition: background var(--duration-fast) var(--ease-out); }
-.removeBtn:hover { background: rgba(220,38,38,0.1); }
+.removeBtn:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
 
 .addBtn { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.75rem; border: 2px dashed var(--border); border-radius: var(--radius-lg); background: var(--bg); color: var(--fg); font-size: 0.875rem; font-weight: 600; transition: all var(--duration-fast) var(--ease-out); }
 .addBtn:hover { border-color: var(--brand); background: var(--brand-alpha); color: var(--brand-dark); }

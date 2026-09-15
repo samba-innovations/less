@@ -1,277 +1,151 @@
-.page {
-  max-width: 820px;
-  margin: 0 auto;
-  padding: 1.5rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
+﻿.page { display: flex; flex-direction: column; gap: 1rem; }
 
-.pageHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
+/* ── Grid 2 colunas ─────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
 }
+@media (min-width: 1100px) {
+  .grid { grid-template-columns: 340px minmax(0, 1fr); }
+}
+.gridLeft  { display: flex; flex-direction: column; gap: 0.75rem; }
+.gridRight { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
 
-.pageHeaderIcon {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.625rem;
-  background: color-mix(in srgb, #6366f1 10%, transparent);
+/* ── Card genérico ──────────────────────────────── */
+.card {
+  background: var(--surface);
   border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6366f1;
-  flex-shrink: 0;
+  border-radius: 12px;
+  padding: 0.875rem 1rem;
+  display: flex; flex-direction: column; gap: 0.625rem;
+}
+.cardLabel {
+  font-size: 0.6875rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--fg-secondary);
 }
 
-.pageTitle { font-size: 1.125rem; font-weight: 700; color: var(--foreground); margin: 0; }
-.pageSub   { font-size: 0.75rem; color: var(--muted-foreground); margin: 0; }
-
-/* ── Empty state ── */
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 4rem 1rem;
-  color: var(--muted-foreground);
-  text-align: center;
-}
-.emptyIcon  { opacity: 0.25; }
-.emptyTitle { font-size: 0.9375rem; font-weight: 600; color: var(--foreground); margin: 0; }
-.emptySub   { font-size: 0.8125rem; max-width: 400px; margin: 0; }
-
-/* ── Body ── */
-.body { display: flex; flex-direction: column; gap: 1rem; }
-
-/* ── Selector row ── */
-.selectorRow {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  padding: 1rem;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-}
-
-.selectorGroup { display: flex; flex-direction: column; gap: 0.375rem; flex: 1; min-width: 160px; }
-
-.selectorLabel {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted-foreground);
-}
-
-.selectWrap { position: relative; }
-
-.select {
-  width: 100%;
-  height: 2.25rem;
-  padding: 0 2rem 0 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  background: var(--muted);
-  font-size: 0.875rem;
-  color: var(--foreground);
-  appearance: none;
-  outline: none;
-  cursor: pointer;
-}
-
-.select:focus { border-color: #6366f1; }
-
-.selectChevron {
-  position: absolute;
-  right: 0.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: var(--muted-foreground);
-}
-
-.bimRow { display: flex; gap: 0.375rem; }
-
+/* ── Bimestre buttons ───────────────────────────── */
+.bimRow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.375rem; }
 .bimBtn {
-  height: 2.25rem;
-  min-width: 2.5rem;
-  padding: 0 0.625rem;
+  height: 38px;
+  background: var(--bg); color: var(--fg);
   border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  background: var(--muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--muted-foreground);
+  border-radius: 8px;
+  font-size: 0.8125rem; font-weight: 700;
   cursor: pointer;
-  transition: all 0.12s;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
-
+.bimBtn:hover { border-color: var(--fg-secondary); }
 .bimBtnActive {
-  background: #6366f1;
-  border-color: #6366f1;
-  color: #fff;
+  background: var(--brand); color: #fff; border-color: var(--brand);
 }
 
-.loadBtn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  height: 2.25rem;
-  padding: 0 1rem;
-  background: var(--brand, #1a0f00);
-  color: #fff;
-  border: none;
-  border-radius: 0.5rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: opacity 0.15s;
-  align-self: flex-end;
-}
-
-.loadBtn:hover { opacity: 0.85; }
-
+/* ── Load button ────────────────────────────────── */
+.loadBtn { width: 100%; justify-content: center; }
 .spinner {
-  width: 0.875rem;
-  height: 0.875rem;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
+  width: 13px; height: 13px;
+  border: 2px solid var(--border); border-top-color: var(--brand);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
-
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Create section ── */
-.createSection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.createLabel {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted-foreground);
-}
-
-.createBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-
+/* ── Criar OE ───────────────────────────────────── */
+.createBtns { display: flex; flex-direction: column; gap: 0.5rem; }
 .createBtn {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: var(--card);
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  text-decoration: none;
-  color: inherit;
-  transition: border-color 0.12s, box-shadow 0.12s;
+  border-radius: 10px;
+  color: var(--fg); text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.12s;
 }
-
-.createBtn:hover {
-  border-color: var(--ring, #ccc);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+.createBtn:hover:not(:disabled) {
+  border-color: var(--brand);
+  transform: translateY(-1px);
 }
+.createBtn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-.createBtnIcon {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.createIcon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
+.iconPlano { background: color-mix(in srgb, #7c3aed 12%, transparent); color: #7c3aed; }
+.iconGuia  { background: color-mix(in srgb, #0891b2 12%, transparent); color: #0891b2; }
 
-.createBtnTitle { font-size: 0.875rem; font-weight: 600; color: var(--foreground); margin: 0; }
-.createBtnSub   { font-size: 0.6875rem; color: var(--muted-foreground); margin: 0; }
+.createTxt   { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 2px; }
+.createTitle { font-size: 0.8125rem; font-weight: 700; color: var(--fg); }
+.createSub   { font-size: 0.6875rem; color: var(--fg-secondary); }
+.createArrow { color: var(--fg-secondary); flex-shrink: 0; }
 
-.createBtnArrow { margin-left: auto; color: var(--muted-foreground); flex-shrink: 0; }
-
-/* ── Missoes section ── */
-.missoesSection { display: flex; flex-direction: column; gap: 0.5rem; }
-
-.missoesTitle {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted-foreground);
+/* ── Section header (missões) ───────────────────── */
+.sectionHead { display: flex; align-items: center; justify-content: space-between; padding: 0 0.25rem; }
+.sectionTitle {
+  font-size: 0.6875rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--fg-secondary);
 }
 
-.noMissoes {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.875rem 1rem;
-  background: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 0.625rem;
-  font-size: 0.8125rem;
-  color: var(--muted-foreground);
-  line-height: 1.5;
-}
-
-.missoesList { display: flex; flex-direction: column; gap: 0.625rem; }
-
+/* ── Missão card ────────────────────────────────── */
+.missoesList { display: flex; flex-direction: column; gap: 0.5rem; }
 .missaoCard {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px;
   padding: 0.875rem 1rem;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 0.625rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+.missaoHead {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.6875rem; color: var(--fg-secondary);
+}
+.missaoNum { font-weight: 800; color: var(--brand); text-transform: uppercase; letter-spacing: 0.04em; }
+.missaoDot { color: var(--border); }
+.missaoMeta { font-variant-numeric: tabular-nums; }
+
+.missaoTema { margin: 0; font-size: 0.9375rem; font-weight: 700; color: var(--fg); line-height: 1.4; }
+
+.missaoDescritores {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg); border-radius: 8px;
+  font-size: 0.75rem; color: var(--fg); line-height: 1.5;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.missaoLabel {
+  font-size: 0.625rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--fg-secondary);
 }
 
-.missaoHeader { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-
-.missaoNum {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: #6366f1;
+.missaoObjetivos {
+  margin: 0;
+  font-size: 0.8125rem; color: var(--fg-secondary); line-height: 1.55;
+  border-left: 2px solid var(--border);
+  padding-left: 0.75rem;
 }
 
-.missaoBim {
-  font-size: 0.6875rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  background: var(--muted);
-  color: var(--muted-foreground);
-  font-weight: 600;
+/* ── Info row (sem missões) ─────────────────────── */
+.noMissoes {
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 25%, transparent);
+  border-radius: 10px;
+  font-size: 0.75rem; line-height: 1.5;
+  color: color-mix(in srgb, var(--warning) 65%, var(--fg));
 }
+.noMissoes > svg { flex-shrink: 0; margin-top: 2px; }
 
-.missaoSemanas, .missaoAulas {
-  font-size: 0.6875rem;
-  color: var(--muted-foreground);
-}
-
-.missaoTema {
+/* ── Empty ──────────────────────────────────────── */
+.empty {
+  padding: 3rem 1.5rem;
+  display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+  color: var(--fg-secondary);
+  background: var(--surface); border: 1px dashed var(--border); border-radius: 12px;
+  text-align: center;
   font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--foreground);
-  margin: 0;
 }
-
-.missaoDescritores, .missaoObjetivos {
-  font-size: 0.8125rem;
-  color: var(--muted-foreground);
-  margin: 0;
-  line-height: 1.5;
-}
-
-@media (max-width: 600px) {
-  .createBtns { grid-template-columns: 1fr; }
-  .selectorRow { flex-direction: column; align-items: stretch; }
-  .loadBtn { align-self: stretch; justify-content: center; }
-}
+.empty p { max-width: 46ch; margin: 0; line-height: 1.5; }

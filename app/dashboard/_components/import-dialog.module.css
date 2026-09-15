@@ -57,10 +57,10 @@
   gap: var(--space-sm);
   margin: var(--space-md) var(--space-lg) 0;
   padding: var(--space-sm) var(--space-md);
-  background: color-mix(in srgb, #dc2626 8%, transparent);
-  border: 1px solid color-mix(in srgb, #dc2626 25%, transparent);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
   border-radius: var(--radius-md);
-  color: #dc2626;
+  color: var(--danger);
   font-size: 0.75rem;
 }
 
@@ -100,7 +100,7 @@
 
 .mapRow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--space-md); }
 .colLabel { font-size: 0.8125rem; font-weight: 600; color: var(--fg); }
-.required { color: #dc2626; margin-left: 2px; }
+.required { color: var(--danger); margin-left: 2px; }
 .mapArrow { color: var(--fg-secondary); }
 .mapSelect {
   padding: 5px 8px;

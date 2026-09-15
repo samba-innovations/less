@@ -7,32 +7,46 @@
  * (1pt = 1/72in; 1cm ≈ 28.35pt).
  */
 
+import type PDFDocument from 'pdfkit'
+import {
+  PAGE_W as SHARED_PAGE_W, PAGE_H as SHARED_PAGE_H,
+  MARGIN_TOP as SHARED_MARGIN_TOP, MARGIN_BOTTOM as SHARED_MARGIN_BOTTOM,
+  MARGIN_INNER, MARGIN_OUTER,
+  CONTENT_MARGIN_BOTTOM, BODY_BOTTOM_Y as SHARED_BODY_BOTTOM_Y,
+  currentMargins, contentWidth,
+} from '@pdf'
 import { DOC_TYPES, type DocType } from '../doc-types'
 
+type PDFDoc = InstanceType<typeof PDFDocument>
+
 // ── Página A4 ────────────────────────────────────────────────────────────────
-export const PAGE_W = 595.28   // 21cm em pts
-export const PAGE_H = 841.89   // 29.7cm em pts
+export const PAGE_W = SHARED_PAGE_W   // 21cm em pts
+export const PAGE_H = SHARED_PAGE_H   // 29.7cm em pts
 
-// ── Margens ABNT (sup/esq 3cm, inf/dir 2cm) ──────────────────────────────────
-export const MARGIN_TOP    = 85   // 3cm
-export const MARGIN_LEFT   = 85   // 3cm
-export const MARGIN_RIGHT  = 57   // 2cm
-export const MARGIN_BOTTOM = 57   // 2cm
+// ── Margens ABNT espelhadas ──────────────────────────────────────────────────
+// Superior 3cm, inferior 2cm, interna (lombada) 3cm, externa 2cm — a interna
+// troca de lado a cada página, como o "espelhar margens" do Word. Por isso a
+// posição horizontal do corpo depende da página: use cx(doc)/cw(doc).
+export const MARGIN_TOP    = SHARED_MARGIN_TOP
+export const MARGIN_BOTTOM = SHARED_MARGIN_BOTTOM
+export const MARGIN_INNER_ = MARGIN_INNER
+export const MARGIN_OUTER_ = MARGIN_OUTER
 
-export const CONTENT_W = PAGE_W - MARGIN_LEFT - MARGIN_RIGHT
-export const CONTENT_X = MARGIN_LEFT
+/** X inicial do corpo na página atual (respeita o espelho). */
+export const cx = (doc: PDFDoc): number => currentMargins(doc).left
+/** Largura útil do corpo na página atual. */
+export const cw = (doc: PDFDoc): number => contentWidth(doc)
 
-// Header (minimalista)
-export const BODY_TOP_Y = 100   // logo + linha + tag → corpo começa aqui na pág 1
-export const MINI_TOP_Y = 72    // miniHeader (págs 2+) → corpo começa aqui
+// O Y onde o corpo começa vem do próprio header (renderFullHeader /
+// renderMiniHeader devolvem essa posição) — não há mais constante fixa.
 
-// Footer (linha + paginação + "gerado por less")
-export const FOOTER_TOP_Y  = PAGE_H - 40        // onde a linha do footer é desenhada
-export const BODY_BOTTOM_Y = FOOTER_TOP_Y - 8   // body deve terminar antes disso
+// Footer institucional (shared/pdf): 18mm de bloco + 2cm de margem inferior.
+export const FOOTER_TOP_Y  = PAGE_H - CONTENT_MARGIN_BOTTOM
+export const BODY_BOTTOM_Y = SHARED_BODY_BOTTOM_Y - 6   // 6pt de respiro
 
 // PDFKit margins — para que o auto-pagination respeite header/footer
-export const PDF_MARGIN_TOP    = MINI_TOP_Y                    // 72 (págs 2+ resume aqui)
-export const PDF_MARGIN_BOTTOM = PAGE_H - BODY_BOTTOM_Y        // ≈ 48
+export const PDF_MARGIN_TOP    = MARGIN_TOP
+export const PDF_MARGIN_BOTTOM = CONTENT_MARGIN_BOTTOM
 
 // ── Paleta ───────────────────────────────────────────────────────────────────
 export const COLORS = {
@@ -57,20 +71,20 @@ export const COLORS = {
   blue:         '#1e40af',
 } as const
 
-// ── Tipografia ABNT (Helvetica do PDFKit ~ Arial) ────────────────────────────
+// ── Tipografia ABNT (Times New Roman via Base14 do PDF) ──────────────────────
 export const FONT = {
-  regular: 'Helvetica',
-  bold:    'Helvetica-Bold',
-  italic:  'Helvetica-Oblique',
+  regular: 'Times-Roman',
+  bold:    'Times-Bold',
+  italic:  'Times-Italic',
 } as const
 
 export const SIZE = {
   bodyBig:   12,   // corpo ABNT
-  body:      11,   // corpo padrão (compacta um pouco)
-  small:     9.5,
+  body:      12,   // corpo padrão — ABNT: 12pt
+  small:     10,
   tiny:      8,
   metadata:  7.5,
-  title:     20,   // título principal do doc
+  title:     16,   // título principal do doc
   h1:        14,   // seções "1 Algo"
   h2:        12,   // subseções "1.1 Algo"
   brand:     18,   // "less" no header
@@ -78,8 +92,8 @@ export const SIZE = {
 
 export const LINE_HEIGHT = {
   tight:  1.2,
-  normal: 1.4,
-  abnt:   1.5,   // 1.5 ABNT no corpo
+  normal: 1.35,
+  abnt:   1.35,   // entrelinha do corpo
 } as const
 
 // ── Espaçamentos ─────────────────────────────────────────────────────────────

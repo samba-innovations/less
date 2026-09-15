@@ -40,8 +40,8 @@
   color: var(--fg-secondary);
 }
 
-.danger { color: #dc2626; }
-.danger .icon { color: #dc2626; }
+.danger { color: var(--danger); }
+.danger .icon { color: var(--danger); }
 .danger:hover:not(:disabled) {
-  background: color-mix(in srgb, #dc2626 10%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
 }

@@ -3,7 +3,7 @@
 import { useState, useTransition, useRef, useEffect } from 'react'
 import { Plus, Send, X, ChevronLeft, CheckCircle2, Clock, Play } from 'lucide-react'
 import { createTicket, addMessage, closeTicket } from './actions'
-import { Modal, ms } from '../_components/Modal'
+import { FormModal, ms } from '../_components/FormModal'
 import s from './suporte.module.css'
 import { Input } from '../_components/Input'
 import { Button } from '../_components/Button'
@@ -18,18 +18,20 @@ function formatDate(d: Date) {
 }
 
 export function SuporteClient({ tickets: initial, systemName, videoUrl }: Props) {
-  const [tickets, setTickets] = useState<Ticket[]>(initial)
-  const [active,  setActive]  = useState<Ticket | null>(null)
-  const [showNew, setShowNew] = useState(false)
-  const [msgText, setMsgText] = useState('')
-  const [isPending, start]    = useTransition()
-  const [error,   setError]   = useState<string | null>(null)
+  const [tickets, setTickets]   = useState<Ticket[]>(initial)
+  const [active, setActive]     = useState<Ticket | null>(null)
+  const [showNew, setShowNew]   = useState(false)
+  const [newSubject, setNewSubject] = useState('')
+  const [newBody,    setNewBody]    = useState('')
+  const [msgText, setMsgText]   = useState('')
+  const [isPending, start]      = useTransition()
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [active?.messages.length])
 
+  // sync active ticket when tickets list updates (server revalidation)
   useEffect(() => {
     if (active) {
       const updated = tickets.find(t => t.id === active.id)
@@ -38,22 +40,11 @@ export function SuporteClient({ tickets: initial, systemName, videoUrl }: Props)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickets])
 
-  function handleCreate(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError(null)
-    const fd      = new FormData(e.currentTarget)
-    const subject = String(fd.get('subject') ?? '').trim()
-    const body    = String(fd.get('body') ?? '').trim()
-    if (!subject || !body) return
-    start(async () => {
-      try {
-        await createTicket(subject, body)
-        setShowNew(false)
-        window.location.reload()
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro ao abrir chamado.')
-      }
-    })
+  async function handleCreate() {
+    await createTicket(newSubject.trim(), newBody.trim())
+    setShowNew(false)
+    setNewSubject(''); setNewBody('')
+    window.location.reload()
   }
 
   function handleSend() {
@@ -79,31 +70,40 @@ export function SuporteClient({ tickets: initial, systemName, videoUrl }: Props)
   return (
     <div className={s.page}>
 
+      {/* ── New ticket modal ── */}
       {showNew && (
-        <Modal title="novo chamado" subtitle="descreva sua dúvida ou problema" onClose={() => setShowNew(false)} size="sm">
-          <form onSubmit={handleCreate} className={ms.form}>
-            {error && <p className={ms.errorMsg}>{error}</p>}
-            <Input
-              label="assunto *"
-              name="subject"
-              placeholder="Ex: como criar um documento?"
-              required
-              autoFocus
-            />
-            <div className={ms.field}>
-              <label className={ms.label}>mensagem *</label>
-              <textarea name="body" required className={ms.textarea} rows={4} placeholder="Descreva em detalhes..." />
-            </div>
-            <div className={ms.formActions}>
-              <button type="button" className={ms.btnSecondary} onClick={() => setShowNew(false)}>cancelar</button>
-              <button type="submit" className={ms.btnPrimary} disabled={isPending}>
-                <Send size={13} /> {isPending ? 'enviando...' : 'abrir chamado'}
-              </button>
-            </div>
-          </form>
-        </Modal>
+        <FormModal
+          mode="create"
+          entityLabel="chamado"
+          subtitle="descreva sua dúvida ou problema"
+          size="sm"
+          submitLabel="abrir chamado"
+          pendingLabel="enviando..."
+          onClose={() => { setShowNew(false); setNewSubject(''); setNewBody('') }}
+          onSubmit={handleCreate}
+          validate={() => {
+            if (!newSubject.trim()) return 'Informe o assunto.'
+            if (!newBody.trim())    return 'Descreva o problema.'
+            return null
+          }}
+        >
+          <Input
+            label="assunto *"
+            placeholder="Ex: como cadastrar um aluno?"
+            value={newSubject}
+            onChange={e => setNewSubject(e.target.value)}
+            required
+            autoFocus
+          />
+          <div className={ms.field}>
+            <label className={ms.label}>mensagem *</label>
+            <textarea className={ms.textarea} rows={4} placeholder="Descreva em detalhes..." required
+              value={newBody} onChange={e => setNewBody(e.target.value)} />
+          </div>
+        </FormModal>
       )}
 
+      {/* ── Header ── */}
       <div className={s.header}>
         {active ? (
           <Button
@@ -121,14 +121,16 @@ export function SuporteClient({ tickets: initial, systemName, videoUrl }: Props)
           <Button
             variant="primary"
             iconLeft={<Plus size={14} />}
-            onClick={() => { setShowNew(true); setError(null) }}
+            onClick={() => { setShowNew(true); setNewSubject(''); setNewBody('') }}
           >novo chamado</Button>
         )}
       </div>
 
+      {/* ── Content ── */}
       {!active ? (
         <div className={s.layout}>
 
+          {/* Video */}
           <div className={videoUrl ? `${s.videoCard} ${s.videoCardEmbed}` : s.videoCard}>
             {videoUrl ? (
               <div className={s.videoThumbEmbed}>
@@ -152,6 +154,7 @@ export function SuporteClient({ tickets: initial, systemName, videoUrl }: Props)
             </div>
           </div>
 
+          {/* Ticket list */}
           <div className={s.ticketSection}>
             <span className={s.sectionLabel}>meus chamados</span>
             {tickets.length === 0 && (
@@ -177,6 +180,7 @@ export function SuporteClient({ tickets: initial, systemName, videoUrl }: Props)
       ) : (
         <div className={s.chat}>
 
+          {/* Chat header */}
           <div className={s.chatHeader}>
             <p className={s.chatSubject}>{active.subject}</p>
             <div className={s.chatHeaderRight}>
@@ -195,6 +199,7 @@ export function SuporteClient({ tickets: initial, systemName, videoUrl }: Props)
             </div>
           </div>
 
+          {/* Messages */}
           <div className={s.messages}>
             {active.messages.map(m => (
               <div key={m.id} className={m.isFromAdmin ? s.msgAdmin : s.msgUser}>
@@ -207,6 +212,7 @@ export function SuporteClient({ tickets: initial, systemName, videoUrl }: Props)
             <div ref={bottomRef} />
           </div>
 
+          {/* Input */}
           {active.status === 'OPEN' && (
             <div className={s.inputRow}>
               <textarea

@@ -5,13 +5,13 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, FileText, FilePlus, Users, Compass,
-  HelpCircle, Sun, Moon, Rows3, Rows2, LogOut, PanelLeft, Menu, X, MessageSquare, Layers, BookMarked, FileBarChart2, ClipboardList, Settings,
+  Sun, Moon, LogOut, PanelLeft, Menu, X, HelpCircle, Settings,
+  Rows3, Rows2, MessageSquare, Layers, BookMarked, FileBarChart2, ClipboardList,
 } from 'lucide-react'
 import type { JwtPayload } from '@/lib/jwt'
-import { formatName } from '@/lib/format-name'
 import { isManager, effectiveRole } from '@/lib/jwt'
+import { formatName } from '@/lib/format-name'
 import { NotificationBell } from './_components/NotificationBell'
-import { useDensity } from './_components/useDensity'
 import { SupportWidget } from './_components/SupportWidget'
 import { MessagesWidget } from './_components/MessagesWidget'
 import { MessageToastStack } from './_components/MessageToastStack'
@@ -22,9 +22,11 @@ import { ErrorBoundary } from './_components/ErrorBoundary'
 import { SpotlightTour } from './_components/SpotlightTour'
 import { Breadcrumb } from './_components/Breadcrumb'
 import { BreadcrumbProvider } from './_components/BreadcrumbContext'
+import { ToastProvider } from './_components/ToastProvider'
 import { PeriodChip } from './_components/PeriodChip'
 import { CommandPaletteTrigger } from './_components/CommandPalette'
 import { StudentLookup } from './_components/StudentLookup'
+import { useDensity } from './_components/useDensity'
 import s from './shell.module.css'
 import { IconButton } from './_components/IconButton'
 import { Avatar } from './_components/Avatar'
@@ -44,25 +46,25 @@ const ROLE_PT: Record<string, string> = {
 type NavItem = { label: string; href: string; icon: React.ElementType }
 
 const NAV_PRINCIPAL: NavItem[] = [
-  { label: 'início',           href: '/dashboard',                   icon: LayoutDashboard },
+  { label: 'início', href: '/dashboard', icon: LayoutDashboard },
 ]
 
 const NAV_DOCUMENTOS: NavItem[] = [
-  { label: 'meus documentos', href: '/dashboard/documentos',        icon: FileText      },
-  { label: 'novo documento',  href: '/dashboard/documentos/novo',   icon: FilePlus      },
-  { label: 'devolutivas',     href: '/dashboard/devolutivas',       icon: MessageSquare },
-  { label: 'orient. estudos', href: '/dashboard/oe',                icon: BookMarked    },
+  { label: 'meus documentos',   href: '/dashboard/documentos',        icon: FileText      },
+  { label: 'novo documento',    href: '/dashboard/documentos/novo',   icon: FilePlus      },
+  { label: 'devolutivas',       href: '/dashboard/devolutivas',       icon: MessageSquare },
+  { label: 'orient. estudos',   href: '/dashboard/oe',                icon: BookMarked    },
   { label: 'relatório-síntese', href: '/dashboard/relatorio-sintese', icon: FileBarChart2 },
 ]
 
 const NAV_COORDENACAO: NavItem[] = [
-  { label: 'equipe',            href: '/dashboard/coordenacao',       icon: Users        },
+  { label: 'equipe',            href: '/dashboard/coordenacao',       icon: Users         },
   { label: 'diagnóstico turma', href: '/dashboard/diagnostico-turma', icon: ClipboardList },
-  { label: 'considerações',     href: '/dashboard/consideracoes',     icon: Layers       },
+  { label: 'considerações',     href: '/dashboard/consideracoes',     icon: Layers        },
 ]
 
 const NAV_SUPORTE: NavItem[] = [
-  { label: 'suporte',         href: '/dashboard/suporte',           icon: HelpCircle },
+  { label: 'suporte', href: '/dashboard/suporte', icon: HelpCircle },
 ]
 
 type Props = {
@@ -79,18 +81,20 @@ function isActive(pathname: string, href: string) {
   if (href === '/dashboard/documentos') {
     return pathname.startsWith('/dashboard/documentos') && !pathname.startsWith('/dashboard/documentos/novo')
   }
-  return pathname.startsWith(href)
+  return pathname === href || pathname.startsWith(href + '/')
 }
 
 export function DashboardShell({ payload, user, children, activeYear, currentBimester }: Props) {
   const pathname = usePathname()
   const density = useDensity()
-  const [dark, setDark]               = useState(false)
-  const [collapsed, setCollapsed]     = useState(false)
-  const [mobileOpen, setMobileOpen]   = useState(false)
-  const [avatarError, setAvatarError] = useState(false)
+  const [dark, setDark]                 = useState(false)
+  const [collapsed, setCollapsed]       = useState(false)
+  const [mobileOpen, setMobileOpen]     = useState(false)
+  const [avatarFailed, setAvatarFailed] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef                     = useRef<HTMLDivElement>(null)
+  const [tourActive, setTourActive]     = useState(false)
+  const [tourDone,   setTourDone]       = useState(false)
 
   useEffect(() => {
     if (!userMenuOpen) return
@@ -105,8 +109,6 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
       document.removeEventListener('keydown', onKey)
     }
   }, [userMenuOpen])
-  const [tourActive, setTourActive]   = useState(false)
-  const [tourDone,   setTourDone]     = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem('samba-theme')
@@ -124,6 +126,12 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
       return () => clearTimeout(id)
     }
   }, [])
+
+  // Trava scroll do body enquanto drawer mobile está aberta
+  useEffect(() => {
+    document.body.classList.toggle('has-mobile-sidebar', mobileOpen)
+    return () => { document.body.classList.remove('has-mobile-sidebar') }
+  }, [mobileOpen])
 
   function handleTourEnd() {
     setTourActive(false)
@@ -152,18 +160,21 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
     .slice(0, 2)
     .map(w => w[0].toUpperCase())
     .join('') ?? '?'
-
   const hubOrigin = payload.isAdmin
-    ? `http://admin.${DOMAIN}`
-    : `http://${payload.orgSlug}.${DOMAIN}`
+    ? `https://admin.${DOMAIN}`
+    : `https://${payload.orgSlug}.${DOMAIN}`
+
+  // Serve foto pelo próprio less (/api/photos/...) — evita cross-origin
+  // que perde o cookie e faz `<img>` cair em broken.
+  const resolvedAvatarUrl = user?.avatarUrl
+    ? user.avatarUrl.startsWith('/api/photos/')
+      ? user.avatarUrl
+      : user.avatarUrl.startsWith('/')
+        ? user.avatarUrl
+        : `/api/photos/${user.avatarUrl}`
+    : null
 
   const hubUrl = `${hubOrigin}/painel`
-
-  const resolvedAvatarUrl = user?.avatarUrl
-    ? user.avatarUrl.startsWith('/')
-      ? `${hubOrigin}${user.avatarUrl}`
-      : user.avatarUrl
-    : null
 
   function renderSection(items: NavItem[], label: string, col: boolean) {
     return (
@@ -193,8 +204,8 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
     const col = collapsed && !forMobile
     return (
       <div className={s.navScroll}>
-        {renderSection(NAV_PRINCIPAL, 'principal', col)}
-        {renderSection(NAV_DOCUMENTOS, 'documentos', col)}
+        {renderSection(NAV_PRINCIPAL,  'principal',   col)}
+        {renderSection(NAV_DOCUMENTOS, 'documentos',  col)}
         {isManagerUser && renderSection(NAV_COORDENACAO, 'coordenação', col)}
         {renderSection(NAV_SUPORTE, 'ajuda', col)}
       </div>
@@ -219,6 +230,7 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
 
   return (
     <BreadcrumbProvider>
+    <ToastProvider>
     <div className={s.shell}>
       <a href="#main-content" className="samba-skip-link">pular pro conteúdo</a>
 
@@ -269,10 +281,10 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
             <Breadcrumb />
           </div>
 
-
           <div className={s.topbarCenter}>
             <CommandPaletteTrigger />
           </div>
+
           <div className={s.topbarRight}>
             <PeriodChip year={activeYear} bimester={currentBimester} />
             {tourDone && (
@@ -285,12 +297,10 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
             <button className={s.topbarBtn} onClick={density.toggle} aria-label="Alternar densidade" title={density.isCompact ? 'densidade confortável' : 'densidade compacta'}>
               {density.isCompact ? <Rows3 size={18} /> : <Rows2 size={18} />}
             </button>
-            <button className={s.topbarBtn} onClick={toggleTheme} aria-label="Alternar tema">
+            <button className={s.topbarBtn} onClick={toggleTheme} aria-label="Alternar tema" title={dark ? 'Tema claro' : 'Tema escuro'}>
               {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-
             <NotificationBell />
-
             <div className={s.userMenuWrap} ref={userMenuRef}>
               <button
                 type="button"
@@ -304,9 +314,9 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
                   <span className={s.userRole}>{roleLabel}</span>
                 </div>
                 <div className={s.avatarWrap}>
-                  {resolvedAvatarUrl && !avatarError ? (
+                  {resolvedAvatarUrl && !avatarFailed ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <Avatar name={user?.name ?? ''} url={resolvedAvatarUrl} />
+                    <Avatar name="" url={resolvedAvatarUrl} />
                   ) : (
                     <span className={s.avatarFallback}>{initials}</span>
                   )}
@@ -339,17 +349,18 @@ export function DashboardShell({ payload, user, children, activeYear, currentBim
             <ErrorBoundary>{children}</ErrorBoundary>
           </div>
         </main>
-        <StudentLookup />
 
+        <StudentLookup />
+        <SpotlightTour active={tourActive} onEnd={handleTourEnd} />
         <SupportWidget />
         <MessagesWidget />
         <MessageToastStack />
         <LoadingBar />
         <KeyboardShortcuts />
         <PWAInstallBanner />
-        <SpotlightTour active={tourActive} onEnd={handleTourEnd} />
       </div>
     </div>
+    </ToastProvider>
     </BreadcrumbProvider>
   )
 }

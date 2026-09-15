@@ -89,14 +89,14 @@
 .success .iconWrap { color: #16a34a; background: color-mix(in srgb, #16a34a 12%, transparent); }
 
 .error {
-  border-left: 3px solid #dc2626;
+  border-left: 3px solid var(--danger);
 }
-.error .iconWrap { color: #dc2626; background: color-mix(in srgb, #dc2626 12%, transparent); }
+.error .iconWrap { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
 
 .warning {
-  border-left: 3px solid #f59e0b;
+  border-left: 3px solid var(--warning);
 }
-.warning .iconWrap { color: #f59e0b; background: color-mix(in srgb, #f59e0b 12%, transparent); }
+.warning .iconWrap { color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); }
 
 .info {
   border-left: 3px solid var(--brand);

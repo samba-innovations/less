@@ -27,6 +27,19 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[ErrorBoundary]', error, info)
+    // O fallback abaixo diz "já registramos o erro" — agora é verdade. Sem
+    // await e com catch vazio de propósito: relatar não pode atrapalhar quem
+    // já está numa tela quebrada.
+    void fetch('/api/errors', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        message: error.message,
+        stack:   error.stack ?? info.componentStack,
+        path:    typeof window === 'undefined' ? null : window.location.pathname,
+      }),
+      keepalive: true,
+    }).catch(() => {})
     this.props.onError?.(error, info)
   }
 

@@ -1,184 +1,78 @@
-.page {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 1.5rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
+.page { display: flex; flex-direction: column; gap: 1.25rem; }
 
-.header {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-}
-
-.headerIcon {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.625rem;
-  background: var(--brand-faint, #fce37520);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--brand, #1a0f00);
-  flex-shrink: 0;
-}
-
-.title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--foreground);
-  margin: 0;
-}
-
-.sub {
-  font-size: 0.75rem;
-  color: var(--muted-foreground);
-  margin: 0;
-}
-
-.countBadge {
-  margin-left: auto;
-  background: var(--brand-faint, #fce37530);
-  color: var(--brand, #1a0f00);
-  border: 1px solid var(--border);
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-}
-
-/* ── Empty state ── */
+/* ── Empty ─────────────────────────────────────────── */
 .empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 4rem 1rem;
-  color: var(--muted-foreground);
+  padding: 4rem 1.5rem;
+  display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+  color: var(--fg-secondary);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
   text-align: center;
 }
+.emptyTitle { font-size: 0.9375rem; font-weight: 700; color: var(--fg); }
+.emptySub   { font-size: 0.8125rem; color: var(--fg-secondary); max-width: 42ch; line-height: 1.55; }
 
-.emptyTitle {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--foreground);
-  margin: 0;
-}
+/* ── Grid de cards ─────────────────────────────────── */
+.list { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+@media (min-width: 900px)  { .list { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1400px) { .list { grid-template-columns: repeat(3, 1fr); } }
 
-.emptySub {
-  font-size: 0.8125rem;
-  margin: 0;
-  max-width: 360px;
-}
-
-/* ── List ── */
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
+/* ── Card ─────────────────────────────────────────── */
 .card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
   position: relative;
-  padding: 0.875rem 1rem 0.875rem 1.25rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+  padding: 1rem 1.125rem;
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 0.625rem;
-  background: var(--card);
+  border-radius: 14px;
+  color: var(--fg);
   text-decoration: none;
-  color: inherit;
+  transition: transform 0.12s, box-shadow 0.15s, border-color 0.12s;
   overflow: hidden;
-  transition: box-shadow 0.15s, border-color 0.15s;
 }
-
 .card:hover {
-  border-color: var(--ring, #ccc);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
+  border-color: var(--fg-secondary);
 }
 
-.cardAccent {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
+/* Accent lateral esquerdo (3px, cor do tipo do documento) */
+.accent {
+  position: absolute; left: 0; top: 0; bottom: 0;
   width: 3px;
-  border-radius: 3px 0 0 3px;
+  border-radius: 0 2px 2px 0;
 }
 
+/* ── Header do card ────────────────────────────────── */
 .cardTop {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
 }
-
-.docInfo {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-}
-
+.docInfo { display: flex; align-items: center; gap: 0.5rem; min-width: 0; flex: 1; }
 .docIcon {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.375rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
 }
+.docText  { display: flex; flex-direction: column; min-width: 0; }
+.docTitle { font-size: 0.875rem; font-weight: 700; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.docMeta  { font-size: 0.6875rem; color: var(--fg-secondary); text-transform: lowercase; letter-spacing: 0.02em; }
 
-.docTitle {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--foreground);
-  margin: 0;
-}
-
-.docMeta {
-  font-size: 0.6875rem;
-  color: var(--muted-foreground);
-  margin: 0;
-}
-
-.statusBadge {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  color: var(--muted-foreground);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
+/* ── Texto da devolutiva ───────────────────────────── */
 .feedbackText {
-  font-size: 0.875rem;
-  color: var(--foreground);
-  line-height: 1.55;
   margin: 0;
-  padding: 0.625rem 0.75rem;
-  background: var(--muted, #f3f4f6);
-  border-radius: 0.375rem;
-  border-left: 3px solid var(--brand, #1a0f00);
+  padding: 0.75rem 0.875rem;
+  background: var(--bg);
+  border-left: 2px solid var(--border);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.8125rem; line-height: 1.55; color: var(--fg);
+  font-style: normal;
 }
 
-.cardMeta {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.6875rem;
-  color: var(--muted-foreground);
+/* ── Footer ────────────────────────────────────────── */
+.cardFoot {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.6875rem; color: var(--fg-secondary);
+  padding-top: 0.25rem;
 }
-
-.coordName { font-weight: 600; }
-.dot { opacity: 0.4; }
-.date {}
+.coordName { font-weight: 600; color: var(--fg); }
+.date      { font-variant-numeric: tabular-nums; }

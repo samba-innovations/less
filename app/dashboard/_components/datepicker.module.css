@@ -22,9 +22,9 @@
   width: 100%;
   min-width: 0;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--input-border);
   border-radius: var(--radius-md);
-  background: var(--surface);
+  background: var(--input-bg);
   color: var(--fg);
   font-family: inherit;
   font-size: 0.875rem;
@@ -36,8 +36,8 @@
               box-shadow var(--duration-fast) var(--ease-out);
 }
 .trigger:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--brand) 40%, var(--border));
-  background: color-mix(in srgb, var(--brand) 3%, var(--surface));
+  border-color: color-mix(in srgb, var(--brand) 40%, var(--input-border));
+  background: color-mix(in srgb, var(--brand) 3%, var(--input-bg));
 }
 .trigger:focus-visible {
   border-color: var(--brand);

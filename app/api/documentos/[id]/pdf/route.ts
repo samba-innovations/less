@@ -113,6 +113,12 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     }
   }
 
+  // Pré-carrega SchoolInfo (institucional + logoBuffer do MinIO) no cache do
+  // layout — sem isso o header/footer caem em fallback só com o nome da org.
+  const { prepareSchoolInfo } = await import('@/lib/pdf/layout')
+  const _si = await prepareSchoolInfo(ctx.school.organization.name)
+  console.log(`[pdf-route] prepared schoolInfo: officialName=${_si.officialName ?? 'null'} logoBuf=${_si.logoBuffer?.length ?? 0}`)
+
   const buffer = await generatePdf({
     type:       doc.type as DocType,
     title:      doc.title,

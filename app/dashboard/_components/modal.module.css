@@ -120,9 +120,9 @@
 }
 
 .close:hover {
-  background: rgba(239, 68, 68, 0.08);
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.3);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
   transform: rotate(90deg);
 }
 
@@ -233,9 +233,9 @@
 
 .errorMsg {
   font-size: 0.8125rem;
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.07);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
   border-radius: 10px;
   padding: 0.875rem 1rem;
   line-height: 1.5;

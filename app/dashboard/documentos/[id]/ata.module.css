@@ -84,7 +84,7 @@
 .discTitle { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-secondary); margin: 0 0 0.4rem; }
 .discRow { display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid var(--border); }
 .discName { font-size: 0.8125rem; color: var(--fg); }
-.discTagWarn { font-size: 0.6875rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: var(--radius-round); background: rgba(245,158,11,0.15); color: #b45309; }
+.discTagWarn { font-size: 0.6875rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: var(--radius-round); background: color-mix(in srgb, var(--warning) 15%, transparent); color: #b45309; }
 .discTagBad { font-size: 0.6875rem; font-weight: 700; color: var(--danger); }
 .discTagOk { font-size: 0.6875rem; font-weight: 700; color: var(--success); }
 
@@ -104,7 +104,7 @@
 .sitCell { font-size: 0.625rem; color: var(--fg-secondary); }
 .numCell { color: var(--fg-secondary); }
 .rowAlt { background: var(--surface); }
-.rowInactive { background: rgba(245,158,11,0.18); }
+.rowInactive { background: color-mix(in srgb, var(--warning) 18%, transparent); }
 .mEditCell { padding: 0.1rem !important; }
 .gradeInput { width: 2.6rem; text-align: center; font-size: 0.6875rem; font-weight: 700; border: 1px solid transparent; border-radius: 0.25rem; background: transparent; outline: none; padding: 0.15rem; color: inherit; }
 .gradeInput:focus { border-color: var(--brand); background: var(--bg); }

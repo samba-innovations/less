@@ -38,7 +38,7 @@
   height: 17px;
   padding: 0 4px;
   border-radius: 999px;
-  background: #ef4444;
+  background: var(--danger);
   color: #fff;
   font-size: 0.625rem;
   font-weight: 800;
@@ -154,7 +154,7 @@
 }
 .newBtn:hover         { color: var(--brand); border-color: var(--brand); }
 .closeTicketBtn:hover { color: #16a34a; border-color: #16a34a; }
-.closeBtn:hover       { color: #ef4444; border-color: #ef4444; background: rgba(239,68,68,0.06); }
+.closeBtn:hover       { color: var(--danger); border-color: var(--danger); background: color-mix(in srgb, var(--danger) 6%, transparent); }
 .closeTicketBtn:disabled { opacity: 0.4; cursor: default; }
 
 /* â”€â”€ Body â”€â”€ */
@@ -276,9 +276,9 @@
 
 .errMsg {
   font-size: 0.75rem;
-  color: #ef4444;
-  background: rgba(239,68,68,0.07);
-  border: 1px solid rgba(239,68,68,0.2);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 20%, transparent);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
 }

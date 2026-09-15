@@ -9,20 +9,20 @@ export const metadata = { title: 'suporte' }
 
 export default async function SuportePage() {
   const token = await getAuthCookie()
-  if (!token) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
-  const payload = await verifyToken(token!).catch(() => null)
-  if (!payload) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
+  if (!token) redirect('/login')
+  const payload = await verifyToken(token).catch(() => null)
+  if (!payload) redirect('/login')
 
   const school = await getSchoolFromPayload(payload)
-  if (!school) redirect(process.env.NEXT_PUBLIC_SSO_URL + '/login')
+  if (!school) redirect('/login')
 
   const tickets = await db.supportTicket.findMany({
-    where: { userId: payload.userId, organizationId: school.organizationId, system: 'less' },
+    where: { userId: payload.userId, organizationId: school.organizationId, system: 'control' },
     include: {
       messages: { orderBy: { createdAt: 'asc' } },
     },
     orderBy: { updatedAt: 'desc' },
   })
 
-  return <SuporteClient tickets={tickets} systemName="less" videoUrl={process.env.NEXT_PUBLIC_SUPPORT_VIDEO_URL} />
+  return <SuporteClient tickets={tickets} systemName="control" videoUrl={process.env.NEXT_PUBLIC_SUPPORT_VIDEO_URL} />
 }

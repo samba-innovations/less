@@ -50,6 +50,8 @@ function TimePickerImpl({
   const [pos,  setPos]  = useState<{ top: number; left: number } | null>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelRef   = useRef<HTMLDivElement>(null)
+  const hourColRef = useRef<HTMLDivElement>(null)
+  const minColRef  = useRef<HTMLDivElement>(null)
 
   const parsed = useMemo(() => parseHM(value), [value])
   const [hour,   setHour]   = useState(parsed?.h ?? new Date().getHours())
@@ -94,16 +96,42 @@ function TimePickerImpl({
     }
   }, [open])
 
-  // Ao abrir, faz scroll pro item selecionado nas duas colunas.
+  // Centraliza o item ativo DENTRO da coluna. scrollIntoView arrastaria a
+  // página junto, porque o painel é um portal em position: fixed.
+  function centerActive(col: HTMLDivElement | null, behavior: ScrollBehavior) {
+    if (!col) return
+    const el = col.querySelector<HTMLElement>(`.${s.colItemActive}`)
+    if (!el) return
+    // Medido na tela, não por offsetTop: assim o cálculo não depende de qual
+    // ancestral é o offsetParent do item.
+    const colRect = col.getBoundingClientRect()
+    const elRect  = el.getBoundingClientRect()
+    const delta   = (elRect.top - colRect.top) - (col.clientHeight - elRect.height) / 2
+    col.scrollTo({ top: col.scrollTop + delta, behavior })
+  }
+
+  // Ao abrir, posiciona as duas colunas sem animação.
   useEffect(() => {
     if (!open) return
     const t = setTimeout(() => {
-      panelRef.current?.querySelectorAll(`.${s.colItemActive}`).forEach(el => {
-        el.scrollIntoView({ block: 'center', behavior: 'auto' })
-      })
+      centerActive(hourColRef.current, 'auto')
+      centerActive(minColRef.current,  'auto')
     }, 20)
     return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  // Setas e cliques movem a seleção: a coluna acompanha em vez de deixar o
+  // item escolhido fora de vista.
+  useEffect(() => {
+    if (open) centerActive(hourColRef.current, 'smooth')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hour])
+
+  useEffect(() => {
+    if (open) centerActive(minColRef.current, 'smooth')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minute])
 
   // Posiciona o painel: abre pra baixo; se nao couber, vira pra cima; sempre dentro da viewport.
   useEffect(() => {
@@ -203,6 +231,7 @@ function TimePickerImpl({
       {/* Duas colunas scrolláveis com snap */}
       <div className={s.columns}>
         <div className={s.col} role="listbox" aria-label="hora">
+          <span className={s.colLabel}>hora</span>
           <button
             type="button"
             className={s.colStep}
@@ -211,7 +240,7 @@ function TimePickerImpl({
           >
             <ChevronUp size={14} />
           </button>
-          <div className={s.colScroll}>
+          <div className={s.colScroll} ref={hourColRef}>
             {hours.map(h => {
               const active = h === hour
               const dis = !canPick(h, minute)
@@ -245,6 +274,7 @@ function TimePickerImpl({
         </div>
 
         <div className={s.col} role="listbox" aria-label="minuto">
+          <span className={s.colLabel}>min</span>
           <button
             type="button"
             className={s.colStep}
@@ -253,7 +283,7 @@ function TimePickerImpl({
           >
             <ChevronUp size={14} />
           </button>
-          <div className={s.colScroll}>
+          <div className={s.colScroll} ref={minColRef}>
             {minutes.map(m => {
               const active = m === minute
               const dis = !canPick(hour, m)

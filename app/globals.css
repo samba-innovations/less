@@ -33,7 +33,7 @@ input, textarea, select, button { font-family: inherit; font-size: inherit; }
   --shadow-card:      0 0 40px rgba(184, 134, 11, 0.07);
 }
 
-html { color-scheme: light; font-size: 17px; }
+html { color-scheme: light; font-size: 16px; }
 html.dark { color-scheme: dark; }
 
 body {

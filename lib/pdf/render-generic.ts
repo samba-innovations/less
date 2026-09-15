@@ -14,7 +14,7 @@ import PDFDocument from 'pdfkit'
 import { DOC_TYPES, type DocType, type FieldDef } from '../doc-types'
 import { fullHeader, miniHeader, paginate, type DocHeaderInfo } from './layout'
 import { docTitle, sectionTitle, kv, paragraph, signatureLine, divider, spacer } from './primitives'
-import { MARGIN_LEFT, MARGIN_RIGHT, PDF_MARGIN_TOP, PDF_MARGIN_BOTTOM } from './theme'
+import { firstPageOptions } from '@pdf'
 
 export type GenericPdfInput = {
   type:       DocType
@@ -93,17 +93,7 @@ function renderCurriculumContext(doc: InstanceType<typeof PDFDocument>, c: Recor
 
 export function generateGenericPdf(input: GenericPdfInput): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({
-      size: 'A4',
-      margins: {
-        top:    PDF_MARGIN_TOP,
-        bottom: PDF_MARGIN_BOTTOM,
-        left:   MARGIN_LEFT,
-        right:  MARGIN_RIGHT,
-      },
-      autoFirstPage: true,
-      bufferPages: true,
-    })
+    const doc = new PDFDocument({ ...firstPageOptions(), autoFirstPage: true })
     const chunks: Buffer[] = []
 
     doc.on('data', (c: Buffer) => chunks.push(c))
