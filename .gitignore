@@ -4,3 +4,7 @@
 
 # Cache incremental do TypeScript — regenerado a cada tsc, nunca deve ser versionado.
 *.tsbuildinfo
+
+# Injetados por scripts/inject-shared.sh no contexto de build (fonte em shared/).
+# Em dev chegam por bind mount; versionar criaria uma segunda fonte da verdade.
+lib/pdf-shared/
