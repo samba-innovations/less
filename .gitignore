@@ -1,3 +1,6 @@
 
 # shared/ui — populado por scripts/sync-shared-ui.sh (prod) ou mount (dev)
 /lib/ui/
+
+# Cache incremental do TypeScript — regenerado a cada tsc, nunca deve ser versionado.
+*.tsbuildinfo
