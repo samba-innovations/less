@@ -17,6 +17,13 @@ ENV NEXT_PUBLIC_HUB_URL=$NEXT_PUBLIC_HUB_URL
 
 RUN npm run build
 
+# Servidor, estáticos e public montados numa pasta só, no mesmo passo do
+# build. Em três COPY separados, cada um virava um registro próprio no cache
+# do CI, e dois builds simultâneos montaram uma imagem com o servidor de um
+# build e os estáticos de outro: o HTML pedia um webpack-*.js inexistente e
+# o control travou no preloader.
+RUN mkdir -p .next/standalone/.next/static .next/standalone/public && cp -r .next/static/. .next/standalone/.next/static/ && cp -r public/. .next/standalone/public/
+
 FROM node:22-alpine AS runner
 
 # Carimbo de versão: é o que /api/version devolve e o painel admin usa
@@ -29,7 +36,5 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3008
 COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
 EXPOSE 3008
 CMD ["node", "server.js"]
