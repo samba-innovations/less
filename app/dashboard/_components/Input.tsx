@@ -3,7 +3,10 @@
 import { forwardRef } from 'react'
 import s from './input.module.css'
 
-type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+// Omit<'size'>: o atributo nativo size é number e colidiria com a nossa
+// escala 'sm' | 'md', virando never silenciosamente — <Input size="sm" />
+// deixava de compilar sem explicar por quê.
+type InputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> & {
   label?: string
   error?: string
   hint?:  string

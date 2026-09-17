@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown, Check } from 'lucide-react'
+import { ChevronDown, Check, Search } from 'lucide-react'
 import s from './select.module.css'
 
 export type SelectOption<T extends string | number = string> = { value: T; label: string }
@@ -15,15 +15,21 @@ type Props<T extends string | number> = {
   size?:        'sm' | 'md'
   className?:   string
   placeholder?: string
+  searchable?:  boolean
+  searchPlaceholder?: string
 }
 
-export function Select<T extends string | number = string>({ options, value, onChange, name, size = 'md', className, placeholder }: Props<T>) {
+export function Select<T extends string | number = string>({ options, value, onChange, name, size = 'md', className, placeholder, searchable, searchPlaceholder }: Props<T>) {
   const [open, setOpen]       = useState(false)
   const [loading, setLoading] = useState(false)
   const [rect, setRect]       = useState<DOMRect | null>(null)
+  const [q, setQ]             = useState('')
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelRef   = useRef<HTMLDivElement>(null)
   const current    = options.find(o => o.value === value)
+  const shown = searchable && q.trim()
+    ? options.filter(o => o.label.toLowerCase().includes(q.trim().toLowerCase()))
+    : options
 
   useEffect(() => {
     if (!open) return
@@ -47,6 +53,7 @@ export function Select<T extends string | number = string>({ options, value, onC
 
   function toggle() {
     if (!open && triggerRef.current) setRect(triggerRef.current.getBoundingClientRect())
+    setQ('')
     setOpen(v => !v)
   }
 
@@ -86,17 +93,34 @@ export function Select<T extends string | number = string>({ options, value, onC
 
       {open && typeof document !== 'undefined' && createPortal(
         <div ref={panelRef} className={s.panel} style={dropdownStyle}>
-          {options.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              className={`${s.option} ${opt.value === value ? s.optionActive : ''}`}
-              onClick={() => select(opt.value)}
-            >
-              <span>{opt.label}</span>
-              {opt.value === value && <Check size={13} className={s.optionCheck} />}
-            </button>
-          ))}
+          {searchable && (
+            <div className={s.searchWrap}>
+              <Search size={13} className={s.searchIcon} />
+              {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
+              <input
+                className={s.searchInput}
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder={searchPlaceholder ?? 'buscar…'}
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Escape') setOpen(false) }}
+              />
+            </div>
+          )}
+          <div className={s.optionList}>
+            {shown.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`${s.option} ${opt.value === value ? s.optionActive : ''}`}
+                onClick={() => select(opt.value)}
+              >
+                <span>{opt.label}</span>
+                {opt.value === value && <Check size={13} className={s.optionCheck} />}
+              </button>
+            ))}
+            {shown.length === 0 && <div className={s.optionEmpty}>nenhum resultado</div>}
+          </div>
         </div>,
         document.body
       )}

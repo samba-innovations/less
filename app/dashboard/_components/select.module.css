@@ -104,6 +104,41 @@
   to   { opacity: 1; transform: translateY(0)    scale(1);    }
 }
 
+/* ── Search box (searchable) ── */
+.searchWrap {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.searchIcon { color: var(--fg-secondary); flex-shrink: 0; }
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 0.875rem;
+  outline: none;
+  padding: 0;
+}
+.searchInput::placeholder { color: var(--fg-secondary); opacity: 0.5; }
+
+.optionList { display: flex; flex-direction: column; }
+
+.optionEmpty {
+  padding: 0.875rem;
+  color: var(--fg-secondary);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
 /* ── Options ── */
 .option {
   display: flex;
