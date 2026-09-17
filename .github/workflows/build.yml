@@ -1,9 +1,23 @@
+# DESLIGADA no push — a imagem deste sistema é construída pelo monorepo.
+#
+# Duas razões, e a segunda é a que importa:
+#
+# 1. Este repositório não tem a pasta shared/, que mora só no monorepo. Os
+#    sistemas que importam @pdf ou @ui não compilam aqui, e o build falhava
+#    com "Module not found" a cada push.
+#
+# 2. Pior: os que NÃO importam shared/ compilavam e publicavam — nas mesmas
+#    tags do monorepo (:latest), porém sem passar GIT_SHA. O carimbo de versão
+#    sumia, e o painel admin voltava a mostrar "dev" sem explicação. Duas
+#    workflows disputando a mesma tag é um problema de integridade, não de
+#    barulho.
+#
+# Mantida com workflow_dispatch para poder ser executada à mão se um dia fizer
+# sentido, em vez de apagada — apagar esconderia a decisão.
+
 name: Build and push image
 
 on:
-  push:
-    branches: [main]
-    paths-ignore: ['**/*.md', '.gitignore', 'LICENSE']
   workflow_dispatch:
 
 env:
