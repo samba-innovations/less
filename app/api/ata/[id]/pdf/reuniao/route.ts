@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken, canCreateAta, effectiveRole } from '@/lib/jwt'
+import { sessaoApi } from '@/lib/auth'
+import { canCreateAta, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { buildReuniaoPdf } from '@/lib/ata-pdf'
 import type { AtaCsvData, ClassTeacher, GenericCsvData } from '@/lib/ata'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const token = await getAuthCookie()
-  if (!token) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
-  let payload: Awaited<ReturnType<typeof verifyToken>>
-  try { payload = await verifyToken(token) } catch { return NextResponse.json({ error: 'Não autenticado' }, { status: 401 }) }
+  const s = await sessaoApi()
+  if (!s.ok) return s.resposta
+  const { payload } = s
   if (!canCreateAta(effectiveRole(payload))) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
   const { id } = await params

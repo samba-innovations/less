@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken } from '@/lib/jwt'
-import { getSchoolFromPayload } from '@/lib/school'
+import { apiComEscola } from '@/lib/auth'
 import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
 async function auth() {
-  const token = await getAuthCookie()
-  if (!token) return null
-  try {
-    const payload = await verifyToken(token)
-    const school  = await getSchoolFromPayload(payload)
-    return school ? { payload, school } : null
-  } catch { return null }
+  const s = await apiComEscola()
+  return s.ok ? { payload: s.payload, school: s.school } : null
 }
 
 // GET /api/messages/threads → threads onde user é participante, com última mensagem + unread count

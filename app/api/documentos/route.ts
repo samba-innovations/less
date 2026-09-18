@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthCookie } from '@/lib/cookie'
+import { sessaoApi } from '@/lib/auth'
 import { verifyToken, isManager, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { ALL_DOC_TYPES, type DocType } from '@/lib/doc-types'
@@ -8,15 +8,17 @@ import { pushToSchool } from '@/lib/sse-broadcaster'
 export const dynamic = 'force-dynamic'
 
 async function auth(orgSlugOverride?: string) {
-  const token = await getAuthCookie()
-  if (!token) return null
-  try {
-    const payload = await verifyToken(token)
-    const slug    = orgSlugOverride || payload.orgSlug
-    if (!slug) return payload.isAdmin ? { payload, school: null } : null
-    const school  = await db.school.findFirst({ where: { organization: { slug } } })
-    return school ? { payload, school } : (payload.isAdmin ? { payload, school: null } : null)
-  } catch { return null }
+  const s = await sessaoApi()
+  if (!s.ok) return null
+  const payload = s.payload
+  // O slug pode vir do corpo da requisição, e isso só vale para o admin do
+  // ecossistema, que navega entre escolas. Para todo mundo a escola é a do
+  // token: aceitar o slug de quem chama deixava qualquer usuário autenticado
+  // criar e listar documento em escola alheia.
+  const slug    = (payload.isAdmin && orgSlugOverride) || payload.orgSlug
+  if (!slug) return payload.isAdmin ? { payload, school: null } : null
+  const school  = await db.school.findFirst({ where: { organization: { slug } } })
+  return school ? { payload, school } : (payload.isAdmin ? { payload, school: null } : null)
 }
 
 export async function GET(req: NextRequest) {

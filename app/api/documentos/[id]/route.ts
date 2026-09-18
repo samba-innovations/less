@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthCookie } from '@/lib/cookie'
+import { sessaoApi } from '@/lib/auth'
 import { verifyToken, isManager, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { pushToSchool } from '@/lib/sse-broadcaster'
 
 async function auth() {
-  const token = await getAuthCookie()
-  if (!token) return null
-  try {
-    const payload = await verifyToken(token)
-    const school  = await db.school.findFirst({ where: { organization: { slug: payload.orgSlug } } })
-    return school ? { payload, school } : null
-  } catch { return null }
+  const s = await sessaoApi()
+  if (!s.ok) return null
+  const school = await db.school.findFirst({ where: { organization: { slug: s.payload.orgSlug } } })
+  return school ? { payload: s.payload, school } : null
 }
 
 async function getDoc(id: number, ctx: Awaited<ReturnType<typeof auth>>) {

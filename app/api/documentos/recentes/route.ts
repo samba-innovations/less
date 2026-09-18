@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken } from '@/lib/jwt'
+import { sessaoApi } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { ALL_DOC_TYPES, type DocType } from '@/lib/doc-types'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
-  const token = await getAuthCookie()
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  let payload
-  try { payload = await verifyToken(token) } catch { return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  const s = await sessaoApi()
+  if (!s.ok) return s.resposta
+  const { payload } = s
 
   const type  = req.nextUrl.searchParams.get('type')
   const limit = Math.min(Math.max(parseInt(req.nextUrl.searchParams.get('limit') ?? '5', 10) || 5, 1), 20)

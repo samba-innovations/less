@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken } from '@/lib/jwt'
+import { sessaoApi } from '@/lib/auth'
 import { reportError } from '@/lib/report-error'
 
 // Onde o navegador entrega o que o ErrorBoundary capturou.
@@ -12,12 +11,9 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
-  const token = await getAuthCookie()
-  if (!token) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
-
-  let payload
-  try { payload = await verifyToken(token) }
-  catch { return NextResponse.json({ error: 'Não autenticado' }, { status: 401 }) }
+  const s = await sessaoApi()
+  if (!s.ok) return s.resposta
+  const { payload } = s
 
   const body = await req.json().catch(() => null)
   if (!body?.message) return NextResponse.json({ error: 'Corpo inválido' }, { status: 400 })

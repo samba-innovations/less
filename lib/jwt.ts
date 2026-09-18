@@ -71,8 +71,26 @@ async function getPublicKey() {
   return _publicKey
 }
 
+// ── Público do token ────────────────────────────────────────────────────────
+// O ecossistema inteiro usa UM par de chaves. Logo, o token de pré-autenticação
+// que o SSO emite entre a senha e a escolha da organização (5 min, sem papel e
+// sem organização) tem assinatura válida aqui também — e, sem esta checagem,
+// entrava como se fosse uma sessão.
+//
+// Tokens emitidos antes desta mudança não têm `aud`: continuam valendo até
+// expirarem (1 dia). Depois da virada dá pra passar a exigir a claim.
+const AUD_SESSAO = 'samba:sessao'
+
+function garantirSessao(payload: { aud?: unknown; preauth?: unknown }) {
+  if (payload.preauth) throw new Error('token de pré-autenticação não vale como sessão')
+  if (payload.aud !== undefined && payload.aud !== AUD_SESSAO) {
+    throw new Error('token emitido para outro público')
+  }
+}
+
 export async function verifyToken(token: string): Promise<JwtPayload> {
   const key = await getPublicKey()
   const { payload } = await jwtVerify(token, key, { algorithms: ['RS256'] })
+  garantirSessao(payload)
   return payload as unknown as JwtPayload
 }

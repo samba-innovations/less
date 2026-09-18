@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken } from '@/lib/jwt'
+import { sessaoApi } from '@/lib/auth'
 import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
 async function auth() {
-  const token = await getAuthCookie()
-  if (!token) return null
-  try { return await verifyToken(token) } catch { return null }
+  const s = await sessaoApi()
+  return s.ok ? s.payload : null
 }
 
 // GET /api/messages/threads/[id]?before=<msgId>&limit=30 → detalhes do thread + mensagens paginadas

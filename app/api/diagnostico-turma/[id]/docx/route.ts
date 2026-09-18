@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx'
-import { getAuthCookie } from '@/lib/cookie'
+import { apiComEscola } from '@/lib/auth'
 import { verifyToken, effectiveRole, isManager } from '@/lib/jwt'
-import { getSchoolFromPayload } from '@/lib/school'
 import { db } from '@/lib/db'
 import { periodoLabel } from '@/lib/rs-shared'
 import type { DtContent } from '@/lib/diagnostico-shared'
@@ -11,16 +10,10 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const token = await getAuthCookie()
-  if (!token) return NextResponse.json({ error: 'não autenticado' }, { status: 401 })
-  let schoolId: number
-  try {
-    const payload = await verifyToken(token)
-    if (!isManager(effectiveRole(payload))) return NextResponse.json({ error: 'sem permissão' }, { status: 403 })
-    const school = await getSchoolFromPayload(payload)
-    if (!school) return NextResponse.json({ error: 'sem escola' }, { status: 403 })
-    schoolId = school.id
-  } catch { return NextResponse.json({ error: 'não autenticado' }, { status: 401 }) }
+  const s = await apiComEscola()
+  if (!s.ok) return s.resposta
+  if (!isManager(effectiveRole(s.payload))) return NextResponse.json({ error: 'sem permissão' }, { status: 403 })
+  const schoolId = s.school.id
 
   const doc = await db.lessDocument.findFirst({ where: { id: Number(id), schoolId, type: 'DIAGNOSTICO_TURMA', deletedAt: null }, select: { title: true, content: true } })
   if (!doc) return NextResponse.json({ error: 'não encontrado' }, { status: 404 })

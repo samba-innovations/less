@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthCookie } from '@/lib/cookie'
+import { sessaoApi } from '@/lib/auth'
 import { verifyToken, isManager, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { generatePdf } from '@/lib/pdf'
@@ -8,13 +8,10 @@ import { notify } from '@/lib/notify'
 import type { DocType } from '@/lib/doc-types'
 
 async function auth() {
-  const token = await getAuthCookie()
-  if (!token) return null
-  try {
-    const payload = await verifyToken(token)
-    const school  = await db.school.findFirst({ where: { organization: { slug: payload.orgSlug } }, include: { organization: true } })
-    return school ? { payload, school } : null
-  } catch { return null }
+  const s = await sessaoApi()
+  if (!s.ok) return null
+  const school = await db.school.findFirst({ where: { organization: { slug: s.payload.orgSlug } }, include: { organization: true } })
+  return school ? { payload: s.payload, school } : null
 }
 
 function parseIds(raw: string | undefined): number[] {

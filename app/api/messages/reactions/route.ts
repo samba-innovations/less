@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken } from '@/lib/jwt'
+import { sessaoApi } from '@/lib/auth'
 import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -11,11 +10,9 @@ export const dynamic = 'force-dynamic'
 // Trigger DB dispara pg_notify pra participants receberem live.
 
 export async function POST(req: NextRequest) {
-  const token = await getAuthCookie()
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  let payload
-  try { payload = await verifyToken(token) }
-  catch { return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  const s = await sessaoApi()
+  if (!s.ok) return s.resposta
+  const { payload } = s
 
   const body = await req.json().catch(() => null) as { messageId?: number; emoji?: string } | null
   const messageId = Number(body?.messageId)
@@ -58,11 +55,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const token = await getAuthCookie()
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  let payload
-  try { payload = await verifyToken(token) }
-  catch { return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  const s = await sessaoApi()
+  if (!s.ok) return s.resposta
+  const { payload } = s
 
   const threadId = Number(req.nextUrl.searchParams.get('threadId'))
   if (!threadId) return NextResponse.json({ error: 'threadId required' }, { status: 400 })

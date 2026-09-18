@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken } from '@/lib/jwt'
+import { sessaoApi } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { generatePdf } from '@/lib/pdf'
 import { prepareSchoolInfo } from '@/lib/pdf/layout'
@@ -11,11 +10,9 @@ type StudentInput = {
 }
 
 export async function POST(req: NextRequest) {
-  const token = await getAuthCookie()
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  let payload: Awaited<ReturnType<typeof verifyToken>>
-  try { payload = await verifyToken(token) } catch { return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  const s = await sessaoApi()
+  if (!s.ok) return s.resposta
+  const { payload } = s
 
   const school = await db.school.findFirst({
     where:   { organization: { slug: payload.orgSlug } },

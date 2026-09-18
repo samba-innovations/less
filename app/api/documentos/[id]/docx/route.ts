@@ -1,8 +1,8 @@
 // DOCX do Projeto de Pesquisa (ABNT) — migrado do samba-paper v1. Gera e envia
 // direto (sem persistir em disco, diferente do v1 que salvava em STORAGE_DIR).
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken, canWrite, effectiveRole } from '@/lib/jwt'
+import { sessaoApi } from '@/lib/auth'
+import { canWrite, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { generateProjetoDocx } from '@/lib/docx-projeto'
 
@@ -10,10 +10,9 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const token = await getAuthCookie()
-  if (!token) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
-  let payload: Awaited<ReturnType<typeof verifyToken>>
-  try { payload = await verifyToken(token) } catch { return NextResponse.json({ error: 'Não autenticado' }, { status: 401 }) }
+  const s = await sessaoApi()
+  if (!s.ok) return s.resposta
+  const { payload } = s
   if (!canWrite(effectiveRole(payload))) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
   const { id } = await params

@@ -3,17 +3,11 @@
 import { db } from '@/lib/db'
 
 const SYSTEM = 'control'
-import { getAuthCookie } from '@/lib/cookie'
-import { verifyToken } from '@/lib/jwt'
-import { getSchoolFromPayload } from '@/lib/school'
+import { acaoComEscola } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
 async function getContext() {
-  const token = await getAuthCookie()
-  if (!token) throw new Error('Não autenticado')
-  const payload = await verifyToken(token)
-  const school  = await getSchoolFromPayload(payload)
-  if (!school) throw new Error('Escola não encontrada')
+  const { payload, school } = await acaoComEscola()
   const user = await db.user.findUnique({ where: { id: payload.userId } })
   if (!user) throw new Error('Usuário não encontrado')
   return { payload, school, user }
