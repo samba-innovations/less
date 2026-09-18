@@ -204,8 +204,6 @@ model School {
   teacherAssignments  TeacherAssignment[]
   gateRecords         GateRecord[]
   custodyRestrictions CustodyRestriction[]
-  exams               Exam[]
-  examApplications    ExamApplication[]
   periods             Period[]
   timetableSlots      TimetableSlot[]
   spaces              Space[]
@@ -256,7 +254,6 @@ model User {
   gateRecords              GateRecord[]
   notifications            Notification[]
   notificationPreferences NotificationPreference[]
-  createdExams             Exam[]
   timetableSlots           TimetableSlot[]
   reservations             Reservation[]          @relation("UserReservations")
   approvedReservations     Reservation[]          @relation("ApprovedReservations")
@@ -370,7 +367,6 @@ model SchoolYear {
 
   school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   classes Class[]
-  exams   Exam[]
   periods Period[]
   slots   TimetableSlot[]
 
@@ -388,7 +384,6 @@ model Grade {
 
   school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   classes Class[]
-  exams   Exam[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -407,7 +402,6 @@ model Discipline {
 
   school           School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   assignments      TeacherAssignment[]
-  exams            Exam[]
   slots            TimetableSlot[]
   classDisciplines ClassDiscipline[]
   lessonRecords    LessonRecord[]
@@ -491,7 +485,6 @@ model Class {
   grade            Grade             @relation(fields: [gradeId], references: [id], onDelete: Cascade)
   enrollments      StudentEnrollment[]
   assignments      TeacherAssignment[]
-  examApplications ExamApplication[]
   timetableSlots   TimetableSlot[]
   classDisciplines ClassDiscipline[]
   lessonRecords    LessonRecord[]
@@ -625,7 +618,6 @@ model StudentEnrollment {
 
   student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   class     Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
-  responses StudentResponse[]
 
   @@unique([studentId, classId])
   @@index([classId])
@@ -697,112 +689,6 @@ model TeacherAssignment {
 }
 
 // â”€â”€â”€ Mockflow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-enum ExamStatus {
-  DRAFT
-  PUBLISHED
-  CLOSED
-}
-
-enum ApplicationStatus {
-  PENDING
-  FINISHED
-}
-
-model Exam {
-  id           Int        @id @default(autoincrement())
-  schoolId     Int
-  createdBy    Int
-  title        String
-  description  String?
-  disciplineId Int?
-  gradeId      Int?
-  schoolYearId Int?
-  optionsCount Int        @default(4)
-  status       ExamStatus @default(DRAFT)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  creator      User         @relation(fields: [createdBy], references: [id])
-  discipline   Discipline?  @relation(fields: [disciplineId], references: [id])
-  grade        Grade?       @relation(fields: [gradeId], references: [id])
-  schoolYear   SchoolYear?  @relation(fields: [schoolYearId], references: [id])
-  questions    ExamQuestion[]
-  applications ExamApplication[]
-
-  @@index([schoolId])
-  @@index([createdBy])
-  @@index([status])
-}
-
-model ExamQuestion {
-  id       Int     @id @default(autoincrement())
-  examId   Int
-  number   Int
-  stem     String
-  imageUrl String?
-  optionA  String
-  optionB  String
-  optionC  String
-  optionD  String
-  optionE  String?
-  answer   String
-
-  exam    Exam            @relation(fields: [examId], references: [id], onDelete: Cascade)
-  answers StudentAnswer[]
-
-  @@unique([examId, number])
-  @@index([examId])
-}
-
-model ExamApplication {
-  id        Int               @id @default(autoincrement())
-  examId    Int
-  classId   Int
-  schoolId  Int
-  date      DateTime
-  status    ApplicationStatus @default(PENDING)
-  createdAt DateTime          @default(now())
-
-  exam      Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
-  class     Class             @relation(fields: [classId], references: [id])
-  school    School            @relation(fields: [schoolId], references: [id])
-  responses StudentResponse[]
-
-  @@unique([examId, classId])
-  @@index([examId])
-  @@index([classId, schoolId])
-}
-
-model StudentResponse {
-  id            Int      @id @default(autoincrement())
-  applicationId Int
-  enrollmentId  Int
-  score         Int?
-  submittedAt   DateTime @default(now())
-
-  application ExamApplication   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  enrollment  StudentEnrollment @relation(fields: [enrollmentId], references: [id])
-  answers     StudentAnswer[]
-
-  @@unique([applicationId, enrollmentId])
-  @@index([applicationId])
-}
-
-model StudentAnswer {
-  id         Int      @id @default(autoincrement())
-  responseId Int
-  questionId Int
-  answer     String
-  isCorrect  Boolean?
-
-  response StudentResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
-  question ExamQuestion    @relation(fields: [questionId], references: [id])
-
-  @@unique([responseId, questionId])
-  @@index([questionId])
-}
 
 // â”€â”€â”€ Reserves â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
