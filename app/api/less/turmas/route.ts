@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { isManager, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
+import { anoDaSerie, ehFundamental } from '@/lib/matriz-curricular'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,9 +66,8 @@ export async function GET(req: Request) {
 }
 
 function mapClass(c: { id: number; name: string; grade: { name: string; level: string; order: number } }) {
-  const isEF = c.grade.level === 'EF2' || c.grade.level === 'EF1'
-  const ciclo = isEF ? 'fundamental' : 'medio'
-  const serie = String(isEF ? c.grade.order : c.grade.order - 9)
+  const ciclo = ehFundamental(c.grade.level) ? 'fundamental' : 'medio'
+  const serie = String(anoDaSerie(c.grade))
   // Rótulo completo "série + turma" (ex.: 6ªA, 1ªC) — igual ao samba-paper v1.
   // Em produção c.name guarda só a letra; se já vier completo (começa com dígito),
   // usa como está para não duplicar (ex.: evitar "6ª6ªA").

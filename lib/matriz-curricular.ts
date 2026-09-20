@@ -28,8 +28,29 @@ export function disciplinaEmMatriz(nome: string): boolean {
   return MATRIZ_EF.has(n) || MATRIZ_EM.has(n)
 }
 
-/** Deriva ciclo/serie a partir do grade da v2 (level EF1/EF2/EM + order). */
-export function cicloSerieFromGrade(grade: { level: string; order: number }): { ciclo: string; serie: string } {
-  const isEF = grade.level === 'EF1' || grade.level === 'EF2'
-  return { ciclo: isEF ? 'fundamental' : 'medio', serie: String(isEF ? grade.order : grade.order - 9) }
+export function ehFundamental(level: string | null | undefined): boolean {
+  return level === 'EF1' || level === 'EF2'
+}
+
+/**
+ * Número do ano/série, lido do NOME da série: "6º ano EF" → 6, "1ª série EM" → 1.
+ *
+ * NÃO derive isto de `Grade.order`. Quem cria as séries é o control, e lá o
+ * `order` é só a ordem de exibição, que nasce 1..N por template — em
+ * `onboarding-templates.ts`, "6º ano EF" e "1ª série EM" têm ambos order 1.
+ *
+ * O less tratava `order` como se fosse o ano escolar (EF) ou 9+ano (EM). Numa
+ * escola configurada pelo control isso rotulava o 6º ano como "1ªA" e a 1ª
+ * série EM como "-4ªA" — e, pior que o rótulo feio, mandava série negativa
+ * para a busca na matriz, que então não achava aula nenhuma.
+ */
+export function anoDaSerie(grade: { name: string; level: string; order: number }): number {
+  const m = /\d+/.exec(grade.name ?? '')
+  // Sem número no nome não há de onde tirar; o order ao menos ordena.
+  return m ? Number(m[0]) : grade.order
+}
+
+/** Deriva ciclo/serie a partir do grade da v2 (level EF1/EF2/EM + nome). */
+export function cicloSerieFromGrade(grade: { name: string; level: string; order: number }): { ciclo: string; serie: string } {
+  return { ciclo: ehFundamental(grade.level) ? 'fundamental' : 'medio', serie: String(anoDaSerie(grade)) }
 }

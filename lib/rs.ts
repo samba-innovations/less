@@ -6,7 +6,7 @@ import { getAuthCookie } from '@/lib/cookie'
 import { verifyToken, effectiveRole, isManager, type JwtPayload } from '@/lib/jwt'
 import { getSchoolFromPayload } from '@/lib/school'
 import { db } from '@/lib/db'
-import { disciplinaElegivel, disciplinaEmMatriz, cicloSerieFromGrade, norm as normDisc } from '@/lib/matriz-curricular'
+import { disciplinaElegivel, disciplinaEmMatriz, cicloSerieFromGrade, anoDaSerie, norm as normDisc } from '@/lib/matriz-curricular'
 import {
   ENABLED_BIMESTRES,
   type RsContext, type RsDisciplina, type RsAprendizagem,
@@ -87,7 +87,7 @@ export async function getAprendizagensFase2(disciplineId: number, gradeId: numbe
 
   const asg = await db.teacherAssignment.findFirst({
     where: { userId: ctx.userId, schoolId: ctx.schoolId, disciplineId, class: { gradeId } },
-    select: { discipline: { select: { name: true, aulasNome: true } }, class: { select: { grade: { select: { level: true, order: true } } } } },
+    select: { discipline: { select: { name: true, aulasNome: true } }, class: { select: { grade: { select: { name: true, level: true, order: true } } } } },
   })
   if (!asg?.class) return { error: 'Disciplina/turma não atribuída a você.' }
   const dn = asg.discipline.aulasNome?.trim() || asg.discipline.name
@@ -227,7 +227,7 @@ export async function getCoordenacaoProfessores(): Promise<{ error?: string; pro
   if (!ctx) return { error: 'Não autenticado.' }
   if (!canView(ctx.payload)) return { error: 'Sem permissão.' }
   const [assigns, docs] = await Promise.all([
-    db.teacherAssignment.findMany({ where: { schoolId: ctx.schoolId }, select: { userId: true, user: { select: { name: true } }, discipline: { select: { name: true } }, class: { select: { grade: { select: { level: true, order: true } } } } } }),
+    db.teacherAssignment.findMany({ where: { schoolId: ctx.schoolId }, select: { userId: true, user: { select: { name: true } }, discipline: { select: { name: true } }, class: { select: { grade: { select: { name: true, level: true, order: true } } } } } }),
     db.lessDocument.findMany({ where: { schoolId: ctx.schoolId, type: 'RELATORIO_SINTESE', deletedAt: null }, select: { id: true, userId: true, title: true, status: true, updatedAt: true, content: true }, orderBy: { updatedAt: 'desc' } }),
   ])
   const map = new Map<number, CoordProfessor>()
@@ -267,7 +267,7 @@ export async function getDesbloqueioPainel(): Promise<{ error?: string; painel?:
     db.grade.findMany({ where: { schoolId: ctx.schoolId }, select: { id: true, name: true, level: true, order: true }, orderBy: [{ level: 'asc' }, { order: 'asc' }] }),
     db.rsRecomposicaoUnlock.findMany({ where: { schoolId: ctx.schoolId, ano: ANO_ATUAL }, select: { gradeId: true, bimestre: true } }),
   ])
-  return { painel: { ano: ANO_ATUAL, grades: grades.map(g => ({ gradeId: g.id, label: g.name, level: String(g.level), yearNumber: g.order })), unlocks: unlocks.map(u => ({ gradeId: u.gradeId, bimestre: u.bimestre })) } }
+  return { painel: { ano: ANO_ATUAL, grades: grades.map(g => ({ gradeId: g.id, label: g.name, level: String(g.level), yearNumber: anoDaSerie(g) })), unlocks: unlocks.map(u => ({ gradeId: u.gradeId, bimestre: u.bimestre })) } }
 }
 
 export async function salvarRecomposicaoCoord(documentId: number, intervencoes: EstrategiaSel[]): Promise<ActionResult<{ ok?: boolean }>> {

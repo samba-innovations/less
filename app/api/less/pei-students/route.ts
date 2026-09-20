@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { isManager, effectiveRole } from '@/lib/jwt'
+import { anoDaSerie } from '@/lib/matriz-curricular'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,14 +11,12 @@ export const dynamic = 'force-dynamic'
  * seção em Class.name; sem a série o editor não encontra a turma e as
  * disciplinas ficam vazias. Mesma regra do mapClass em /api/less/turmas.
  */
-function turmaLabel(secao: string | null, level: string | null, order: number | null): string {
+function turmaLabel(secao: string | null, nomeSerie: string | null, level: string | null, order: number | null): string {
   const nome = (secao ?? '').trim()
   if (!nome) return ''
   if (/^\d/.test(nome)) return nome            // já veio completo
-  if (level == null || order == null) return nome
-  const isEF  = level === 'EF2' || level === 'EF1'
-  const serie = isEF ? order : order - 9
-  return `${serie}ª${nome}`
+  if (nomeSerie == null || level == null || order == null) return nome
+  return `${anoDaSerie({ name: nomeSerie, level, order })}ª${nome}`
 }
 
 export async function GET() {
@@ -46,10 +45,10 @@ export async function GET() {
   // model inteiro no schema do less (mesmo padrão usado com Bimestre).
   const doControl = await db.$queryRaw<Array<{
     id: number; name: string; ra: string | null
-    secao: string | null; gradeLevel: string | null; gradeOrder: number | null
+    secao: string | null; gradeName: string | null; gradeLevel: string | null; gradeOrder: number | null
   }>>`
     SELECT sp.id, s.name, s.ra,
-           c.name AS secao, g.level AS "gradeLevel", g."order" AS "gradeOrder"
+           c.name AS secao, g.name AS "gradeName", g.level AS "gradeLevel", g."order" AS "gradeOrder"
     FROM "StudentPei" sp
     JOIN "Student" s ON s.id = sp."studentId"
     LEFT JOIN "StudentEnrollment" e ON e."studentId" = s.id
@@ -71,7 +70,7 @@ export async function GET() {
       id:               CONTROL_ID_OFFSET + r.id,
       name:             r.name,
       ra:               r.ra ?? '',
-      turma:            turmaLabel(r.secao, r.gradeLevel, r.gradeOrder),
+      turma:            turmaLabel(r.secao, r.gradeName, r.gradeLevel, r.gradeOrder),
       diagnostico:      null,
       profColaborativo: null,
       profAee:          null,
