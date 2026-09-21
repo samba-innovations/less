@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { DOC_TYPES, type DocType, type FieldDef } from '@/lib/doc-types'
+import type { OEMissaoFull, OEMissoesResult } from '@/lib/oe'
 import {
   Save, FileDown, Trash2, CheckCircle, Clock, ChevronDown, Check, ArrowRight,
   BookOpen, Monitor, Microscope, Users, Search, Activity, UserCheck, Layers,
@@ -714,6 +715,14 @@ export function EditorClient({ doc, isAdmin }: Props) {
     [aesRaw],
   )
 
+  // Currículo OE — SÓ no plano de aula OE. Aplica a regra dos livros (lib/oe.ts)
+  // a partir da turma+disciplina+bimestre já escolhidos. Guardado por docType
+  // para não afetar em nada o plano de aula regular.
+  const oeCurriculoUrl = (docType === 'OE_PLANO_AULA' && turmaId && aulasNome && bimestreNum)
+    ? `/api/less/oe-curriculo?classId=${turmaId}&disciplinaTipo=${encodeURIComponent(aulasNome)}&bimestre=${bimestreNum}`
+    : null
+  const { data: oeCurriculo } = useFetch<OEMissoesResult>(oeCurriculoUrl)
+
   // ── Field helpers ─────────────────────────────────────────────────────────
 
   function setField(key: string, value: string) {
@@ -1308,8 +1317,35 @@ export function EditorClient({ doc, isAdmin }: Props) {
   function renderPlanoAulaWizard() {
     const selectedDisc = disciplinas?.find(d => d.id === disciplinaId)
     const selectedBim  = bimestres?.find(b => b.numero === bimestreNum)
+
+    // ── Currículo OE (só OE_PLANO_AULA) ──────────────────────────────────────
+    const isOE = docType === 'OE_PLANO_AULA'
+    const oeMissoes: OEMissaoFull[] = oeCurriculo?.missoes ?? []
+    const oeMissoesSel = (fields.oe_missoes_sel ?? '').split(',').filter(Boolean).map(Number)
+    const oeHabsSel    = (fields.oe_habilidades_sel ?? '').split(',').filter(Boolean)
+    const oeHabsDisponiveis = oeMissoes.filter(m => oeMissoesSel.includes(m.missaoNum)).flatMap(m => m.habilidades)
+    function toggleOeMissao(num: number) {
+      const next = oeMissoesSel.includes(num) ? oeMissoesSel.filter(n => n !== num) : [...oeMissoesSel, num]
+      const selM = oeMissoes.filter(m => next.includes(m.missaoNum))
+      const temas = selM.map(m => m.tema).filter(Boolean).join(' · ')
+      const objetivos = selM.map(m => m.objetivosAprendizagem).filter(Boolean).join('\n')
+      const codigosDisp = new Set(selM.flatMap(m => m.habilidades.map(h => h.codigo)))
+      const habsMantidas = oeHabsSel.filter(c => codigosDisp.has(c))
+      setFieldsMulti({
+        oe_missoes_sel: next.join(','),
+        oe_habilidades_sel: habsMantidas.join(','),
+        ...(temas ? { tema: temas } : {}),
+        ...(objetivos ? { objetivos, objetivo_geral: objetivos } : {}),
+      })
+    }
+    function toggleOeHab(codigo: string) {
+      const next = oeHabsSel.includes(codigo) ? oeHabsSel.filter(c => c !== codigo) : [...oeHabsSel, codigo]
+      setField('oe_habilidades_sel', next.join(','))
+    }
+
     const canStep2 = selectedTurmas.length > 0 && !!disciplinaId && !!bimestreNum
-    const canStep3 = planoAulaIds.length > 0
+    // OE pode avançar pela seleção de missão (usa missões, não as aulas regulares).
+    const canStep3 = planoAulaIds.length > 0 || (isOE && oeMissoesSel.length > 0)
     const multiSelect = fields.periodo !== 'por_aula'
     const tipoAula: TipoAula = (fields.tipo_aula as TipoAula) ?? 'individual'
     const aulaCfg = TIPO_AULA_CFG[tipoAula]
@@ -1348,6 +1384,67 @@ export function EditorClient({ doc, isAdmin }: Props) {
             )
           })}
         </div>
+
+        {/* ── Currículo OE (plano de aula OE): missão/jornada + habilidades ── */}
+        {isOE && (
+          <div className={s.wizardStep} style={{ marginBottom: '0.5rem' }}>
+            <div className={s.wizardGroup}>
+              <p className={s.subLabel}>currículo OE — missão/jornada do bimestre</p>
+              {!turmaId || !disciplinaId || !bimestreNum ? (
+                <p className={s.cascadeLoading}>selecione turma, disciplina e bimestre no passo 1 para carregar o currículo OE.</p>
+              ) : oeMissoes.length === 0 ? (
+                <p className={s.cascadeLoading}>nenhuma missão OE cadastrada para esta turma/bimestre.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {oeMissoes.map(m => {
+                    const sel = oeMissoesSel.includes(m.missaoNum)
+                    return (
+                      <button
+                        key={m.id} type="button" onClick={() => toggleOeMissao(m.missaoNum)}
+                        style={{
+                          textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+                          border: sel ? '1.5px solid #2563eb' : '1px solid var(--border)',
+                          background: sel ? 'rgba(37,99,235,0.08)' : 'var(--bg-secondary)',
+                        }}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {sel && <Check size={13} color="#2563eb" />}
+                          <strong style={{ fontSize: '0.8rem' }}>Missão {m.missaoNum}</strong>
+                          <span style={{ fontSize: '0.68rem', color: 'var(--fg-secondary)' }}>{m.semanasLabel} · {m.aulasLabel}</span>
+                        </span>
+                        {m.tema && <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--fg-secondary)', marginTop: 4 }}>{m.tema}</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {oeHabsDisponiveis.length > 0 && (
+              <div className={s.wizardGroup}>
+                <p className={s.subLabel}>habilidades (selecione as trabalhadas)</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {oeHabsDisponiveis.map(h => {
+                    const sel = oeHabsSel.includes(h.codigo)
+                    return (
+                      <button
+                        key={h.id} type="button" onClick={() => toggleOeHab(h.codigo)} title={h.descricao}
+                        style={{
+                          padding: '4px 9px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer',
+                          border: sel ? '1.5px solid #2563eb' : '1px solid var(--border)',
+                          background: sel ? 'rgba(37,99,235,0.12)' : 'var(--bg-secondary)',
+                          color: sel ? '#2563eb' : 'var(--fg-secondary)',
+                        }}
+                      >
+                        {h.bnccCodigo || h.codigo}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Step 1: Período ── */}
         {planoStep === 1 && (
