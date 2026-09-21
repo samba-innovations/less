@@ -1545,6 +1545,8 @@ export function EditorClient({ doc, isAdmin }: Props) {
                     value={disciplinaId != null ? String(disciplinaId) : ''}
                     options={(disciplinas ?? []).map(d => ({ value: String(d.id), label: d.name }))}
                     onChange={v => handlePlanoDisciplinaChange(Number(v))}
+                    searchable
+                    searchPlaceholder="digite para achar…"
                   />
                 </div>
 

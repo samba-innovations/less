@@ -299,6 +299,8 @@ export function PeiEditor({ fields, setField, isAdmin }: Props) {
               value={fields.disciplina ?? ''}
               placeholder={classId ? 'selecionar…' : 'selecione o aluno primeiro'}
               options={disciplinas.map(d => ({ value: d.name, label: d.name }))}
+              searchable
+              searchPlaceholder="digite para achar…"
               onChange={v => { setField('disciplina', v); setField('habilidades', ''); setField('conteudo', ''); setField('_conteudo_opcoes', '') }}
             />
           </div>

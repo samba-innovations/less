@@ -19,6 +19,10 @@ type Props<T extends string | number> = {
   searchPlaceholder?: string
 }
 
+function semAcento(s: string) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+}
+
 export function Select<T extends string | number = string>({ options, value, onChange, name, size = 'md', className, placeholder, searchable, searchPlaceholder }: Props<T>) {
   const [open, setOpen]       = useState(false)
   const [loading, setLoading] = useState(false)
@@ -27,8 +31,12 @@ export function Select<T extends string | number = string>({ options, value, onC
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelRef   = useRef<HTMLDivElement>(null)
   const current    = options.find(o => o.value === value)
+  // Comparar sem acento: as disciplinas são "Matemática", "Educação Física",
+  // "Química" — quem digita busca escreve "matematica", "educacao", "quimica".
+  // Com a comparação literal, a busca não achava justamente o que ela existe
+  // para achar.
   const shown = searchable && q.trim()
-    ? options.filter(o => o.label.toLowerCase().includes(q.trim().toLowerCase()))
+    ? options.filter(o => semAcento(o.label).includes(semAcento(q)))
     : options
 
   useEffect(() => {

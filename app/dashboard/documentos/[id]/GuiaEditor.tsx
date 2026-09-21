@@ -236,6 +236,8 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
                 placeholder={classId ? 'selecionar…' : 'selecione a turma'}
                 options={disciplinas.map(d => ({ value: d.name, label: d.name }))}
                 onChange={v => setField('disciplina', v)}
+                searchable
+                searchPlaceholder="digite para achar…"
               />
             </div>
             <div className={s.field}>

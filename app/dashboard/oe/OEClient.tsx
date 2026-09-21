@@ -113,6 +113,8 @@ export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
                   if (d) handleDiscChange(d)
                 }}
                 options={disciplinasOE.map(d => ({ value: String(d.id), label: d.name }))}
+                searchable
+                searchPlaceholder="digite para achar…"
                 placeholder="selecionar disciplina…"
               />
             </div>
