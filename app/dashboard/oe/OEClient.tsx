@@ -7,23 +7,14 @@ import s from './oe.module.css'
 import { PageHeader } from '../_components/PageHeader'
 import { Select } from '../_components/Select'
 import { Button } from '../_components/Button'
+import { getOEMissoesForClass, type OEMissaoFull } from './actions'
 
+type Turma = { id: number; name: string; gradeName: string }
 type OEDisciplina = {
   id: number
   name: string
   aulasNome: string | null
-}
-
-type Missao = {
-  id: number
-  missaoNum: number
-  bimestre: number
-  tema: string | null
-  semanasLabel: string
-  aulasLabel: string
-  totalAulas: number
-  saebDescritores: string | null
-  objetivosAprendizagem: string | null
+  turmas: Turma[]
 }
 
 type Props = {
@@ -36,12 +27,14 @@ const BIMESTRES = [1, 2, 3, 4]
 
 export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
   const router = useRouter()
-  const [selectedDisc, setSelectedDisc] = useState<OEDisciplina | null>(disciplinasOE[0] ?? null)
-  const [selectedBim,  setSelectedBim]  = useState<number>(1)
-  const [missoes,      setMissoes]      = useState<Missao[]>([])
-  const [loading,      setLoading]      = useState(false)
-  const [loaded,       setLoaded]       = useState(false)
-  const [creating,     setCreating]     = useState(false)
+  const [selectedDisc,  setSelectedDisc]  = useState<OEDisciplina | null>(disciplinasOE[0] ?? null)
+  const [selectedTurma, setSelectedTurma] = useState<Turma | null>(disciplinasOE[0]?.turmas[0] ?? null)
+  const [selectedBim,   setSelectedBim]   = useState<number>(1)
+  const [missoes,       setMissoes]       = useState<OEMissaoFull[]>([])
+  const [loading,       setLoading]       = useState(false)
+  const [loaded,        setLoaded]        = useState(false)
+  const [aviso,         setAviso]         = useState<string | null>(null)
+  const [creating,      setCreating]      = useState(false)
 
   async function createOEDoc(type: 'OE_PLANO_AULA' | 'OE_GUIA_APRENDIZAGEM') {
     const title = selectedDisc
@@ -57,6 +50,10 @@ export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
             disciplina: selectedDisc?.name ?? '',
             bimestre:   String(selectedBim),
             periodo:    type === 'OE_GUIA_APRENDIZAGEM' ? 'bimestral' : 'por_aula',
+            // Amarra o documento à turma → o editor sabe a série e carrega o
+            // currículo OE certo (regra dos livros). Ver actions.getOEMissoesForClass.
+            classId:   selectedTurma?.id ?? null,
+            turma:     selectedTurma?.name ?? '',
           },
         }),
       })
@@ -65,24 +62,26 @@ export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
     } finally { setCreating(false) }
   }
 
-  async function loadMissoes(disc: OEDisciplina, bim: number) {
-    if (!disc) return
-    setLoading(true); setLoaded(false)
+  async function loadMissoes() {
+    if (!selectedDisc || !selectedTurma) return
+    setLoading(true); setLoaded(false); setAviso(null)
     try {
-      const aulasNome = disc.aulasNome ?? disc.name
-      const params = new URLSearchParams({
-        disciplinaTipo: aulasNome,
-        ciclo: 'medio',
-        serie: '1',
-        bimestre: String(bim),
-      })
-      const res = await fetch(`/api/less/oe-missoes?${params}`)
-      setMissoes(res.ok ? await res.json() as Missao[] : [])
+      const disciplinaTipo = selectedDisc.aulasNome ?? selectedDisc.name
+      const r = await getOEMissoesForClass(selectedTurma.id, disciplinaTipo, selectedBim)
+      if (r.error) { setMissoes([]); setAviso(r.error) }
+      else setMissoes(r.missoes ?? [])
+    } catch {
+      setMissoes([]); setAviso('Falha ao carregar o currículo OE.')
     } finally { setLoading(false); setLoaded(true) }
   }
 
-  function handleDiscChange(disc: OEDisciplina) { setSelectedDisc(disc); setMissoes([]); setLoaded(false) }
-  function handleBimChange(bim: number)         { setSelectedBim(bim);   setMissoes([]); setLoaded(false) }
+  function handleDiscChange(disc: OEDisciplina) {
+    setSelectedDisc(disc)
+    setSelectedTurma(disc.turmas[0] ?? null)
+    setMissoes([]); setLoaded(false)
+  }
+  function handleTurmaChange(t: Turma | null) { setSelectedTurma(t); setMissoes([]); setLoaded(false) }
+  function handleBimChange(bim: number)       { setSelectedBim(bim); setMissoes([]); setLoaded(false) }
 
   const canProduce = ['TEACHER', 'TEACHER_COORDINATOR', 'COORDINATOR'].includes(role) || isAdmin
 
@@ -116,6 +115,16 @@ export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
             </div>
 
             <div className={s.card}>
+              <span className={s.cardLabel}>turma</span>
+              <Select
+                value={selectedTurma ? String(selectedTurma.id) : ''}
+                onChange={v => handleTurmaChange(selectedDisc?.turmas.find(t => t.id === Number(v)) ?? null)}
+                options={(selectedDisc?.turmas ?? []).map(t => ({ value: String(t.id), label: `${t.gradeName} ${t.name}` }))}
+                placeholder="selecionar turma…"
+              />
+            </div>
+
+            <div className={s.card}>
               <span className={s.cardLabel}>bimestre</span>
               <div className={s.bimRow}>
                 {BIMESTRES.map(b => (
@@ -132,8 +141,8 @@ export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
             <Button
               variant="secondary"
               iconLeft={loading ? <div className={s.spinner} /> : <Target size={13} />}
-              onClick={() => selectedDisc && loadMissoes(selectedDisc, selectedBim)}
-              disabled={loading || !selectedDisc}
+              onClick={loadMissoes}
+              disabled={loading || !selectedDisc || !selectedTurma}
               className={s.loadBtn}
             >
               {loading ? 'carregando…' : 'buscar missões do currículo'}
@@ -183,7 +192,7 @@ export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
             {!loaded && !loading && (
               <div className={s.empty}>
                 <Compass size={36} strokeWidth={1.2} />
-                <p>selecione disciplina e bimestre à esquerda e clique em <strong>buscar missões</strong> para carregar o currículo OE.</p>
+                <p>selecione disciplina, turma e bimestre à esquerda e clique em <strong>buscar missões</strong> para carregar o currículo OE.</p>
               </div>
             )}
 
@@ -200,7 +209,7 @@ export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
                 {missoes.length === 0 ? (
                   <div className={s.noMissoes}>
                     <Info size={14} />
-                    <span>o currículo OE para esta disciplina e bimestre ainda não foi importado. os documentos OE podem ser criados usando os planos regulares ao lado.</span>
+                    <span>{aviso ?? 'o currículo OE para esta disciplina/turma e bimestre ainda não foi importado. os documentos OE podem ser criados usando os planos regulares ao lado.'}</span>
                   </div>
                 ) : (
                   <div className={s.missoesList}>
@@ -222,6 +231,24 @@ export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
                         )}
                         {m.objetivosAprendizagem && (
                           <p className={s.missaoObjetivos}>{m.objetivosAprendizagem}</p>
+                        )}
+                        {m.habilidades.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                            {m.habilidades.map(h => (
+                              <span
+                                key={h.id}
+                                title={h.descricao}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                                  padding: '3px 8px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700,
+                                  border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+                                  color: 'var(--fg-secondary)',
+                                }}
+                              >
+                                {h.bnccCodigo || h.codigo}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
                     ))}

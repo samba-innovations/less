@@ -37,15 +37,26 @@ export default async function OEPage() {
     },
     include: {
       discipline: { select: { id: true, name: true, aulasNome: true } },
+      class:      { select: { id: true, name: true, grade: { select: { name: true } } } },
     },
-    distinct: ['disciplineId'],
   })
 
-  // Deduplicate disciplines
-  const seen = new Set<number>()
-  const disciplinasOE = assignments
-    .map(a => a.discipline)
-    .filter(d => { if (seen.has(d.id)) return false; seen.add(d.id); return true })
+  // Agrupa por disciplina, carregando as TURMAS de cada uma. A turma é o que dá a
+  // série → o roteamento do livro OE (regra dos livros em actions.ts). Antes o
+  // page colapsava em `distinct: disciplineId`, perdia a turma, e o client fixava
+  // série=1 (sem currículo). Agora o professor escolhe disciplina → turma.
+  const porDisc = new Map<number, {
+    id: number; name: string; aulasNome: string | null
+    turmas: { id: number; name: string; gradeName: string }[]
+  }>()
+  for (const a of assignments) {
+    let d = porDisc.get(a.discipline.id)
+    if (!d) { d = { id: a.discipline.id, name: a.discipline.name, aulasNome: a.discipline.aulasNome, turmas: [] }; porDisc.set(a.discipline.id, d) }
+    if (!d.turmas.some(t => t.id === a.class.id)) {
+      d.turmas.push({ id: a.class.id, name: a.class.name, gradeName: a.class.grade.name })
+    }
+  }
+  const disciplinasOE = [...porDisc.values()]
 
   return (
     <OEClient
