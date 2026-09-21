@@ -1,9 +1,11 @@
 'use server'
 
 import { acaoComEscola } from '@/lib/auth'
-import { oeMissoesForClass, type OEMissoesResult, type OEMissaoFull, type OEHabilidade } from '@/lib/oe'
+import { oeMissoesForClass, type OEMissoesResult } from '@/lib/oe'
 
-export type { OEMissoesResult, OEMissaoFull, OEHabilidade }
+// ⚠️ Arquivo 'use server': só pode EXPORTAR funções async. Os tipos vivem em
+// '@/lib/oe' e são importados de lá pelos consumidores (não re-exportar aqui —
+// `export type` num 'use server' quebra o `next build`, embora o tsc aceite).
 
 /**
  * Missões OE de uma turma aplicando a regra dos livros (ver lib/oe.ts).

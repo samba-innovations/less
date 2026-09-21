@@ -7,7 +7,8 @@ import s from './oe.module.css'
 import { PageHeader } from '../_components/PageHeader'
 import { Select } from '../_components/Select'
 import { Button } from '../_components/Button'
-import { getOEMissoesForClass, type OEMissaoFull } from './actions'
+import { getOEMissoesForClass } from './actions'
+import type { OEMissaoFull } from '@/lib/oe'
 
 type Turma = { id: number; name: string; gradeName: string }
 type OEDisciplina = {

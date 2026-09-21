@@ -50,11 +50,34 @@ export async function oeMissoesForClass(
   const serieFiltro = usaLivroEM ? '3' : '-1'
   const habSerie    = usaLivroEM ? '3' : '9'
 
+  // ⚠️ O schema do less NÃO tem relação navegável na tabela de junção
+  // (LessOeMissaoHabilidade só guarda missaoId/habilidadeId). Então nada de
+  // `include` — junta em 3 queries, como o getOEAllMissoes da v1.
   const missoes = await db.lessOeMissao.findMany({
     where: { disciplinaTipo, ciclo: cicloFiltro, serie: serieFiltro, ...(bimestre ? { bimestre } : {}) },
     orderBy: { missaoNum: 'asc' },
-    include: { missaoHabilidades: { include: { habilidade: true } } },
   })
+  const missaoIds = missoes.map(m => m.id)
+  const joins = missaoIds.length
+    ? await db.lessOeMissaoHabilidade.findMany({ where: { missaoId: { in: missaoIds } } })
+    : []
+  const habIds = [...new Set(joins.map(j => j.habilidadeId))]
+  const habs = habIds.length
+    ? await db.lessOeHabilidade.findMany({ where: { id: { in: habIds }, serie: habSerie } })
+    : []
+  const habById = new Map(habs.map(h => [h.id, h]))
+  const habsPorMissao = new Map<number, OEHabilidade[]>()
+  for (const j of joins) {
+    const h = habById.get(j.habilidadeId)
+    if (!h) continue
+    const arr = habsPorMissao.get(j.missaoId) ?? []
+    arr.push({
+      id: h.id, codigo: h.codigo, descricao: h.descricao,
+      eixoConhecimento: h.eixoConhecimento, eixoCognitivo: h.eixoCognitivo,
+      eixoCognitivoLabel: h.eixoCognitivoLabel, bnccCodigo: h.bnccCodigo,
+    })
+    habsPorMissao.set(j.missaoId, arr)
+  }
 
   const missoesFull: OEMissaoFull[] = missoes.map(m => ({
     id: m.id, missaoNum: m.missaoNum, bimestre: m.bimestre, tema: m.tema,
@@ -62,18 +85,10 @@ export async function oeMissoesForClass(
     saebDescritores: m.saebDescritores,
     objetivosAprendizagem: m.objetivosAprendizagem,
     objetosConhecimento: m.objetosConhecimento,
-    habilidades: m.missaoHabilidades
-      .map(mh => mh.habilidade)
-      .filter(h => h.serie === habSerie)
-      .sort((a, b) =>
-        a.eixoConhecimento.localeCompare(b.eixoConhecimento) ||
-        (a.eixoCognitivo - b.eixoCognitivo) ||
-        a.codigo.localeCompare(b.codigo))
-      .map(h => ({
-        id: h.id, codigo: h.codigo, descricao: h.descricao,
-        eixoConhecimento: h.eixoConhecimento, eixoCognitivo: h.eixoCognitivo,
-        eixoCognitivoLabel: h.eixoCognitivoLabel, bnccCodigo: h.bnccCodigo,
-      })),
+    habilidades: (habsPorMissao.get(m.id) ?? []).sort((a, b) =>
+      a.eixoConhecimento.localeCompare(b.eixoConhecimento) ||
+      (a.eixoCognitivo - b.eixoCognitivo) ||
+      a.codigo.localeCompare(b.codigo)),
   }))
 
   return { missoes: missoesFull, ciclo, serieNum, usaLivroEM }
