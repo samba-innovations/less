@@ -9,6 +9,7 @@ import { Select } from '../_components/Select'
 import { Button } from '../_components/Button'
 import { getOEMissoesForClass } from './actions'
 import type { OEMissaoFull } from '@/lib/oe'
+import { oeTipoFromNome } from '@/lib/oe-shared'
 
 type Turma = { id: number; name: string; gradeName: string }
 type OEDisciplina = {
@@ -67,7 +68,8 @@ export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
     if (!selectedDisc || !selectedTurma) return
     setLoading(true); setLoaded(false); setAviso(null)
     try {
-      const disciplinaTipo = selectedDisc.aulasNome ?? selectedDisc.name
+      // O currículo OE é indexado por 'lp'/'mat' (não pelo nome/aulasNome).
+      const disciplinaTipo = oeTipoFromNome(selectedDisc.name)
       const r = await getOEMissoesForClass(selectedTurma.id, disciplinaTipo, selectedBim)
       if (r.error) { setMissoes([]); setAviso(r.error) }
       else setMissoes(r.missoes ?? [])

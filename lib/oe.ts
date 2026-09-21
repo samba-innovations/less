@@ -53,8 +53,10 @@ export async function oeMissoesForClass(
   // ⚠️ O schema do less NÃO tem relação navegável na tabela de junção
   // (LessOeMissaoHabilidade só guarda missaoId/habilidadeId). Então nada de
   // `include` — junta em 3 queries, como o getOEAllMissoes da v1.
+  // O currículo grava o tipo em minúsculo ('lp'/'mat'); normaliza por segurança.
+  const tipo = disciplinaTipo.toLowerCase()
   const missoes = await db.lessOeMissao.findMany({
-    where: { disciplinaTipo, ciclo: cicloFiltro, serie: serieFiltro, ...(bimestre ? { bimestre } : {}) },
+    where: { disciplinaTipo: tipo, ciclo: cicloFiltro, serie: serieFiltro, ...(bimestre ? { bimestre } : {}) },
     orderBy: { missaoNum: 'asc' },
   })
   const missaoIds = missoes.map(m => m.id)

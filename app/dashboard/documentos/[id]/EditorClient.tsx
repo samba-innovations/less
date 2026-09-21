@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { DOC_TYPES, type DocType, type FieldDef } from '@/lib/doc-types'
 import type { OEMissaoFull, OEMissoesResult } from '@/lib/oe'
+import { oeTipoFromNome } from '@/lib/oe-shared'
 import {
   Save, FileDown, Trash2, CheckCircle, Clock, ChevronDown, Check, ArrowRight,
   BookOpen, Monitor, Microscope, Users, Search, Activity, UserCheck, Layers,
@@ -718,8 +719,11 @@ export function EditorClient({ doc, isAdmin }: Props) {
   // Currículo OE — SÓ no plano de aula OE. Aplica a regra dos livros (lib/oe.ts)
   // a partir da turma+disciplina+bimestre já escolhidos. Guardado por docType
   // para não afetar em nada o plano de aula regular.
-  const oeCurriculoUrl = (docType === 'OE_PLANO_AULA' && turmaId && aulasNome && bimestreNum)
-    ? `/api/less/oe-curriculo?classId=${turmaId}&disciplinaTipo=${encodeURIComponent(aulasNome)}&bimestre=${bimestreNum}`
+  // Deriva o tipo OE do NOME da disciplina ('OE Matemática' → 'mat'), não do
+  // aulasNome (vazio na disciplina OE) — o currículo é indexado por 'lp'/'mat'.
+  const oeDiscNome = docType === 'OE_PLANO_AULA' ? (disciplinas?.find(d => d.id === disciplinaId)?.name ?? '') : ''
+  const oeCurriculoUrl = (docType === 'OE_PLANO_AULA' && turmaId && oeDiscNome && bimestreNum)
+    ? `/api/less/oe-curriculo?classId=${turmaId}&disciplinaTipo=${oeTipoFromNome(oeDiscNome)}&bimestre=${bimestreNum}`
     : null
   const { data: oeCurriculo } = useFetch<OEMissoesResult>(oeCurriculoUrl)
 
