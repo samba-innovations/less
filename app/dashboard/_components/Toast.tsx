@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, type CSSProperties } from 'react'
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import s from './toast.module.css'
@@ -30,9 +30,14 @@ const DEFAULT_DURATION: Record<ToastVariant, number> = {
   error:   6000,
 }
 
-// Toast unificado. Aparece no canto inferior-direito (não conflita com bell
-// notifications que vão pro top-right no message toast stack).
-// Auto-dismiss por variant; hover pausa; click no X fecha.
+// Toast unificado. Aparece no TOPO, centralizado: é confirmação de uma ação que
+// a pessoa acabou de fazer, e no rodapé direito passava despercebida.
+//
+// Centro, e não topo-direita, porque o MessageToastStack já ocupa
+// `top: 5rem; right: 1.25rem` — ali os dois se empilhariam um sobre o outro.
+//
+// Auto-dismiss por variant; hover pausa; click no X fecha. A barra de tempo na
+// base mostra quanto falta e pausa junto, por CSS.
 export function Toast({ open, variant, title, message, duration, onClose }: Props) {
   const [exiting, setExiting] = useState(false)
   const pausedRef = useRef(false)
@@ -69,6 +74,9 @@ export function Toast({ open, variant, title, message, duration, onClose }: Prop
   return (
     <div
       className={`${s.toast} ${s[variant]} ${exiting ? s.exiting : ''}`}
+      // A barra de tempo é animada em CSS com esta duração — a mesma que o
+      // contador em JS usa, para as duas não divergirem.
+      style={{ '--toast-dur': `${dur}ms` } as CSSProperties}
       role={variant === 'error' || variant === 'warning' ? 'alert' : 'status'}
       onMouseEnter={() => { pausedRef.current = true }}
       onMouseLeave={() => { pausedRef.current = false }}
@@ -83,6 +91,7 @@ export function Toast({ open, variant, title, message, duration, onClose }: Prop
       <button className={s.close} onClick={dismissWithAnim} aria-label="Dispensar">
         <X size={12} />
       </button>
+      <span className={s.progresso} aria-hidden />
     </div>
   )
 }

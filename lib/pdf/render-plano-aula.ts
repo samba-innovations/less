@@ -10,8 +10,8 @@ import PDFDocument from 'pdfkit'
 import { DOC_TYPES, type DocType } from '../doc-types'
 import { fullHeader, miniHeader, paginate, type DocHeaderInfo } from './layout'
 import {
-  docTitle, sectionTitle, subSectionTitle, kv, paragraph,
-  signatureLine, divider, spacer, lightTable, bulletList,
+  sectionTitle, subSectionTitle, paragraph,
+  spacer, lightTable, dataTable, bulletList, referenciasAbnt,
 } from './primitives'
 import {
   cw, cx, COLORS, FONT, SIZE, SPACE, BODY_BOTTOM_Y,
@@ -59,6 +59,38 @@ function badgeListBlock(doc: PDFDoc, value: string) {
 
 function ensureSpace(doc: PDFDoc, needed: number) {
   if (doc.y + needed > BODY_BOTTOM_Y) addMirroredPage(doc)
+}
+
+/**
+ * Quebra um campo de texto em tópicos.
+ *
+ * O catálogo do currículo não usa um separador só. Nas 6.320 aulas: 2.654
+ * separam os objetivos por "•", 977 por quebra de linha e 292 por ";" — e o
+ * conteúdo segue o mesmo padrão misturado (2.573 com "•", 470 com quebra).
+ * Quebrar só na linha deixava três objetivos colados num tópico único, com os
+ * "•" aparecendo no meio da frase.
+ */
+function emTopicos(valor: string): string[] {
+  return valor
+    .split(/\r?\n|\s*[•·]\s*|\s+\/\s+|\s*;\s*/)
+    .map(s => s.replace(/^[\s\-•·*–]+/, '').trim())
+    // 1 caractere é resto de separador, não tópico.
+    .filter(s => s.length > 1)
+}
+
+/**
+ * Separa "EF06MA01 Comparar…" em código + texto. Sem código reconhecido,
+ * devolve a linha inteira como texto — melhor que inventar uma coluna vazia.
+ */
+function separarCodigo(linha: string): { codigo: string; texto: string } {
+  const m = linha.match(/^\(?\s*([A-Z]{2}\d{2}[A-Z]{2,4}\d{2,3}[A-Z]?\d{0,2})\s*\)?\s*[—–\-:]?\s*(.*)$/)
+  if (m && m[2]?.trim()) return { codigo: m[1], texto: m[2].trim() }
+  return { codigo: '', texto: linha }
+}
+
+/** Lista separada por vírgula/ponto vira uma frase só, para caber na célula. */
+function listaEmLinha(valor: string): string {
+  return valor.split(/\r?\n|\s*[·,]\s*/).map(s => s.trim()).filter(Boolean).join('; ')
 }
 
 // ── Bloco "tempo - título" (ex: "0–10 min · Momentos Iniciais") ──────────────
@@ -134,10 +166,19 @@ export function generatePlanoAulaPdf(input: PlanoAulaInput): Promise<Buffer> {
     spacer(doc, 'md')
 
     // ── Identificação ────────────────────────────────────────────────────────
-    const bimNum = c.bimestre ? Number(c.bimestre) : 0
-    const bimLabel = bimNum && BIMESTRE_DATAS[bimNum]
-      ? `${bimNum}º Bimestre — ${BIMESTRE_DATAS[bimNum]}`
-      : (c.bimestre ? `${c.bimestre}º Bimestre` : '—')
+    // Um plano pode cobrir mais de um bimestre (recuperação atravessa o
+    // fechamento), e aí `bimestres` traz a lista: "2,3".
+    const bimList = (c.bimestres ?? '')
+      .split(',').map(s => Number(s.trim())).filter(n => Number.isFinite(n) && n > 0)
+    const bimUsados = bimList.length > 0 ? [...new Set(bimList)].sort((a, b) => a - b)
+                    : (Number(c.bimestre) > 0 ? [Number(c.bimestre)] : [])
+    const bimLabel =
+      bimUsados.length === 0 ? '—'
+      : bimUsados.length === 1
+        ? (BIMESTRE_DATAS[bimUsados[0]]
+            ? `${bimUsados[0]}º Bimestre — ${BIMESTRE_DATAS[bimUsados[0]]}`
+            : `${bimUsados[0]}º Bimestre`)
+        : `${bimUsados.slice(0, -1).map(n => `${n}º`).join(', ')} e ${bimUsados[bimUsados.length - 1]}º Bimestres`
 
     // Formata data: aceita ISO (2026-09-03), BR (03/09/2026) ou vazio
     function fmtData(s: string | undefined): string {
@@ -150,13 +191,21 @@ export function generatePlanoAulaPdf(input: PlanoAulaInput): Promise<Buffer> {
       return s
     }
 
+    /** "21 de setembro de 2026" ou "de 21 … a 3 de outubro de 2026". */
+    function periodo(inicio: string | undefined, fim: string | undefined): string {
+      if (!fim?.trim() || fim === inicio) return fmtData(inicio)
+      return `de ${fmtData(inicio)} a ${fmtData(fim)}`
+    }
+
     sectionTitle(doc, 'Identificação')
-    kv(doc, 'Turma',      c.turmas || c.turma || '—', { inline: true })
-    kv(doc, 'Disciplina', c.disciplina || '—',        { inline: true })
-    kv(doc, 'Bimestre',   bimLabel,                   { inline: true })
-    kv(doc, 'Data',       fmtData(c.data),            { inline: true })
-    if (c.tema) kv(doc, 'Tema / Título da Aula', c.tema, { inline: true })
-    spacer(doc, 'md')
+    const identificacao: string[][] = [
+      ['Turma',      c.turmas || c.turma || '—'],
+      ['Disciplina', c.disciplina || '—'],
+      ['Bimestre',   bimLabel],
+      ['Data',       periodo(c.data, c.data_fim)],
+    ]
+    if (c.tema) identificacao.push(['Tema / Título da Aula', c.tema])
+    dataTable(doc, ['Campo', 'Informação'], identificacao, { colWeights: [1.3, 3.7] })
 
     // ── Aulas Selecionadas ───────────────────────────────────────────────────
     if (input.aulasSelecionadas && input.aulasSelecionadas.length > 0) {
@@ -174,12 +223,19 @@ export function generatePlanoAulaPdf(input: PlanoAulaInput): Promise<Buffer> {
     // ── Objetivos + Habilidades ──────────────────────────────────────────────
     sectionTitle(doc, 'Objetivos e Habilidades')
     if (c.objetivo_geral) {
-      subSectionTitle(doc, 'Objetivo Geral')
-      paragraph(doc, c.objetivo_geral, { abnt: true })
+      subSectionTitle(doc, 'Objetivos')
+      bulletList(doc, emTopicos(c.objetivo_geral))
     }
     if (c.habilidades?.trim()) {
       subSectionTitle(doc, 'Habilidades')
-      paragraph(doc, c.habilidades, { abnt: true })
+      const linhas = emTopicos(c.habilidades).map(separarCodigo)
+      // Só abre a coluna de código quando pelo menos uma habilidade tem código
+      // (BNCC/Currículo Paulista); senão a coluna fica vazia ocupando espaço.
+      if (linhas.some(l => l.codigo)) {
+        dataTable(doc, ['Código', 'Habilidade'], linhas.map(l => [l.codigo, l.texto]), { colWeights: [1, 4] })
+      } else {
+        dataTable(doc, ['Habilidade'], linhas.map(l => [l.texto]))
+      }
     }
     if (input.aprendizagensEssenciais && input.aprendizagensEssenciais.length > 0) {
       subSectionTitle(doc, 'Aprendizagens Essenciais')
@@ -222,29 +278,24 @@ export function generatePlanoAulaPdf(input: PlanoAulaInput): Promise<Buffer> {
     // ── Conteúdo ─────────────────────────────────────────────────────────────
     if (c.conteudo?.trim()) {
       sectionTitle(doc, 'Conteúdo')
-      paragraph(doc, c.conteudo, { abnt: true })
+      const itens = emTopicos(c.conteudo)
+      dataTable(doc, ['Nº', 'Conteúdo'], itens.map((it, i) => [String(i + 1), it]), { colWeights: [0.5, 6] })
     }
 
     // ── Recursos e Avaliação ─────────────────────────────────────────────────
-    sectionTitle(doc, 'Recursos e Avaliação')
-    if (c.recursos_materiais) {
-      subSectionTitle(doc, 'Recursos e Materiais')
-      bulletList(doc, c.recursos_materiais.split(/\s*[·,]\s*/).filter(Boolean))
+    const linhasRA: string[][] = []
+    if (c.recursos_materiais?.trim()) linhasRA.push(['Recursos e materiais', listaEmLinha(c.recursos_materiais)])
+    if (c.avaliacao?.trim())          linhasRA.push(['Avaliação',           listaEmLinha(c.avaliacao)])
+    if (c.ajustes_demanda?.trim())    linhasRA.push(['Ajuste(s) por demanda', c.ajustes_demanda.trim()])
+    if (linhasRA.length > 0) {
+      sectionTitle(doc, 'Recursos e Avaliação')
+      dataTable(doc, ['Item', 'Descrição'], linhasRA, { colWeights: [1.3, 3.7] })
     }
-    if (c.avaliacao) {
-      subSectionTitle(doc, 'Avaliação')
-      bulletList(doc, c.avaliacao.split(/\s*[·,]\s*/).filter(Boolean))
-    }
-    if (c.ajustes_demanda) {
-      subSectionTitle(doc, 'Ajuste(s) por Demanda')
-      paragraph(doc, c.ajustes_demanda, { abnt: true })
-    }
-    if (c.referencias) {
-      subSectionTitle(doc, 'Referências')
-      paragraph(doc, c.referencias, { abnt: true, small: true })
+    if (c.referencias?.trim()) {
+      sectionTitle(doc, 'Referências')
+      referenciasAbnt(doc, c.referencias)
     }
 
-    signatureLine(doc, input.authorName)
     paginate(doc, info)
     doc.end()
   })

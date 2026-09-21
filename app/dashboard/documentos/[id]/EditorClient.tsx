@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { DOC_TYPES, type DocType, type FieldDef } from '@/lib/doc-types'
 import {
   Save, FileDown, Trash2, CheckCircle, Clock, ChevronDown, Check, ArrowRight,
   BookOpen, Monitor, Microscope, Users, Search, Activity, UserCheck, Layers,
-  FileCheck, Zap, MoreVertical, FileText, AlertCircle, type LucideIcon,
+  FileCheck, Zap, MoreVertical, FileText, AlertCircle, X, Plus, Pencil, type LucideIcon,
 } from 'lucide-react'
 import { ConfirmDialog } from '../../_components/ConfirmDialog'
 import { Fragment } from 'react'
@@ -28,6 +28,7 @@ import w from '../../_components/wizard.module.css'
 import { IconButton } from '../../_components/IconButton'
 import { Button } from '../../_components/Button'
 import { Input } from '../../_components/Input'
+import { Toast, type ToastVariant } from '../../_components/Toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,8 @@ type Disciplina = { id: number; name: string; aulasNome: string }
 type Bimestre   = { id: number; numero: number; label: string }
 type Aula = {
   id: number; aulaNum: number; titulo: string
+  /** Bimestre de origem — só importa quando o plano mistura mais de um. */
+  bimestre?: number
   eixo?: string; unidadeTematica?: string; habilidadeCodigo?: string
   habilidadeTexto?: string; objetoConhecimento?: string
   conteudo?: string; objetivos?: string; bloco?: string
@@ -279,6 +282,143 @@ function TecnicaBadge({ item, selected, onSelect, disabled = false, disabledReas
   )
 }
 
+/** Compara ignorando acento e caixa — "situacao" acha "Situação". */
+function semAcento(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}
+
+/**
+ * Card "Outro" — a técnica que o professor escreve. Fica na MESMA grade das do
+ * catálogo, como na v1: a lista pronta cobre o comum, e o que a escola faz de
+ * diferente deixa de ficar de fora do plano.
+ *
+ * Digitar também BUSCA no catálogo: é fácil não achar uma técnica entre vinte
+ * cards e acabar reescrevendo à mão uma que já existe — o que duplicaria a
+ * mesma coisa no plano com dois nomes diferentes.
+ */
+function TecnicaOutroCard({ opcoes, jaSelecionados, onEscolher, onAdd }: {
+  opcoes: readonly TecnicaItem[]
+  jaSelecionados: readonly number[]
+  onEscolher: (id: number) => void
+  onAdd: (nome: string) => void
+}) {
+  const [aberto, setAberto]     = useState(false)
+  const [rascunho, setRascunho] = useState('')
+  const [destaque, setDestaque] = useState(0)
+
+  const busca = semAcento(rascunho.trim())
+  const sugestoes = busca.length < 2 ? [] : opcoes
+    .filter(o => !jaSelecionados.includes(o.id))
+    .filter(o => semAcento(o.nome).includes(busca) || semAcento(o.descritor).includes(busca))
+    .slice(0, 5)
+
+  function escolher(item: TecnicaItem) {
+    setRascunho('')
+    setDestaque(0)
+    setAberto(false)
+    onEscolher(item.id)
+  }
+
+  function confirmar() {
+    const nome = rascunho.trim()
+    setRascunho('')
+    setDestaque(0)
+    setAberto(false)
+    if (nome) onAdd(nome)
+  }
+
+  if (aberto) {
+    return (
+      // tecnicaWrapAcima: sem ele a lista de sugestões fica atrás da seção
+      // seguinte — ver o comentário na classe.
+      <div className={`${s.tecnicaWrap} ${s.tecnicaWrapAcima}`}>
+        {/* Layout próprio, sem herdar o grid do .tecnicaBadge: lá a dica tem
+            grid-column: 2 / -1 e, num card de uma coluna só, ela caía numa
+            coluna implícita e ficava espremida na lateral. */}
+        <div className={s.tecnicaOutroAberto}>
+          <input
+            autoFocus
+            className={s.tecnicaOutroInput}
+            placeholder="buscar ou escrever…"
+            value={rascunho}
+            onChange={e => { setRascunho(e.target.value); setDestaque(0) }}
+            onKeyDown={e => {
+              if (e.key === 'ArrowDown' && sugestoes.length > 0) {
+                e.preventDefault(); setDestaque(d => (d + 1) % sugestoes.length)
+              } else if (e.key === 'ArrowUp' && sugestoes.length > 0) {
+                e.preventDefault(); setDestaque(d => (d - 1 + sugestoes.length) % sugestoes.length)
+              } else if (e.key === 'Enter') {
+                e.preventDefault()
+                // Com sugestão em foco, Enter escolhe a existente em vez de
+                // criar uma cópia com outro nome.
+                if (sugestoes[destaque]) escolher(sugestoes[destaque])
+                else confirmar()
+              } else if (e.key === 'Escape') {
+                setRascunho(''); setDestaque(0); setAberto(false)
+              }
+            }}
+            onBlur={confirmar}
+          />
+          <span className={s.tecnicaOutroDica}>
+            {sugestoes.length > 0
+              ? '↑↓ para escolher · Enter confirma'
+              : 'Enter para adicionar · Esc para cancelar'}
+          </span>
+
+          {sugestoes.length > 0 && (
+            <ul className={s.tecnicaSugestoes}>
+              {sugestoes.map((o, i) => (
+                <li key={o.id}>
+                  <button
+                    type="button"
+                    className={`${s.tecnicaSugestao} ${i === destaque ? s.tecnicaSugestaoAtiva : ''}`}
+                    // mousedown, não click: o blur do input dispara antes do
+                    // click e acabaria gravando o texto digitado como técnica nova.
+                    onMouseDown={e => { e.preventDefault(); escolher(o) }}
+                    onMouseEnter={() => setDestaque(i)}
+                  >
+                    <span className={s.tecnicaSugestaoNum}>{String(o.id).padStart(2, '0')}</span>
+                    <span className={s.tecnicaSugestaoNome}>{o.nome}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={s.tecnicaWrap}>
+      <button type="button" className={`${s.tecnicaBadge} ${s.tecnicaOutroCard}`} onClick={() => setAberto(true)}>
+        <span className={s.tecnicaNum}><Plus size={11} strokeWidth={3} /></span>
+        <span className={s.tecnicaName}>Outro</span>
+        <span className={s.tecnicaDescr}>Escreva sua própria técnica ou estratégia</span>
+      </button>
+    </div>
+  )
+}
+
+/** Técnica escrita pelo professor, já na grade — clicar remove. */
+function TecnicaPropriaBadge({ nome, onRemove }: { nome: string; onRemove: () => void }) {
+  return (
+    <div className={s.tecnicaWrap}>
+      <button
+        type="button"
+        className={`${s.tecnicaBadge} ${s.tecnicaBadgeActive}`}
+        onClick={onRemove}
+        title="remover"
+      >
+        <span className={s.tecnicaNum}><Pencil size={10} strokeWidth={3} /></span>
+        <span className={s.tecnicaName}>{nome}</span>
+        <span className={s.tecnicaCheck} aria-hidden><X size={11} strokeWidth={3} /></span>
+        <span className={s.tecnicaDescr}>escrita por você · clique para remover</span>
+      </button>
+    </div>
+  )
+}
+
 function TecnicaDetailPanel({ item }: { item: TecnicaItem }) {
   return (
     <div className={s.tecnicaDetail}>
@@ -294,7 +434,60 @@ function GrupoCheckbox({ grupos, value, onChange }: {
   const groups: SelectorGroup[] = grupos.map(g => ({
     id: g.id, label: g.label, icon: g.icon, items: g.items, defaultOpen: g.defaultOpen,
   }))
-  return <GroupedChipSelector groups={groups} value={value} onChange={onChange} />
+
+  // Campo "outro": o que a escola usa e não está no catálogo. O item digitado
+  // entra na MESMA lista separada por vírgula dos chips — quem não pertence a
+  // nenhum grupo é, por definição, digitado. Assim ele sobrevive a recarregar
+  // a página sem precisar de um campo próprio no documento.
+  const catalogados  = new Set(groups.flatMap(g => g.items))
+  const selecionados = value ? value.split(',').map(x => x.trim()).filter(Boolean) : []
+  const proprios     = selecionados.filter(v => !catalogados.has(v))
+
+  const [rascunho, setRascunho] = useState('')
+
+  function adicionar() {
+    const novo = rascunho.trim()
+    setRascunho('')
+    if (!novo || selecionados.includes(novo)) return
+    onChange([...selecionados, novo].join(', '))
+  }
+
+  return (
+    <div className={s.grupoComOutro}>
+      <GroupedChipSelector groups={groups} value={value} onChange={onChange} />
+
+      <div className={s.outroBloco}>
+        <p className={s.outroLabel}>outro</p>
+        <div className={s.outroRow}>
+          <Input
+            size="sm"
+            placeholder="digite e pressione Enter…"
+            value={rascunho}
+            onChange={e => setRascunho(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); adicionar() } }}
+          />
+          <Button variant="secondary" size="sm" type="button" onClick={adicionar} disabled={!rascunho.trim()}>
+            adicionar
+          </Button>
+        </div>
+        {proprios.length > 0 && (
+          <div className={s.outroChips}>
+            {proprios.map(item => (
+              <button
+                key={item}
+                type="button"
+                className={s.outroChip}
+                onClick={() => onChange(selecionados.filter(v => v !== item).join(', '))}
+                title="remover"
+              >
+                {item} <X size={11} />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function ChipSelect({ options, value, onChange }: {
@@ -364,6 +557,11 @@ export function EditorClient({ doc, isAdmin }: Props) {
   const [error,   setError]   = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [savedAt,       setSavedAt]       = useState<Date | null>(null)
+  // Toast de confirmação: salvar e baixar não davam retorno nenhum além do
+  // "salvo há Xs" no canto, que passa despercebido — e no download o navegador
+  // pode engolir o arquivo sem avisar.
+  const [aviso, setAviso] = useState<{ variant: ToastVariant; title: string; message?: string } | null>(null)
+  const avisar = (variant: ToastVariant, title: string, message?: string) => setAviso({ variant, title, message })
   const [moreOpen,      setMoreOpen]      = useState(false)
   const [exportOpen,    setExportOpen]    = useState(false)
   const moreRef                           = useRef<HTMLDivElement>(null)
@@ -410,7 +608,18 @@ export function EditorClient({ doc, isAdmin }: Props) {
   // ── Curriculum state (shared) ─────────────────────────────────────────────
   const [turmaId,      setTurmaId]      = useState<number | null>(Number(fields._turma_id) || null)
   const [disciplinaId, setDisciplinaId] = useState<number | null>(Number(fields._disciplina_id) || null)
-  const [bimestreNum,  setBimestreNum]  = useState<number | null>(Number(fields._bimestre) || null)
+  // Um plano pode cobrir mais de um bimestre — recuperação atravessa o
+  // fechamento. A LISTA é a fonte da verdade; `bimestreNum` é o primeiro dela,
+  // para as telas que só sabem lidar com um.
+  const [bimestresSel, setBimestresSel] = useState<number[]>(() => {
+    const lista = (fields.bimestres ?? '')
+      .split(',').map(n => Number(n.trim())).filter(n => Number.isFinite(n) && n > 0)
+    if (lista.length > 0) return [...new Set(lista)].sort((a, b) => a - b)
+    const unico = Number(fields._bimestre) || Number(fields.bimestre) || 0
+    return unico > 0 ? [unico] : []
+  })
+  const bimestreNum = bimestresSel[0] ?? null
+  const setBimestreNum = (n: number | null) => setBimestresSel(n ? [n] : [])
   const [aulaId,       setAulaId]       = useState<number | null>(Number(fields._aula_id) || null)
   const [ciclo,        setCiclo]        = useState<string>(fields._ciclo || '')
   const [serie,        setSerie]        = useState<string>(fields._serie || '')
@@ -491,18 +700,98 @@ export function EditorClient({ doc, isAdmin }: Props) {
   const disciplinasUrl = turmaId ? `/api/less/disciplinas?classId=${turmaId}` : null
   const { data: disciplinas } = useFetch<Disciplina[]>(disciplinasUrl)
 
-  const aulaBase = (turmaId && disciplinaId && bimestreNum && ciclo && serie && aulasNome)
-  const aulasUrl = aulaBase ? `/api/less/aulas?disciplina=${encodeURIComponent(aulasNome)}&serie=${serie}&ciclo=${ciclo}&bimestre=${bimestreNum}` : null
+  const aulaBase = (turmaId && disciplinaId && bimestresSel.length > 0 && ciclo && serie && aulasNome)
+  const aulasUrl = aulaBase ? `/api/less/aulas?disciplina=${encodeURIComponent(aulasNome)}&serie=${serie}&ciclo=${ciclo}&bimestre=${bimestresSel.join(',')}` : null
   const { data: aulas } = useFetch<Aula[]>(aulasUrl)
 
-  const aeUrl = aulaBase ? `/api/less/aprendizagens?disciplina=${encodeURIComponent(aulasNome)}&serie=${serie}&ciclo=${ciclo}&bimestre=${bimestreNum}` : null
-  const { data: aes }  = useFetch<AE[]>(aeUrl)
+  const aeUrl = aulaBase ? `/api/less/aprendizagens?disciplina=${encodeURIComponent(aulasNome)}&serie=${serie}&ciclo=${ciclo}&bimestre=${bimestresSel.join(',')}` : null
+  const { data: aesRaw } = useFetch<AE[]>(aeUrl)
+  // A MESMA aprendizagem essencial costuma constar em mais de um bimestre. Com
+  // o plano cobrindo vários, ela vinha repetida e o código — que é a chave da
+  // lista — colidia no React ("two children with the same key, AE3").
+  const aes = useMemo(
+    () => (aesRaw ? [...new Map(aesRaw.map(a => [a.codigo, a])).values()] : aesRaw),
+    [aesRaw],
+  )
 
   // ── Field helpers ─────────────────────────────────────────────────────────
 
   function setField(key: string, value: string) {
     setFields(prev => ({ ...prev, [key]: value }))
     scheduleSave({ ...fields, [key]: value })
+  }
+
+  /**
+   * Igual ao setField, para mais de uma chave de uma vez. Dois setField
+   * seguidos agendavam o segundo save a partir do `fields` ANTERIOR, e a
+   * primeira alteração se perdia se o autosave disparasse no meio.
+   */
+  function setFieldsMulti(patch: Record<string, string>) {
+    setFields(prev => ({ ...prev, ...patch }))
+    scheduleSave({ ...fields, ...patch })
+  }
+
+  // Técnicas escritas pelo professor, por seção da sequência. Vivem num campo
+  // próprio porque o campo visível é RECONSTRUÍDO a cada clique nos cards do
+  // catálogo — sem isso, marcar outra técnica apagaria o que foi digitado.
+  const CAMPO_OUTROS: Record<string, string> = {
+    desenvolvimento_inicial:    'momento_outros',
+    desenv_p1:                  'desenv_p1_outros',
+    desenv_p2:                  'desenv_p2_outros',
+    desenv_p3:                  'desenv_p3_outros',
+    desenvolvimento_fechamento: 'fechamento_outros',
+  }
+  const propriasDe = (campo: string): string[] =>
+    (fields[CAMPO_OUTROS[campo]] ?? '').split(' / ').map(x => x.trim()).filter(Boolean)
+
+  /** Valor do campo visível: catálogo primeiro, depois as escritas à mão. */
+  function comporTecnicas(campo: string, nomes: string[], proprias?: string[]): string {
+    return [...nomes, ...(proprias ?? propriasDe(campo))].filter(Boolean).join(' / ')
+  }
+  function definirProprias(campo: string, nomesSelecionados: string[], novas: string[]) {
+    setFieldsMulti({
+      [CAMPO_OUTROS[campo]]: novas.join(' / '),
+      [campo]:               comporTecnicas(campo, nomesSelecionados, novas),
+    })
+  }
+
+  // Nomes das técnicas de catálogo hoje marcadas — o campo visível é sempre
+  // recomposto a partir delas mais as escritas à mão.
+  const nomesMomento = () =>
+    momentoIds.map(i => MOMENTOS_INICIAIS.find(x => x.id === i)?.nome ?? '').filter(Boolean)
+  const nomesDesenv = (ids: readonly number[]) =>
+    ids.map(i => DESENVOLVIMENTO_OPTS.find(x => x.id === i)?.nome ?? '').filter(Boolean)
+  const nomesFechamento = () =>
+    fechamentoIds.map(i => FECHAMENTO_OPTS.find(x => x.id === i)?.nome ?? '').filter(Boolean)
+
+  // Marcar/desmarcar técnica. Extraído para que o card da grade e a busca do
+  // "Outro" passem pelo MESMO caminho — inclusive o limite de 3.
+  function alternarMomento(id: number) {
+    setMomentoIds(prev => {
+      const next = prev.includes(id)
+        ? prev.filter(x => x !== id)
+        : prev.length < 3 ? [...prev, id] : prev
+      setFieldsMulti({
+        momento_ids: next.join(','),
+        desenvolvimento_inicial: comporTecnicas('desenvolvimento_inicial',
+          next.map(i => MOMENTOS_INICIAIS.find(x => x.id === i)?.nome ?? '').filter(Boolean)),
+      })
+      return next
+    })
+  }
+
+  function alternarFechamento(id: number) {
+    setFechamentoIds(prev => {
+      const next = prev.includes(id)
+        ? prev.filter(x => x !== id)
+        : prev.length < 3 ? [...prev, id] : prev
+      setFieldsMulti({
+        fechamento_ids: next.join(','),
+        desenvolvimento_fechamento: comporTecnicas('desenvolvimento_fechamento',
+          next.map(i => FECHAMENTO_OPTS.find(x => x.id === i)?.nome ?? '').filter(Boolean)),
+      })
+      return next
+    })
   }
 
   function scheduleSave(f: Record<string, string>) {
@@ -516,6 +805,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
       _turma_id:        String(turmaId ?? ''),
       _disciplina_id:   String(disciplinaId ?? ''),
       _bimestre:        String(bimestreNum ?? ''),
+      bimestres:        bimestresSel.join(','),
       _aula_id:         String(aulaId ?? ''),
       _ciclo:           ciclo,
       _serie:           serie,
@@ -582,10 +872,17 @@ export function EditorClient({ doc, isAdmin }: Props) {
     setField('_bimestre', String(num))
   }
 
-  function handlePlanoBimestreChange(num: number) {
-    setBimestreNum(num)
-    setFields(f => ({ ...f, bimestre: String(num) }))
-    scheduleSave({ ...fields, bimestre: String(num) })
+  /** Liga/desliga um bimestre no plano. Sem nenhum marcado, não há aula a listar. */
+  function togglePlanoBimestre(num: number) {
+    const proximo = bimestresSel.includes(num)
+      ? bimestresSel.filter(n => n !== num)
+      : [...bimestresSel, num]
+    const ordenado = [...new Set(proximo)].sort((a, b) => a - b)
+    setBimestresSel(ordenado)
+    setAulaId(null)
+    const patch = { bimestre: String(ordenado[0] ?? ''), bimestres: ordenado.join(',') }
+    setFields(f => ({ ...f, ...patch }))
+    scheduleSave({ ...fields, ...patch })
   }
 
   function handleAulaChange(id: number) {
@@ -735,7 +1032,9 @@ export function EditorClient({ doc, isAdmin }: Props) {
     } finally { setSaving(false) }
   }
 
-  async function save() {
+  // `silencioso` existe porque gerar PDF/Word salva antes: sem isso, cada
+  // exportação disparava dois toasts em sequência.
+  async function save(silencioso = false) {
     if (saving) return
     setSaving(true); setError(null)
     try {
@@ -744,8 +1043,14 @@ export function EditorClient({ doc, isAdmin }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ title, content: buildContent(fields) }),
       })
-      if (!res.ok) { const d = await res.json(); setError(d.error); return }
+      if (!res.ok) {
+        const d = await res.json()
+        setError(d.error)
+        avisar('error', 'não foi possível salvar', d.error)
+        return
+      }
       setSaved(true); setSavedAt(new Date()); setTimeout(() => setSaved(false), 2000)
+      if (!silencioso) avisar('success', 'documento salvo')
       router.refresh()
     } finally { setSaving(false) }
   }
@@ -754,7 +1059,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
   async function generatePdf() {
     setPdfing(true); setError(null)
     try {
-      await save()
+      await save(true)
 
       // PEI em lote: múltiplos alunos → um PDF por aluno
       if (docType === 'PEI' && fields._selectedStudentIds) {
@@ -769,7 +1074,12 @@ export function EditorClient({ doc, isAdmin }: Props) {
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({ students, sharedContent: buildContent(fields), title }),
           })
-          if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Erro ao gerar PDFs.'); return }
+          if (!res.ok) {
+            const d = await res.json()
+            setError(d.error ?? 'Erro ao gerar PDFs.')
+            avisar('error', 'não foi possível gerar os PDFs', d.error)
+            return
+          }
           const { pdfs } = await res.json() as { pdfs: { studentName: string; pdfBase64: string }[] }
           for (const { studentName, pdfBase64 } of pdfs) {
             const bytes = atob(pdfBase64)
@@ -782,13 +1092,19 @@ export function EditorClient({ doc, isAdmin }: Props) {
             URL.revokeObjectURL(url)
             await new Promise(r => setTimeout(r, 250))
           }
+          avisar('success', `${pdfs.length} PDFs baixados`, 'um por aluno selecionado')
           router.refresh()
           return
         }
       }
 
       const res = await fetch(`/api/documentos/${doc.id}/pdf`, { method: 'POST' })
-      if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Erro ao gerar PDF.'); return }
+      if (!res.ok) {
+        const d = await res.json()
+        setError(d.error ?? 'Erro ao gerar PDF.')
+        avisar('error', 'não foi possível gerar o PDF', d.error)
+        return
+      }
       const blob = await res.blob()
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')
@@ -796,6 +1112,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
       a.download = `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`
       a.click()
       URL.revokeObjectURL(url)
+      avisar('success', 'PDF baixado', a.download)
       router.refresh()
     } finally { setPdfing(false) }
   }
@@ -804,9 +1121,14 @@ export function EditorClient({ doc, isAdmin }: Props) {
   async function generateDocx() {
     setDocxing(true)
     try {
-      await save()
+      await save(true)
       const res = await fetch(`/api/documentos/${doc.id}/docx`, { method: 'POST' })
-      if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error ?? 'Erro ao gerar Word.'); return }
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setError(d.error ?? 'Erro ao gerar Word.')
+        avisar('error', 'não foi possível gerar o Word', d.error)
+        return
+      }
       const blob = await res.blob()
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')
@@ -814,6 +1136,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
       a.download = `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.docx`
       a.click()
       URL.revokeObjectURL(url)
+      avisar('success', 'Word baixado', a.download)
     } finally { setDocxing(false) }
   }
 
@@ -1097,22 +1420,47 @@ export function EditorClient({ doc, isAdmin }: Props) {
 
                 <div className={s.wizardSubGroup}>
                   <p className={s.subLabel}>bimestre</p>
+                  {/* Mais de um pode ser marcado: recuperação atravessa o
+                      fechamento do bimestre, e o plano junta as aulas dos dois. */}
                   <ChipSelector
+                    multi
                     size="sm"
-                    value={bimestreNum ? String(bimestreNum) : null}
-                    onChange={v => handlePlanoBimestreChange(Number(v))}
+                    value={bimestresSel.map(String)}
+                    onChange={vals => {
+                      const proximos = vals.map(Number).filter(n => Number.isFinite(n) && n > 0)
+                      const entrou = proximos.find(n => !bimestresSel.includes(n))
+                      const saiu   = bimestresSel.find(n => !proximos.includes(n))
+                      const alvo   = entrou ?? saiu
+                      if (alvo != null) togglePlanoBimestre(alvo)
+                    }}
                     options={(bimestres ?? []).map(b => ({ value: String(b.numero), label: b.label }))}
                   />
+                  {bimestresSel.length > 1 && (
+                    <p className={s.subHint}>as aulas dos {bimestresSel.length} bimestres aparecem juntas no próximo passo</p>
+                  )}
                 </div>
 
                 <div className={s.wizardSubGroup}>
                   <p className={s.subLabel}>data da aula</p>
-                  <DatePicker
-                    size="sm"
-                    placeholder="selecionar data…"
-                    value={fields.data ?? null}
-                    onChange={v => setField('data', v)}
-                  />
+                  {/* Período, não data única: um plano quinzenal ou de
+                      recuperação cobre de uma data até outra. Deixar "até" em
+                      branco mantém o comportamento antigo, de dia único. */}
+                  <div className={s.dateRangeRow}>
+                    <DatePicker
+                      size="sm"
+                      placeholder="de…"
+                      value={fields.data ?? null}
+                      onChange={v => setField('data', v)}
+                    />
+                    <span className={s.dateRangeSep}>até</span>
+                    <DatePicker
+                      size="sm"
+                      placeholder="(opcional)"
+                      min={fields.data || undefined}
+                      value={fields.data_fim ?? null}
+                      onChange={v => setField('data_fim', v)}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -1236,7 +1584,14 @@ export function EditorClient({ doc, isAdmin }: Props) {
                         <span className={s.aulaItemTop}>
                           <span className={s.aulaNum}><span>{a.aulaNum}</span></span>
                           <span className={s.aulaInfo2col}>
-                            <span className={s.aulaTitulo}>{a.titulo}</span>
+                            <span className={s.aulaTitulo}>
+                              {a.titulo}
+                              {/* Com um bimestre só, a etiqueta é ruído: todas
+                                  as aulas vieram do mesmo lugar. */}
+                              {bimestresSel.length > 1 && a.bimestre != null && (
+                                <span className={s.aulaBimTag}>{a.bimestre}º bim</span>
+                              )}
+                            </span>
                             {(a.eixo || a.unidadeTematica) && (
                               <span className={s.aulaSubtitle}>{a.eixo ?? a.unidadeTematica}</span>
                             )}
@@ -1438,20 +1793,24 @@ export function EditorClient({ doc, isAdmin }: Props) {
                         item={m}
                         index={idx}
                         selected={momentoIds.includes(m.id)}
-                        onSelect={id => {
-                          setMomentoIds(prev => {
-                            const next = prev.includes(id)
-                              ? prev.filter(x => x !== id)
-                              : prev.length < 3 ? [...prev, id] : prev
-                            setField('momento_ids', next.join(','))
-                            setField('desenvolvimento_inicial',
-                              next.map(i => MOMENTOS_INICIAIS.find(x => x.id === i)?.nome ?? '').filter(Boolean).join(' / ')
-                            )
-                            return next
-                          })
-                        }}
+                        onSelect={alternarMomento}
                       />
                     ))}
+                    {propriasDe('desenvolvimento_inicial').map(nome => (
+                      <TecnicaPropriaBadge
+                        key={nome}
+                        nome={nome}
+                        onRemove={() => definirProprias('desenvolvimento_inicial', nomesMomento(),
+                          propriasDe('desenvolvimento_inicial').filter(x => x !== nome))}
+                      />
+                    ))}
+                    <TecnicaOutroCard
+                      opcoes={MOMENTOS_INICIAIS}
+                      jaSelecionados={momentoIds}
+                      onEscolher={alternarMomento}
+                      onAdd={nome => definirProprias('desenvolvimento_inicial', nomesMomento(),
+                        [...propriasDe('desenvolvimento_inicial'), nome])}
+                    />
                   </div>
                   {momentoIds.length > 0 && momentoIds.map(id => {
                     const item = MOMENTOS_INICIAIS.find(x => x.id === id)
@@ -1474,6 +1833,21 @@ export function EditorClient({ doc, isAdmin }: Props) {
                     { ids: desenvolvP3Ids, setIds: setDesenvP3Ids, key: 'desenv_p3', outros: [...desenvolvP1Ids, ...desenvolvP2Ids], label: 'Parte 3' },
                   ] as const).map(({ ids, setIds, key, outros, label }) => {
                     const outrosSet = new Set(outros)
+                    // Mesmo caminho para o card da grade e para a busca do "Outro",
+                    // limite de 2 por parte incluído.
+                    const alternarDesenv = (id: number) => {
+                      setIds((prev: number[]) => {
+                        const next = prev.includes(id)
+                          ? prev.filter(x => x !== id)
+                          : prev.length < 2 ? [...prev, id] : prev
+                        setFieldsMulti({
+                          [key + '_ids']: next.join(','),
+                          [key]: comporTecnicas(key,
+                            next.map(i => DESENVOLVIMENTO_OPTS.find(x => x.id === i)?.nome ?? '').filter(Boolean)),
+                        })
+                        return next
+                      })
+                    }
                     return (
                       <div key={key} className={s.seqPart}>
                         <div className={s.seqPartHeader}>
@@ -1492,20 +1866,25 @@ export function EditorClient({ doc, isAdmin }: Props) {
                                 selected={ids.includes(m.id)}
                                 disabled={usedElsewhere || atMax}
                                 disabledReason={usedElsewhere ? 'Em outra parte' : undefined}
-                                onSelect={id => {
-                                  if (usedElsewhere) return
-                                  setIds((prev: number[]) => {
-                                    const next = prev.includes(id)
-                                      ? prev.filter(x => x !== id)
-                                      : prev.length < 2 ? [...prev, id] : prev
-                                    setField(key + '_ids', next.join(','))
-                                    setField(key, next.map(i => DESENVOLVIMENTO_OPTS.find(x => x.id === i)?.nome ?? '').filter(Boolean).join(' / '))
-                                    return next
-                                  })
-                                }}
+                                onSelect={id => { if (!usedElsewhere) alternarDesenv(id) }}
                               />
                             )
                           })}
+                          {propriasDe(key).map(nome => (
+                            <TecnicaPropriaBadge
+                              key={nome}
+                              nome={nome}
+                              onRemove={() => definirProprias(key, nomesDesenv(ids), propriasDe(key).filter(x => x !== nome))}
+                            />
+                          ))}
+                          <TecnicaOutroCard
+                            opcoes={DESENVOLVIMENTO_OPTS}
+                            /* as usadas nas outras partes também saem da busca:
+                               a mesma técnica não pode repetir entre partes */
+                            jaSelecionados={[...ids, ...outros]}
+                            onEscolher={alternarDesenv}
+                            onAdd={nome => definirProprias(key, nomesDesenv(ids), [...propriasDe(key), nome])}
+                          />
                         </div>
                         {ids.length > 0 && ids.map(id => {
                           const item = DESENVOLVIMENTO_OPTS.find(x => x.id === id)
@@ -1532,20 +1911,24 @@ export function EditorClient({ doc, isAdmin }: Props) {
                         item={m}
                         index={idx}
                         selected={fechamentoIds.includes(m.id)}
-                        onSelect={id => {
-                          setFechamentoIds(prev => {
-                            const next = prev.includes(id)
-                              ? prev.filter(x => x !== id)
-                              : prev.length < 3 ? [...prev, id] : prev
-                            setField('fechamento_ids', next.join(','))
-                            setField('desenvolvimento_fechamento',
-                              next.map(i => FECHAMENTO_OPTS.find(x => x.id === i)?.nome ?? '').filter(Boolean).join(' / ')
-                            )
-                            return next
-                          })
-                        }}
+                        onSelect={alternarFechamento}
                       />
                     ))}
+                    {propriasDe('desenvolvimento_fechamento').map(nome => (
+                      <TecnicaPropriaBadge
+                        key={nome}
+                        nome={nome}
+                        onRemove={() => definirProprias('desenvolvimento_fechamento', nomesFechamento(),
+                          propriasDe('desenvolvimento_fechamento').filter(x => x !== nome))}
+                      />
+                    ))}
+                    <TecnicaOutroCard
+                      opcoes={FECHAMENTO_OPTS}
+                      jaSelecionados={fechamentoIds}
+                      onEscolher={alternarFechamento}
+                      onAdd={nome => definirProprias('desenvolvimento_fechamento', nomesFechamento(),
+                        [...propriasDe('desenvolvimento_fechamento'), nome])}
+                    />
                   </div>
                   {fechamentoIds.length > 0 && fechamentoIds.map(id => {
                     const item = FECHAMENTO_OPTS.find(x => x.id === id)
@@ -1829,7 +2212,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
 
                 <Button
                   variant="primary"
-                  onClick={save}
+                  onClick={() => save()}
                   disabled={saving}
                   type="button"
                   title="salvar (⌘S)"
@@ -1894,6 +2277,14 @@ export function EditorClient({ doc, isAdmin }: Props) {
         </div>
 
       </div>
+
+      <Toast
+        open={!!aviso}
+        variant={aviso?.variant ?? 'info'}
+        title={aviso?.title ?? ''}
+        message={aviso?.message}
+        onClose={() => setAviso(null)}
+      />
 
       <ConfirmDialog
         open={confirmDelete}

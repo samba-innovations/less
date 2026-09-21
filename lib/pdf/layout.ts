@@ -101,6 +101,9 @@ function _ctx(info: DocHeaderInfo): HeaderCtx {
     meta: {
       system:   'less',
       docTitle: info.title || DOC_TYPES[info.type]?.label || 'Documento',
+      // Documento escolar tem o título centralizado; os outros sistemas seguem
+      // à esquerda, que é o padrão do header compartilhado.
+      docTitleAlign: 'center',
       // docSub omitido — o título já carrega o contexto ("Plano de Aula — semana de …")
       id:       `${info.type.toUpperCase()}-${info.createdAt.getFullYear()}-${_shortId(info.createdAt)}`,
       date:     info.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }),

@@ -85,6 +85,8 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
         { value: 'mensal',     label: 'Mensal' },
       ]},
       { key: 'data',             label: 'Data da Aula',        type: 'date' },
+      // Fim do período. Vazio = aula de um dia só, que era o único caso antes.
+      { key: 'data_fim',         label: 'Até (fim do período)', type: 'date' },
       { key: 'objetivo_geral',   label: 'Objetivo Geral',      type: 'textarea', rows: 3 },
       { key: 'recursos_materiais', label: 'Recursos e Materiais', type: 'chips', options: RECURSOS_OPTS },
       { key: 'avaliacao',        label: 'Avaliação',           type: 'chips', options: AVALIACAO_OPTS },

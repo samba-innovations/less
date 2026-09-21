@@ -51,8 +51,23 @@ export function docTitle(doc: PDFDoc, title: string, subtitle?: string) {
 }
 
 // ── Cabeçalho de seção numerada (estilo "1 INTRODUÇÃO" ABNT) ─────────────────
+/**
+ * Espaço mínimo que um título precisa ter ABAIXO dele para não ficar órfão.
+ *
+ * O `ensureSpace` só media a altura do próprio título, então ele cabia no pé da
+ * página e o conteúdo ia para a seguinte — "CONTEÚDO" numa folha e a tabela na
+ * outra. Título é sempre seguido de algo; o que vale é caber o título mais o
+ * começo do que vem depois.
+ *
+ * Os valores cobrem o menor bloco real de cada nível: uma tabela com cabeçalho
+ * e uma linha (~55pt) para a seção, e três linhas de texto (~45pt) para a
+ * subseção.
+ */
+const RESERVA_SECAO    = 28 + 55
+const RESERVA_SUBSECAO = 24 + 45
+
 export function sectionTitle(doc: PDFDoc, label: string, accentColor?: string) {
-  ensureSpace(doc, 28)
+  ensureSpace(doc, RESERVA_SECAO)
   doc.y += SPACE.xs
   doc.font(FONT.bold).fontSize(SIZE.h1).fillColor(COLORS.fg)
     .text(label.toUpperCase(), cx(doc), doc.y, { width: cw(doc), lineBreak: false })
@@ -71,7 +86,7 @@ export function sectionTitle(doc: PDFDoc, label: string, accentColor?: string) {
 
 // ── Subtítulo (estilo "1.1 Algo") ────────────────────────────────────────────
 export function subSectionTitle(doc: PDFDoc, label: string) {
-  ensureSpace(doc, 24)
+  ensureSpace(doc, RESERVA_SUBSECAO)
   doc.y += SPACE.xs
   doc.font(FONT.bold).fontSize(SIZE.h2).fillColor(COLORS.fg)
     .text(label, cx(doc), doc.y, { width: cw(doc) })
@@ -214,6 +229,156 @@ export function lightTable(
     .stroke()
     .restore()
   doc.y += SPACE.md
+}
+
+// ── Tabela de dados — célula que quebra linha e cresce a altura ──────────────
+// A `lightTable` acima corta o texto com `ellipsis` numa linha de 22pt fixos:
+// serve para listas curtas (código, número), não para conteúdo redigido. Aqui a
+// altura da linha sai da célula mais alta, e a tabela quebra de página
+// repetindo o cabeçalho.
+const CELULA_PAD_X = 6
+const CELULA_PAD_Y = 5
+
+export function dataTable(
+  doc: PDFDoc,
+  headers: string[],
+  rows: string[][],
+  opts: { colWeights?: number[]; size?: number } = {},
+) {
+  if (rows.length === 0) return
+  const size    = opts.size ?? SIZE.small
+  const weights = opts.colWeights ?? headers.map(() => 1)
+  const total   = weights.reduce((a, b) => a + b, 0)
+  const widths  = weights.map(w => (cw(doc) * w) / total)
+
+  function alturaDaLinha(cells: string[], font: string): number {
+    doc.font(font).fontSize(size)
+    let maior = 0
+    for (let i = 0; i < widths.length; i++) {
+      // String vazia mede 0 e achataria a linha; o espaço garante uma linha.
+      const h = doc.heightOfString(cells[i]?.trim() || ' ', { width: widths[i] - CELULA_PAD_X * 2 })
+      if (h > maior) maior = h
+    }
+    return maior + CELULA_PAD_Y * 2
+  }
+
+  function desenharLinha(cells: string[], font: string, altura: number, fundo?: string) {
+    const y  = doc.y
+    const x0 = cx(doc)
+    if (fundo) doc.save().rect(x0, y, cw(doc), altura).fill(fundo).restore()
+
+    doc.save().lineWidth(0.5).strokeColor(COLORS.border)
+    doc.rect(x0, y, cw(doc), altura).stroke()
+    let xv = x0
+    for (let i = 0; i < widths.length - 1; i++) {
+      xv += widths[i]
+      doc.moveTo(xv, y).lineTo(xv, y + altura).stroke()
+    }
+    doc.restore()
+
+    let x = x0
+    for (let i = 0; i < widths.length; i++) {
+      doc.font(font).fontSize(size).fillColor(COLORS.fg)
+        .text(cells[i] ?? '', x + CELULA_PAD_X, y + CELULA_PAD_Y, { width: widths[i] - CELULA_PAD_X * 2 })
+      x += widths[i]
+    }
+    // O texto de cada célula mexeu no cursor; a linha manda.
+    doc.y = y + altura
+  }
+
+  const alturaCabecalho = alturaDaLinha(headers, FONT.bold)
+  // Cabeçalho sozinho no pé da página é pior que quebrar antes. Mede a primeira
+  // linha de verdade em vez de chutar uma folga: linha com texto longo ocupa
+  // bem mais que a altura padrão.
+  ensureSpace(doc, alturaCabecalho + alturaDaLinha(rows[0], FONT.regular))
+  desenharLinha(headers, FONT.bold, alturaCabecalho, COLORS.bgSoft)
+
+  for (const row of rows) {
+    const altura = alturaDaLinha(row, FONT.regular)
+    if (doc.y + altura > BODY_BOTTOM_Y) {
+      addMirroredPage(doc)
+      desenharLinha(headers, FONT.bold, alturaDaLinha(headers, FONT.bold), COLORS.bgSoft)
+    }
+    desenharLinha(row, FONT.regular, altura)
+  }
+  doc.y += SPACE.md
+}
+
+// ── Referências no padrão ABNT (NBR 6023) ────────────────────────────────────
+// Uma entrada por linha do campo. O destaque tipográfico vai no TÍTULO, em
+// negrito; subtítulo (depois dos dois-pontos) não recebe destaque, e expressões
+// latinas ("In:", "et al.", "apud") vão em itálico. Alinhamento à esquerda, sem
+// justificar, com um respiro entre as entradas.
+
+const AUTOR_INSTITUCIONAL =
+  /^(minist[ée]rio|secretaria|conselho|departamento|instituto|funda[çc][ãa]o|universidade|comiss[ãa]o|coordenadoria|ag[êe]ncia|diretoria)\b/i
+
+/** Elemento de autoria: começa em CAIXA ALTA ("LUCKESI", "BRASIL") ou é órgão. */
+function ehElementoDeAutoria(seg: string): boolean {
+  const s = seg.trim()
+  if (!s) return false
+  if (AUTOR_INSTITUCIONAL.test(s)) return true
+  const primeira = s.split(/[\s,(.]/)[0] ?? ''
+  const letras = primeira.replace(/[^A-Za-zÀ-ÿ]/g, '')
+  return letras.length >= 2 && letras === letras.toUpperCase()
+}
+
+export function separarReferenciaAbnt(entrada: string): { autor: string; titulo: string; resto: string } {
+  // Mantém o ponto colado em cada parte: "9.394" não quebra porque não há espaço.
+  const partes = entrada.split(/(?<=\.)\s+/)
+  let i = 0
+  while (i < partes.length && ehElementoDeAutoria(partes[i])) i++
+  // Sem autoria reconhecida, ou nada sobrando para ser título: não arrisca.
+  if (i === 0 || i >= partes.length) return { autor: entrada, titulo: '', resto: '' }
+
+  const autor = partes.slice(0, i).join(' ') + ' '
+  const bruto = partes[i]
+  const cauda = partes.slice(i + 1).join(' ')
+  const corte = bruto.indexOf(':')
+  const titulo = corte > 0 ? bruto.slice(0, corte) : bruto.replace(/\.\s*$/, '')
+  const depois = corte > 0 ? bruto.slice(corte) : '.'
+  return { autor, titulo, resto: `${depois} ${cauda}`.trimEnd() }
+}
+
+export function referenciasAbnt(doc: PDFDoc, texto: string) {
+  const entradas = texto.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+  const size = SIZE.small
+
+  for (const entrada of entradas) {
+    ensureSpace(doc, size * 3)
+    const { autor, titulo, resto } = separarReferenciaAbnt(entrada)
+    const comum = { width: cw(doc), align: 'left' as const, lineGap: 0 }
+
+    doc.fillColor(COLORS.fg).fontSize(size)
+    if (!titulo) {
+      doc.font(FONT.regular).text(autor, cx(doc), doc.y, comum)
+    } else {
+      doc.font(FONT.regular).text(autor, cx(doc), doc.y, { ...comum, continued: true })
+      doc.font(FONT.bold).text(titulo, { ...comum, continued: true })
+      escreverRestoComLatim(doc, resto, comum, size)
+    }
+    doc.y += SPACE.xs
+  }
+  doc.y += SPACE.xs
+}
+
+/** Escreve a cauda da referência pondo em itálico as expressões latinas. */
+function escreverRestoComLatim(
+  doc: PDFDoc,
+  resto: string,
+  comum: { width: number; align: 'left'; lineGap: number },
+  size: number,
+) {
+  const pedacos = resto.split(/(\bIn:|\bet al\.|\bapud\b)/g).filter(p => p !== '')
+  if (pedacos.length <= 1) {
+    doc.font(FONT.regular).fontSize(size).text(resto, { ...comum, continued: false })
+    return
+  }
+  pedacos.forEach((p, idx) => {
+    const latim = /^(In:|et al\.|apud)$/.test(p)
+    doc.font(latim ? FONT.italic : FONT.regular).fontSize(size)
+      .text(p, { ...comum, continued: idx < pedacos.length - 1 })
+  })
 }
 
 // ── Linha de assinatura — ancorada no rodapé da última página ────────────────

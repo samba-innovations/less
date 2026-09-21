@@ -1,44 +1,67 @@
+/* =============================================================================
+   Toast — confirmação de ação, no topo e centralizado.
+
+   Ficava no rodapé direito, pequeno e de borda fina: a pessoa salvava e não via
+   nada acontecer. Agora nasce no topo, no centro, com o ícone em chip sólido e
+   uma barra de tempo na base.
+
+   Centro, e não topo-direita, porque o MessageToastStack já mora em
+   `top: 5rem; right: 1.25rem` — no mesmo canto os dois se sobreporiam.
+   ============================================================================= */
+
 .toast {
   position: fixed;
-  bottom: var(--space-lg);
-  right: var(--space-lg);
+  /* Abaixo do header — mesma referência que o MessageToastStack usa. Em
+     1.25rem ele cobria a busca "Ctrl K" da barra superior. */
+  top: 5rem;
+  left: 50%;
+  /* O translateX faz parte do posicionamento, então TODO keyframe precisa
+     repeti-lo — animar `transform` sem ele joga o toast para a direita. */
+  transform: translateX(-50%);
   z-index: 9997;
+
   display: flex;
   align-items: flex-start;
-  gap: var(--space-md);
-  min-width: 280px;
-  max-width: 400px;
-  padding: var(--space-md) var(--space-lg);
-  padding-right: var(--space-2xl);
-  background: var(--bg);
+  gap: 0.75rem;
+  min-width: 320px;
+  max-width: 460px;
+  padding: 0.875rem 2.75rem 0.875rem 1rem;
+
+  overflow: hidden;   /* a barra de tempo acompanha o arredondamento */
+  background: var(--surface, var(--bg));
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  animation: t-in var(--duration-normal) var(--ease-out);
+  border-radius: 14px;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.16),
+    0 2px 6px  rgba(0, 0, 0, 0.08);
+
+  animation: toastEntra 0.26s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes t-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0)   scale(1); }
+@keyframes toastEntra {
+  from { opacity: 0; transform: translateX(-50%) translateY(-14px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1); }
 }
 
 .exiting {
-  animation: t-out var(--duration-normal) var(--ease-in) forwards;
+  animation: toastSai 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
   pointer-events: none;
 }
-@keyframes t-out {
-  from { opacity: 1; transform: translateY(0)   scale(1); }
-  to   { opacity: 0; transform: translateY(8px) scale(0.97); }
+@keyframes toastSai {
+  from { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1); }
+  to   { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.97); }
 }
 
+/* Ícone em chip sólido: o tint de 12% sumia no fundo claro. */
 .iconWrap {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-round);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #fff;
 }
 
 .content {
@@ -47,68 +70,107 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding-top: 0.1875rem;
 }
 
 .title {
-  font-size: 0.8125rem;
-  font-weight: 700;
+  font-size: 0.875rem;
+  font-weight: 800;
   color: var(--fg);
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
 }
 
 .message {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   color: var(--fg-secondary);
   line-height: 1.4;
+  overflow-wrap: anywhere;   /* nome de arquivo longo não estoura a caixa */
 }
 
 .close {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 10px;
+  right: 10px;
   padding: 4px;
   border: none;
   background: transparent;
   color: var(--fg-secondary);
   cursor: pointer;
-  border-radius: var(--radius-sm);
+  border-radius: 6px;
   display: inline-flex;
-  opacity: 0.6;
-  transition: opacity var(--duration-fast) var(--ease-out),
-              background var(--duration-fast) var(--ease-out);
+  opacity: 0.55;
+  transition: opacity 0.15s, background 0.15s;
 }
 .close:hover {
   opacity: 1;
   background: color-mix(in srgb, var(--fg) 8%, transparent);
 }
 
-/* ── Variants ── */
-.success {
-  border-left: 3px solid #16a34a;
+/* ── Barra de tempo ────────────────────────────────────────────────────────
+   Mostra que o toast some sozinho e quanto falta. Pausa no hover pelo CSS,
+   junto com o contador em JS, senão a barra chegaria ao fim com o toast ainda
+   na tela. */
+.progresso {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  transform-origin: left;
+  animation: toastProgresso var(--toast-dur, 3000ms) linear forwards;
 }
-.success .iconWrap { color: #16a34a; background: color-mix(in srgb, #16a34a 12%, transparent); }
+.toast:hover .progresso { animation-play-state: paused; }
 
-.error {
-  border-left: 3px solid var(--danger);
+@keyframes toastProgresso {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
 }
-.error .iconWrap { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
 
-.warning {
-  border-left: 3px solid var(--warning);
-}
-.warning .iconWrap { color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); }
+/* ── Variantes ────────────────────────────────────────────────────────────── */
+.success .iconWrap  { background: #16a34a; }
+.success .progresso { background: #16a34a; }
+.success            { border-color: color-mix(in srgb, #16a34a 35%, var(--border)); }
 
-.info {
-  border-left: 3px solid var(--brand);
+.error .iconWrap    { background: var(--danger); }
+.error .progresso   { background: var(--danger); }
+.error              { border-color: color-mix(in srgb, var(--danger) 35%, var(--border)); }
+
+.warning .iconWrap  { background: var(--warning); }
+.warning .progresso { background: var(--warning); }
+.warning            { border-color: color-mix(in srgb, var(--warning) 35%, var(--border)); }
+
+.info .iconWrap     { background: var(--brand); }
+.info .progresso    { background: var(--brand); }
+.info               { border-color: color-mix(in srgb, var(--brand) 35%, var(--border)); }
+
+/* No mobile ele ocupa a largura toda, então não há translateX para centralizar
+   — e por isso precisa de keyframes próprios, sem o deslocamento. Redefinir
+   os mesmos @keyframes dentro do media query funcionaria por sobrescrita, mas
+   depende da ordem das regras e quebra em silêncio se alguém reordenar. */
+@keyframes toastEntraLargo {
+  from { opacity: 0; transform: translateY(-14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)     scale(1); }
 }
-.info .iconWrap { color: var(--brand); background: color-mix(in srgb, var(--brand) 12%, transparent); }
+@keyframes toastSaiLargo {
+  from { opacity: 1; transform: translateY(0)     scale(1); }
+  to   { opacity: 0; transform: translateY(-10px) scale(0.97); }
+}
 
 @media (max-width: 640px) {
   .toast {
-    left: var(--space-sm);
-    right: var(--space-sm);
-    bottom: var(--space-sm);
-    max-width: none;
+    top: 4.5rem;
+    left: 0.75rem;
+    right: 0.75rem;
+    transform: none;
     min-width: 0;
+    max-width: none;
+    animation-name: toastEntraLargo;
   }
+  .exiting { animation-name: toastSaiLargo; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast, .exiting { animation: none; }
+  .progresso { animation-duration: var(--toast-dur, 3000ms); }
 }
