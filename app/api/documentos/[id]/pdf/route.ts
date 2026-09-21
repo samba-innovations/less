@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { generatePdf } from '@/lib/pdf'
 import type { AprendizagemEssencial, AulaSelecionada } from '@/lib/pdf'
 import { notify } from '@/lib/notify'
-import type { DocType } from '@/lib/doc-types'
+import { camposFaltando, type DocType } from '@/lib/doc-types'
 
 async function auth() {
   const s = await sessaoApi()
@@ -40,6 +40,15 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     include: { user: { select: { name: true } } },
   })
   if (!doc) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
+
+  // A tela já barra antes de chamar aqui, mas a regra vale na rota também: sem
+  // isto, uma chamada direta à API emite documento com campo obrigatório vazio.
+  const faltando = camposFaltando(doc.type as DocType, doc.content as Record<string, string>)
+  if (faltando.length > 0) {
+    return NextResponse.json({
+      error: `Preencha antes de emitir: ${faltando.map(f => f.label).join(', ')}.`,
+    }, { status: 422 })
+  }
 
   const content = doc.content as Record<string, string>
 

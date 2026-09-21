@@ -5,6 +5,7 @@ import { sessaoApi } from '@/lib/auth'
 import { canWrite, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { generateProjetoDocx } from '@/lib/docx-projeto'
+import { camposFaltando, type DocType } from '@/lib/doc-types'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -25,6 +26,15 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     where: { id: docId, type: 'PROJETO', deletedAt: null, ...(school ? { schoolId: school.id } : {}) },
   })
   if (!doc) return NextResponse.json({ error: 'Documento não encontrado' }, { status: 404 })
+
+  // A tela já barra antes de chamar aqui, mas a regra vale na rota também: sem
+  // isto, uma chamada direta à API emite documento com campo obrigatório vazio.
+  const faltando = camposFaltando(doc.type as DocType, doc.content as Record<string, string>)
+  if (faltando.length > 0) {
+    return NextResponse.json({
+      error: `Preencha antes de emitir: ${faltando.map(f => f.label).join(', ')}.`,
+    }, { status: 422 })
+  }
 
   const user = await db.user.findUnique({ where: { id: payload.userId }, select: { name: true } })
   const content = (doc.content ?? {}) as Record<string, string>

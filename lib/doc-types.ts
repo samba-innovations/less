@@ -84,12 +84,12 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
         { value: 'quinzenal',  label: 'Quinzenal' },
         { value: 'mensal',     label: 'Mensal' },
       ]},
-      { key: 'data',             label: 'Data da Aula',        type: 'date' },
+      { key: 'data',             label: 'Data da Aula',        type: 'date', required: true },
       // Fim do período. Vazio = aula de um dia só, que era o único caso antes.
       { key: 'data_fim',         label: 'Até (fim do período)', type: 'date' },
-      { key: 'objetivo_geral',   label: 'Objetivo Geral',      type: 'textarea', rows: 3 },
-      { key: 'recursos_materiais', label: 'Recursos e Materiais', type: 'chips', options: RECURSOS_OPTS },
-      { key: 'avaliacao',        label: 'Avaliação',           type: 'chips', options: AVALIACAO_OPTS },
+      { key: 'objetivo_geral',   label: 'Objetivo Geral',      type: 'textarea', required: true, rows: 3 },
+      { key: 'recursos_materiais', label: 'Recursos e Materiais', type: 'chips', required: true, options: RECURSOS_OPTS },
+      { key: 'avaliacao',        label: 'Avaliação',           type: 'chips', required: true, options: AVALIACAO_OPTS },
       { key: 'observacoes',      label: 'Observações',         type: 'textarea', rows: 2 },
     ],
   },
@@ -99,15 +99,15 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
     description: 'Selecione turma, disciplina e bimestre — aprendizagens essenciais carregadas do currículo SP',
     color: '#0891b2',
     fields: [
-      { key: 'ano_letivo',      label: 'Ano Letivo',              type: 'text', placeholder: '2025' },
-      { key: 'data_inicio',     label: 'Data de Início do Bimestre', type: 'date' },
+      { key: 'ano_letivo',      label: 'Ano Letivo',              type: 'text', required: true, placeholder: '2025' },
+      { key: 'data_inicio',     label: 'Data de Início do Bimestre', type: 'date', required: true },
       { key: 'tema',            label: 'Tema / Título do Guia',   type: 'text', required: true },
       { key: 'competencias',    label: 'Competências Gerais (BNCC)', type: 'textarea', rows: 3 },
-      { key: 'habilidades',     label: 'Habilidades Específicas', type: 'textarea', rows: 3 },
-      { key: 'conteudos',       label: 'Conteúdos Programáticos', type: 'textarea', rows: 4 },
-      { key: 'estrategias',     label: 'Estratégias Didáticas',   type: 'chips', options: METODOLOGIA_OPTS },
+      { key: 'habilidades',     label: 'Habilidades Específicas', type: 'textarea', required: true, rows: 3 },
+      { key: 'conteudos',       label: 'Conteúdos Programáticos', type: 'textarea', required: true, rows: 4 },
+      { key: 'estrategias',     label: 'Estratégias Didáticas',   type: 'chips', required: true, options: METODOLOGIA_OPTS },
       { key: 'recursos',        label: 'Recursos e Materiais',    type: 'chips', options: RECURSOS_OPTS },
-      { key: 'avaliacao',       label: 'Avaliação Bimestral',     type: 'chips', options: AVALIACAO_OPTS },
+      { key: 'avaliacao',       label: 'Avaliação Bimestral',     type: 'chips', required: true, options: AVALIACAO_OPTS },
       { key: 'composicao_media', label: 'Composição de Média',    type: 'textarea', rows: 2, placeholder: 'Ex: 60% avaliações + 40% atividades' },
       { key: 'referencias',     label: 'Referências',             type: 'textarea', rows: 3 },
     ],
@@ -120,7 +120,7 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
     fields: [
       { key: 'aluno',              label: 'Nome do Aluno',            type: 'text',     required: true },
       { key: 'ra',                 label: 'RA',                       type: 'text' },
-      { key: 'turma',              label: 'Turma',                    type: 'text' },
+      { key: 'turma',              label: 'Turma',                    type: 'text', required: true },
       { key: 'diagnostico_cid',    label: 'Diagnóstico / CID',        type: 'text' },
       { key: 'bimestre',           label: 'Bimestre',                 type: 'select', options: [
         { value: '1', label: '1º Bimestre' },
@@ -128,15 +128,15 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
         { value: '3', label: '3º Bimestre' },
         { value: '4', label: '4º Bimestre' },
       ]},
-      { key: 'disciplina',         label: 'Disciplina',               type: 'text' },
+      { key: 'disciplina',         label: 'Disciplina',               type: 'text', required: true },
       { key: 'data_elaboracao',    label: 'Data de Elaboração',       type: 'date' },
       { key: 'habilidades',        label: 'Habilidades Trabalhadas',  type: 'textarea', rows: 3 },
       { key: 'conteudo',           label: 'Conteúdo Específico',      type: 'textarea', rows: 3 },
       { key: 'diagnostico_funcional', label: 'Diagnóstico Funcional', type: 'textarea', rows: 3 },
       { key: 'diagnostico_obs',    label: 'Observações Diagnósticas', type: 'textarea', rows: 2 },
-      { key: 'objetivos',          label: 'Objetivos Específicos',    type: 'textarea', rows: 4 },
-      { key: 'estrategias',        label: 'Estratégias e Adaptações', type: 'textarea', rows: 4 },
-      { key: 'avaliacao',          label: 'Avaliação do Processo',    type: 'textarea', rows: 3 },
+      { key: 'objetivos',          label: 'Objetivos Específicos',    type: 'textarea', required: true, rows: 4 },
+      { key: 'estrategias',        label: 'Estratégias e Adaptações', type: 'textarea', required: true, rows: 4 },
+      { key: 'avaliacao',          label: 'Avaliação do Processo',    type: 'textarea', required: true, rows: 3 },
       { key: 'profissionais',      label: 'Profissionais Envolvidos', type: 'textarea', rows: 2 },
       { key: 'responsaveis',       label: 'Responsáveis / Família',   type: 'textarea', rows: 2 },
       { key: 'proxima_revisao',    label: 'Próxima Revisão',          type: 'date' },
@@ -154,18 +154,18 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
         { value: 'fundamental',   label: 'Ensino Fundamental' },
       ]},
       { key: 'professor_parceiro', label: 'Professor(a) Parceiro(a)', type: 'text' },
-      { key: 'semestre',          label: 'Semestre',                 type: 'select', options: [
+      { key: 'semestre',          label: 'Semestre',                 type: 'select', required: true, options: [
         { value: '1',             label: '1º Semestre' },
         { value: '2',             label: '2º Semestre' },
       ]},
-      { key: 'carga_horaria',     label: 'Carga Horária Semanal',    type: 'text', placeholder: 'Ex: 2h' },
+      { key: 'carga_horaria',     label: 'Carga Horária Semanal',    type: 'text', required: true, placeholder: 'Ex: 2h' },
       { key: 'data_inicio',       label: 'Primeira Aula',            type: 'date' },
       { key: 'data_culminancia',  label: 'Culminância',              type: 'date' },
-      { key: 'justificativa',     label: 'Justificativa',            type: 'textarea', rows: 3 },
-      { key: 'ementa',            label: 'Ementa',                   type: 'textarea', rows: 3 },
-      { key: 'objetivos',         label: 'Objetivos',                type: 'textarea', rows: 4 },
-      { key: 'metodologia',       label: 'Metodologia',              type: 'chips', options: METODOLOGIA_OPTS },
-      { key: 'avaliacao',         label: 'Avaliação',                type: 'chips', options: AVALIACAO_OPTS },
+      { key: 'justificativa',     label: 'Justificativa',            type: 'textarea', required: true, rows: 3 },
+      { key: 'ementa',            label: 'Ementa',                   type: 'textarea', required: true, rows: 3 },
+      { key: 'objetivos',         label: 'Objetivos',                type: 'textarea', required: true, rows: 4 },
+      { key: 'metodologia',       label: 'Metodologia',              type: 'chips', required: true, options: METODOLOGIA_OPTS },
+      { key: 'avaliacao',         label: 'Avaliação',                type: 'chips', required: true, options: AVALIACAO_OPTS },
       { key: 'materiais',         label: 'Materiais e Recursos',     type: 'chips', options: RECURSOS_OPTS },
       { key: 'composicao_media',  label: 'Composição de Média',      type: 'textarea', rows: 2, placeholder: 'Ex: 60% avaliações + 40% atividades' },
       { key: 'referencias',       label: 'Referências',              type: 'textarea', rows: 3 },
@@ -177,17 +177,17 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
     description: 'Plano de Ensino por Módulo/Área (Esporte, Música, Arte)',
     color: '#d97706',
     fields: [
-      { key: 'modalidade',       label: 'Modalidade',               type: 'select', options: [
+      { key: 'modalidade',       label: 'Modalidade',               type: 'select', required: true, options: [
         { value: 'esporte',      label: 'Esporte' },
         { value: 'musica',       label: 'Música' },
         { value: 'arte',         label: 'Arte' },
-      ], required: true },
-      { key: 'carga_horaria',    label: 'Carga Horária Semanal',    type: 'text', placeholder: 'Ex: 2h' },
-      { key: 'tema',             label: 'Tema / Projeto do Bimestre', type: 'text' },
-      { key: 'objetivos',        label: 'Objetivos',                type: 'textarea', rows: 4 },
-      { key: 'conteudos',        label: 'Conteúdos',                type: 'textarea', rows: 4 },
-      { key: 'metodologia',      label: 'Metodologia',              type: 'chips', options: METODOLOGIA_OPTS },
-      { key: 'avaliacao',        label: 'Avaliação',                type: 'chips', options: AVALIACAO_OPTS },
+      ] },
+      { key: 'carga_horaria',    label: 'Carga Horária Semanal',    type: 'text', required: true, placeholder: 'Ex: 2h' },
+      { key: 'tema',             label: 'Tema / Projeto do Bimestre', type: 'text', required: true },
+      { key: 'objetivos',        label: 'Objetivos',                type: 'textarea', required: true, rows: 4 },
+      { key: 'conteudos',        label: 'Conteúdos',                type: 'textarea', required: true, rows: 4 },
+      { key: 'metodologia',      label: 'Metodologia',              type: 'chips', required: true, options: METODOLOGIA_OPTS },
+      { key: 'avaliacao',        label: 'Avaliação',                type: 'chips', required: true, options: AVALIACAO_OPTS },
       { key: 'materiais',        label: 'Materiais e Equipamentos', type: 'chips', options: RECURSOS_OPTS },
       { key: 'composicao_media', label: 'Composição de Média',      type: 'textarea', rows: 2, placeholder: 'Ex: 60% avaliações + 40% atividades' },
       { key: 'referencias',      label: 'Referências',              type: 'textarea', rows: 3 },
@@ -202,14 +202,14 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
       { key: 'titulo',               label: 'Título',                type: 'text',     required: true },
       { key: 'turmas',               label: 'Turma(s)',              type: 'text' },
       { key: 'disciplinas',          label: 'Disciplinas Envolvidas', type: 'text' },
-      { key: 'periodo',              label: 'Período',               type: 'text' },
+      { key: 'periodo',              label: 'Período',               type: 'text', required: true },
       { key: 'resumo',               label: 'Resumo',                type: 'textarea', rows: 3 },
       { key: 'palavras_chave',       label: 'Palavras-chave',        type: 'text',     placeholder: 'Ex: educação, inovação, tecnologia' },
-      { key: 'problema',             label: 'Problema de Pesquisa',  type: 'textarea', rows: 3 },
-      { key: 'justificativa',        label: 'Justificativa',         type: 'textarea', rows: 3 },
-      { key: 'objetivo_geral',       label: 'Objetivo Geral',        type: 'textarea', rows: 2 },
+      { key: 'problema',             label: 'Problema de Pesquisa',  type: 'textarea', required: true, rows: 3 },
+      { key: 'justificativa',        label: 'Justificativa',         type: 'textarea', required: true, rows: 3 },
+      { key: 'objetivo_geral',       label: 'Objetivo Geral',        type: 'textarea', required: true, rows: 2 },
       { key: 'objetivos_especificos', label: 'Objetivos Específicos', type: 'textarea', rows: 3 },
-      { key: 'metodologia',          label: 'Metodologia',           type: 'textarea', rows: 4 },
+      { key: 'metodologia',          label: 'Metodologia',           type: 'textarea', required: true, rows: 4 },
       { key: 'resultados',           label: 'Resultados Esperados',  type: 'textarea', rows: 3 },
       { key: 'recursos',             label: 'Recursos',              type: 'textarea', rows: 2 },
       { key: 'referencias',          label: 'Referências',           type: 'textarea', rows: 3 },
@@ -223,11 +223,11 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
     fields: [
       { key: 'periodo',          label: 'Período',              type: 'text', required: true },
       { key: 'data_elaboracao',  label: 'Data de Elaboração',   type: 'date' },
-      { key: 'metas',            label: 'Metas',                type: 'textarea', rows: 4 },
-      { key: 'dimensao_planejamento', label: 'Planejamento',   type: 'textarea', rows: 4 },
-      { key: 'dimensao_praticas',     label: 'Práticas Pedagógicas', type: 'textarea', rows: 4 },
-      { key: 'dimensao_avaliacao',    label: 'Avaliação',       type: 'textarea', rows: 4 },
-      { key: 'dimensao_gestao',       label: 'Gestão e Liderança', type: 'textarea', rows: 4 },
+      { key: 'metas',            label: 'Metas',                type: 'textarea', required: true, rows: 4 },
+      { key: 'dimensao_planejamento', label: 'Planejamento',   type: 'textarea', required: true, rows: 4 },
+      { key: 'dimensao_praticas',     label: 'Práticas Pedagógicas', type: 'textarea', required: true, rows: 4 },
+      { key: 'dimensao_avaliacao',    label: 'Avaliação',       type: 'textarea', required: true, rows: 4 },
+      { key: 'dimensao_gestao',       label: 'Gestão e Liderança', type: 'textarea', required: true, rows: 4 },
     ],
   },
 
@@ -237,16 +237,16 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
     color: '#0f766e',
     managerOnly: true,
     fields: [
-      { key: 'tipo',       label: 'Tipo de Ata',      type: 'select', options: [
+      { key: 'tipo',       label: 'Tipo de Ata',      type: 'select', required: true, options: [
         { value: 'reuniao',    label: 'Ata de Reunião' },
         { value: 'resultado',  label: 'Resultado Escolar' },
         { value: 'conselho',   label: 'Conselho de Classe' },
       ]},
       { key: 'data',          label: 'Data',             type: 'date', required: true },
-      { key: 'local',         label: 'Local',            type: 'text' },
-      { key: 'participantes', label: 'Participantes',    type: 'textarea', rows: 3 },
-      { key: 'pauta',         label: 'Pauta',            type: 'textarea', rows: 3 },
-      { key: 'deliberacoes',  label: 'Deliberações',     type: 'textarea', rows: 5 },
+      { key: 'local',         label: 'Local',            type: 'text', required: true },
+      { key: 'participantes', label: 'Participantes',    type: 'textarea', required: true, rows: 3 },
+      { key: 'pauta',         label: 'Pauta',            type: 'textarea', required: true, rows: 3 },
+      { key: 'deliberacoes',  label: 'Deliberações',     type: 'textarea', required: true, rows: 5 },
       { key: 'encaminhamentos', label: 'Encaminhamentos', type: 'textarea', rows: 3 },
     ],
   },
@@ -259,10 +259,10 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
     fields: [
       { key: 'aluno',      label: 'Nome do Aluno',    type: 'text', required: true },
       { key: 'ra',         label: 'RA',               type: 'text' },
-      { key: 'turma',      label: 'Turma',            type: 'text' },
+      { key: 'turma',      label: 'Turma',            type: 'text', required: true },
       { key: 'finalidade', label: 'Finalidade',       type: 'text', required: true, placeholder: 'Ex: Para fins de comprovação de matrícula' },
-      { key: 'texto',      label: 'Texto Adicional',  type: 'textarea', rows: 4 },
-      { key: 'data',       label: 'Data',             type: 'date' },
+      { key: 'texto',      label: 'Texto Adicional',  type: 'textarea', required: true, rows: 4 },
+      { key: 'data',       label: 'Data',             type: 'date', required: true },
     ],
   },
 
@@ -274,7 +274,7 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
     fields: [
       { key: 'destinatario', label: 'Destinatário',        type: 'text', required: true, placeholder: 'Ex: Pais e Responsáveis' },
       { key: 'assunto',      label: 'Assunto',             type: 'text', required: true },
-      { key: 'data',         label: 'Data',                type: 'date' },
+      { key: 'data',         label: 'Data',                type: 'date', required: true },
       { key: 'texto',        label: 'Texto do Comunicado', type: 'textarea', rows: 8, required: true },
     ],
   },
@@ -287,16 +287,16 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
     fields: [
       { key: 'aluno',      label: 'Nome do Aluno',    type: 'text', required: true },
       { key: 'ra',         label: 'RA',               type: 'text' },
-      { key: 'turma',      label: 'Turma',            type: 'text' },
-      { key: 'tipo',       label: 'Tipo de Atestado', type: 'select', options: [
+      { key: 'turma',      label: 'Turma',            type: 'text', required: true },
+      { key: 'tipo',       label: 'Tipo de Atestado', type: 'select', required: true, options: [
         { value: 'matricula',  label: 'Atestado de Matrícula' },
         { value: 'frequencia', label: 'Atestado de Frequência' },
         { value: 'conclusao',  label: 'Atestado de Conclusão' },
         { value: 'outro',      label: 'Outro' },
       ]},
-      { key: 'finalidade', label: 'Finalidade',       type: 'text', placeholder: 'Para fins de...' },
-      { key: 'texto',      label: 'Observações',      type: 'textarea', rows: 3 },
-      { key: 'data',       label: 'Data',             type: 'date' },
+      { key: 'finalidade', label: 'Finalidade',       type: 'text', required: true, placeholder: 'Para fins de...' },
+      { key: 'texto',      label: 'Observações',      type: 'textarea', required: true, rows: 3 },
+      { key: 'data',       label: 'Data',             type: 'date', required: true },
     ],
   },
 
@@ -323,3 +323,37 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
 }
 
 export const ALL_DOC_TYPES = Object.keys(DOC_TYPES) as DocType[]
+
+// ─── Campos obrigatórios ──────────────────────────────────────────────────────
+// O `required` já existia no schema desde o começo, mas só desenhava um ponto na
+// tela de criação — nada o fazia valer, e dava para emitir um plano de aula sem
+// objetivo nem avaliação.
+//
+// A regra é: rascunho salva sempre (o autosave não pode travar e fazer o
+// professor perder o que digitou); quem cobra é a emissão do PDF/DOCX, que é
+// quando o documento passa a valer.
+
+/** Um campo conta como preenchido se tem algo além de espaço em branco. */
+function vazio(valor: string | undefined): boolean {
+  return !valor || valor.trim() === ''
+}
+
+/**
+ * Os campos obrigatórios que ainda estão em branco, na ordem do formulário.
+ *
+ * Os tipos OE_* herdam os campos do tipo equivalente: no schema eles têm
+ * `fields: []` porque a tela monta o formulário deles a partir do guia/plano
+ * comum, e sem isto passariam pela validação sem nenhuma exigência.
+ */
+export function camposFaltando(
+  docType: DocType,
+  fields: Record<string, string>,
+): FieldDef[] {
+  const base: DocType =
+    docType === 'OE_PLANO_AULA'        ? 'PLANO_AULA' :
+    docType === 'OE_GUIA_APRENDIZAGEM' ? 'GUIA_APRENDIZAGEM' :
+    docType
+  const meta = DOC_TYPES[base]
+  if (!meta) return []
+  return meta.fields.filter(f => f.required && vazio(fields[f.key]))
+}

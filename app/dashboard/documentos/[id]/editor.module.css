@@ -2183,3 +2183,26 @@
   font-weight: 700;
   line-height: 1.3;
 }
+
+/* Campo obrigatório cobrado na tentativa de emitir. A marca só aparece depois
+   da tentativa — enquanto a pessoa digita, um formulário todo vermelho ao abrir
+   seria ruído, não ajuda. */
+.fieldPendente > label { color: var(--danger); }
+.fieldPendente input,
+.fieldPendente textarea,
+.fieldPendente select,
+.fieldPendente [class*='trigger'] {
+  border-color: var(--danger) !important;
+  background: color-mix(in srgb, var(--danger) 4%, transparent);
+}
+
+/* Campo obrigatório cobrado na tentativa de emitir. A marca só aparece depois
+   da tentativa: pintar o formulário inteiro de vermelho ao abrir seria ruído,
+   e some assim que a pessoa digita algo no campo. */
+.fieldPendente .fieldLabel { color: var(--danger); }
+.fieldPendente input,
+.fieldPendente textarea,
+.fieldPendente button {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 4%, transparent);
+}

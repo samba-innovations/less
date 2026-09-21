@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { DOC_TYPES, type DocType, type FieldDef } from '@/lib/doc-types'
+import { DOC_TYPES, camposFaltando, type DocType, type FieldDef } from '@/lib/doc-types'
 import type { OEMissaoFull, OEMissoesResult } from '@/lib/oe'
 import { oeTipoFromNome } from '@/lib/oe-shared'
 import {
@@ -556,6 +556,9 @@ export function EditorClient({ doc, isAdmin }: Props) {
   const [saving,  setSaving]  = useState(false)
   const [saved,   setSaved]   = useState(false)
   const [pdfing,  setPdfing]  = useState(false)
+  // Chaves cobradas na última tentativa de emitir — só aparecem em vermelho
+  // depois que a pessoa tenta gerar, nunca enquanto ela ainda está preenchendo.
+  const [pendentes, setPendentes] = useState<string[]>([])
   const [error,   setError]   = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [savedAt,       setSavedAt]       = useState<Date | null>(null)
@@ -732,6 +735,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
   function setField(key: string, value: string) {
     setFields(prev => ({ ...prev, [key]: value }))
     scheduleSave({ ...fields, [key]: value })
+    if (value.trim() !== '') setPendentes(prev => prev.filter(k => k !== key))
   }
 
   /**
@@ -1069,7 +1073,31 @@ export function EditorClient({ doc, isAdmin }: Props) {
   }
   saveRef.current = save
 
+  /**
+   * Barra a emissão enquanto houver campo obrigatório em branco e diz quais são.
+   *
+   * Só a emissão: salvar rascunho segue livre, senão o autosave travaria no meio
+   * da digitação e o professor perderia o que escreveu.
+   */
+  function bloqueadoPorCampos(): boolean {
+    const faltando = camposFaltando(docType, fields)
+    if (faltando.length === 0) {
+      setPendentes([])
+      return false
+    }
+    setPendentes(faltando.map(f => f.key))
+    avisar(
+      'error',
+      faltando.length === 1
+        ? 'falta preencher 1 campo obrigatório'
+        : `faltam preencher ${faltando.length} campos obrigatórios`,
+      faltando.map(f => f.label).join(' · '),
+    )
+    return true
+  }
+
   async function generatePdf() {
+    if (bloqueadoPorCampos()) return
     setPdfing(true); setError(null)
     try {
       await save(true)
@@ -1132,6 +1160,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
 
   const [docxing, setDocxing] = useState(false)
   async function generateDocx() {
+    if (bloqueadoPorCampos()) return
     setDocxing(true)
     try {
       await save(true)
@@ -1778,7 +1807,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
                 <div className={s.planoSectionDot} />
                 <span className={s.planoSectionTitle}>Objetivos e Habilidades</span>
               </div>
-              <div className={s.field}>
+              <div className={classeCampo('objetivo_geral')}>
                 <label className={s.fieldLabel}>Objetivo geral</label>
                 <textarea
                   className={s.fieldTextarea}
@@ -2074,7 +2103,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
                 </div>
               </div>
 
-              <div className={s.field}>
+              <div className={classeCampo('recursos_materiais')}>
                 <label className={s.fieldLabel}>Recursos e materiais</label>
                 <GrupoCheckbox
                   grupos={RECURSOS_GRUPOS}
@@ -2083,7 +2112,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
                 />
               </div>
 
-              <div className={s.field}>
+              <div className={classeCampo('avaliacao')}>
                 <label className={s.fieldLabel}>Avaliação</label>
                 <GrupoCheckbox
                   grupos={AVALIACAO_GRUPOS}
@@ -2121,12 +2150,19 @@ export function EditorClient({ doc, isAdmin }: Props) {
     )
   }
 
+  /** Classe do campo, vermelha quando ele foi cobrado na última emissão. */
+  function classeCampo(key: string) {
+    return `${s.field} ${pendentes.includes(key) ? s.fieldPendente : ''}`
+  }
+
   function renderField(field: FieldDef) {
     const val = fields[field.key] ?? ''
+    // cobrado na última tentativa de emitir e ainda em branco
+    const cobrado = pendentes.includes(field.key)
 
     if (field.type === 'textarea') {
       return (
-        <div key={field.key} className={s.field}>
+        <div key={field.key} className={`${s.field} ${cobrado ? s.fieldPendente : ''}`}>
           <label className={s.fieldLabel}>
             {field.label}{field.required && <span className={s.required}> *</span>}
           </label>
@@ -2143,7 +2179,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
 
     if (field.type === 'select' && field.options) {
       return (
-        <div key={field.key} className={s.field}>
+        <div key={field.key} className={`${s.field} ${cobrado ? s.fieldPendente : ''}`}>
           <label className={s.fieldLabel}>
             {field.label}{field.required && <span className={s.required}> *</span>}
           </label>
@@ -2162,7 +2198,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
         try { return JSON.parse(val || '[]') } catch { return [] }
       })()
       return (
-        <div key={field.key} className={s.field}>
+        <div key={field.key} className={`${s.field} ${cobrado ? s.fieldPendente : ''}`}>
           <label className={s.fieldLabel}>
             {field.label}{field.required && <span className={s.required}> *</span>}
           </label>
@@ -2178,7 +2214,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
     }
 
     return (
-      <div key={field.key} className={s.field}>
+      <div key={field.key} className={`${s.field} ${cobrado ? s.fieldPendente : ''}`}>
         <label className={s.fieldLabel}>
           {field.label}{field.required && <span className={s.required}> *</span>}
         </label>
