@@ -117,3 +117,59 @@ LUCKESI, Cipriano Carlos. Avaliação da aprendizagem escolar. 22. ed. São Paul
 ZABALA, Antoni. A prática educativa: como ensinar. Porto Alegre: Artmed, 2010.
 LIBÂNEO, José Carlos. Didática. São Paulo: Cortez, 2013.
 MORAN, José Manuel. Metodologias ativas para uma educação inovadora. Porto Alegre: Penso, 2018.`
+
+// ─── Técnica → recursos e avaliação ───────────────────────────────────────────
+// Escolher a metodologia já marca os recursos e a avaliação correspondentes,
+// como fazia a v1. Os rótulos aqui são exatamente os de RECURSOS_GRUPOS e
+// AVALIACAO_GRUPOS — se divergirem, o item é somado ao texto mas não aparece
+// marcado na lista, que é pior do que não sugerir nada.
+
+export type Pacote = { id: string; label: string; recursos: string[]; avaliacao: string[] }
+
+export const PACOTES_PRONTOS: Pacote[] = [
+  { id: 'expositiva',  label: 'Expositiva',
+    recursos: ['Livro didático', 'Quadro branco', 'Projetor / Datashow', 'Material impresso / Xerox'],
+    avaliacao: ['Observação e participação', 'Atividade em sala', 'Exercícios no caderno'] },
+  { id: 'tecnologia',  label: 'Tecnologia',
+    recursos: ['Computador / Tablet', 'Acesso à internet', 'Plataforma de quizzes (Kahoot / Quizizz)', 'AVA (Google Classroom / Moodle)'],
+    avaliacao: ['Quiz diagnóstico rápido', 'Exit ticket', 'Avaliação processual'] },
+  { id: 'investigativa', label: 'Investigativa',
+    recursos: ['Roteiros de investigação', 'Material manipulável', 'Caderno de atividades'],
+    avaliacao: ['Levantamento de hipóteses', 'Avaliação processual', 'Relatório científico'] },
+  { id: 'maker',       label: 'Maker',
+    recursos: ['Kit Arduino / ESP / IoT', 'Materiais recicláveis (prototipagem)', 'Laboratório móvel / experimental'],
+    avaliacao: ['Protótipo funcional', 'Projeto / produto final', 'Avaliação por pares'] },
+  { id: 'colaborativa', label: 'Colaborativa',
+    recursos: ['Mural colaborativo (Padlet / Jamboard)', 'Documentos compartilhados (Google Docs)', 'Jogos educativos'],
+    avaliacao: ['Trabalho em grupo', 'Avaliação por pares', 'Coavaliação (aluno + professor)'] },
+]
+
+export const DESENVOLVIMENTO_TO_PACOTE: Record<number, string> = {
+  1: 'expositiva', 2: 'investigativa', 3: 'maker',       4: 'investigativa',
+  5: 'maker',      6: 'expositiva',    7: 'tecnologia',   8: 'colaborativa',
+  9: 'tecnologia', 10: 'colaborativa', 11: 'expositiva',  12: 'tecnologia',
+  13: 'tecnologia', 14: 'maker',       15: 'colaborativa', 16: 'colaborativa',
+  17: 'expositiva', 18: 'tecnologia',  19: 'investigativa', 20: 'tecnologia',
+}
+
+/**
+ * Soma ao que já está marcado os itens sugeridos pelas técnicas escolhidas.
+ *
+ * Soma e não substitui: o professor pode ter marcado algo à mão antes de
+ * escolher a técnica, e trocar a metodologia não pode apagar essa escolha.
+ * Também não desmarca ao desselecionar a técnica — remover o que a pessoa vê
+ * marcado, sem ela ter pedido, é pior que deixar sobrando.
+ */
+export function somarSugestoes(
+  atual: string,
+  tecnicaIds: number[],
+  campo: 'recursos' | 'avaliacao',
+): string {
+  const jaTem = atual.split(',').map(s => s.trim()).filter(Boolean)
+  const sugeridos = tecnicaIds
+    .map(id => PACOTES_PRONTOS.find(p => p.id === DESENVOLVIMENTO_TO_PACOTE[id]))
+    .filter((p): p is Pacote => !!p)
+    .flatMap(p => p[campo])
+  const novos = sugeridos.filter(x => !jaTem.includes(x))
+  return novos.length === 0 ? atual : [...jaTem, ...novos].join(', ')
+}

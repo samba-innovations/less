@@ -31,6 +31,7 @@ import { IconButton } from '../../_components/IconButton'
 import { Button } from '../../_components/Button'
 import { Input } from '../../_components/Input'
 import { Toast, type ToastVariant } from '../../_components/Toast'
+import { somarSugestoes, PACOTES_PRONTOS, DESENVOLVIMENTO_TO_PACOTE } from '@/lib/guia-data'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -204,32 +205,6 @@ const AVALIACAO_GRUPOS: AvaliacaoGrupo[] = [
     items: ['Exit ticket', 'Pergunta-chave ao final da aula', 'Votação interativa', 'Mini quiz diagnóstico contínuo'],
   },
 ]
-
-const PACOTES_PRONTOS = [
-  { id: 'expositiva',  label: 'Expositiva',
-    recursos: ['Livro didático', 'Quadro branco', 'Projetor / Datashow', 'Material impresso / Xerox'],
-    avaliacao: ['Observação e participação', 'Atividade em sala', 'Exercícios no caderno'] },
-  { id: 'tecnologia',  label: 'Tecnologia',
-    recursos: ['Computador / Tablet', 'Acesso à internet', 'Plataforma de quizzes (Kahoot / Quizizz)', 'AVA (Google Classroom / Moodle)'],
-    avaliacao: ['Quiz diagnóstico rápido', 'Exit ticket', 'Avaliação processual'] },
-  { id: 'investigativa', label: 'Investigativa',
-    recursos: ['Roteiros de investigação', 'Material manipulável', 'Caderno de atividades'],
-    avaliacao: ['Levantamento de hipóteses', 'Avaliação processual', 'Relatório científico'] },
-  { id: 'maker',       label: 'Maker',
-    recursos: ['Kit Arduino / ESP / IoT', 'Materiais recicláveis (prototipagem)', 'Laboratório móvel / experimental'],
-    avaliacao: ['Protótipo funcional', 'Projeto / produto final', 'Avaliação por pares'] },
-  { id: 'colaborativa', label: 'Colaborativa',
-    recursos: ['Mural colaborativo (Padlet / Jamboard)', 'Documentos compartilhados (Google Docs)', 'Jogos educativos'],
-    avaliacao: ['Trabalho em grupo', 'Avaliação por pares', 'Coavaliação (aluno + professor)'] },
-]
-
-const DESENVOLVIMENTO_TO_PACOTE: Record<number, string> = {
-  1: 'expositiva', 2: 'investigativa', 3: 'maker',       4: 'investigativa',
-  5: 'maker',      6: 'expositiva',    7: 'tecnologia',   8: 'colaborativa',
-  9: 'tecnologia', 10: 'colaborativa', 11: 'expositiva',  12: 'tecnologia',
-  13: 'tecnologia', 14: 'maker',       15: 'colaborativa', 16: 'colaborativa',
-  17: 'expositiva', 18: 'tecnologia',  19: 'investigativa', 20: 'tecnologia',
-}
 
 const REFERENCIAS_PADRAO = `BRASIL. Base Nacional Comum Curricular. Brasília: Ministério da Educação, 2018. Disponível em: http://basenacionalcomum.mec.gov.br/. Acesso em: 5 jan. 2026.
 BRASIL. Base Nacional Comum Curricular: Ensino Médio. Brasília: Ministério da Educação, 2018.
@@ -1972,10 +1947,15 @@ export function EditorClient({ doc, isAdmin }: Props) {
                         const next = prev.includes(id)
                           ? prev.filter(x => x !== id)
                           : prev.length < 2 ? [...prev, id] : prev
+                        // Escolher a metodologia já marca recursos e avaliação
+                        // — era o comportamento da v1, e aqui só o botão de
+                        // pacote fazia isso.
                         setFieldsMulti({
                           [key + '_ids']: next.join(','),
                           [key]: comporTecnicas(key,
                             next.map(i => DESENVOLVIMENTO_OPTS.find(x => x.id === i)?.nome ?? '').filter(Boolean)),
+                          recursos_materiais: somarSugestoes(fields.recursos_materiais ?? '', next, 'recursos'),
+                          avaliacao:          somarSugestoes(fields.avaliacao ?? '', next, 'avaliacao'),
                         })
                         return next
                       })

@@ -7,7 +7,7 @@ import { SkeletonText } from '../../_components/Skeleton'
 import {
   BNCC_COMPETENCIAS, DESENVOLVIMENTO_OPTS, RECURSOS_GRUPOS, AVALIACAO_GRUPOS,
   RECURSO_OBRIGATORIO, COMPOSICAO_MODELS, BLOCO_LABELS, BLOCO_ACCENT,
-  BIMESTRE_DATAS, REFERENCIAS_PADRAO, modelToText, type Tecnica, type Grupo,
+  REFERENCIAS_PADRAO, somarSugestoes, modelToText, type Tecnica, type Grupo,
 } from '@/lib/guia-data'
 import { useFetch } from '@/lib/use-fetch'
 import { GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
@@ -20,6 +20,8 @@ type Turma = { id: number; name: string; grade: string; ciclo: string; serie: st
 type Disciplina = { id: number; name: string; aulasNome: string }
 type Aula = { id: number; aulaNum: number; titulo: string; conteudo?: string; objetivos?: string; habilidadeCodigo?: string; habilidadeTexto?: string; unidadeTematica?: string }
 type AE = { id: number; codigo: string; descricao: string }
+
+type BimestreCal = { id: number; ano: number; numero: number; label: string; dataInicio: string; dataFim: string }
 
 type Props = {
   fields:   Record<string, string>
@@ -60,6 +62,12 @@ function GrupoCheckbox({ grupos, value, onChange, lockedItems }: {
 }
 
 export function GuiaEditor({ fields, setField, isAdmin }: Props) {
+  // As datas do bimestre estavam num BIMESTRE_DATAS fixo no código, que nem
+  // batia com o calendário real da escola (1º bimestre: o código dizia "02/02 a
+  // 22/04", o banco diz 02/02 a 01/05). E a caixa só exibia — data_inicio, que
+  // é obrigatório e sai no PDF, nunca era gravado: o campo aparecia como não
+  // preenchido mesmo com o período visível na tela.
+  const bimestres = useFetch<BimestreCal[]>('/api/less/bimestres') ?? []
   const turmasRaw = useFetch<Turma[] | { needsSchool: true }>('/api/less/turmas')
   const turmas: Turma[] = Array.isArray(turmasRaw) ? turmasRaw : []
 
@@ -78,12 +86,51 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
 
   const estrategiaIds = (fields.estrategia_ids ?? '').split(',').map(Number).filter(Boolean)
 
+  /** O bimestre do ano letivo escolhido — o calendário é por ano. */
+  function calDoBimestre(num: string): BimestreCal | undefined {
+    const ano = Number(fields.ano_letivo) || new Date().getFullYear()
+    return bimestres.find(b => String(b.numero) === num && b.ano === ano)
+        ?? bimestres.find(b => String(b.numero) === num)
+  }
+
+  function ddmm(iso: string) {
+    const [, m, d] = iso.slice(0, 10).split('-')
+    return `${d}/${m}`
+  }
+
+  function periodoDoBimestre(num: string) {
+    const cal = calDoBimestre(num)
+    return cal ? `${ddmm(cal.dataInicio)} a ${ddmm(cal.dataFim)}` : '—'
+  }
+
+  /** Escolher o bimestre também carimba as datas, que saem no PDF. */
+  function escolherBimestre(num: string) {
+    setField('bimestre', num)
+    const cal = calDoBimestre(num)
+    if (cal) {
+      setField('data_inicio', cal.dataInicio.slice(0, 10))
+      setField('data_fim',    cal.dataFim.slice(0, 10))
+    }
+  }
+
   useEffect(() => {
     if (!fields.bimestre)   setField('bimestre', currentBimestre())
     if (!fields.referencias) setField('referencias', REFERENCIAS_PADRAO)
     if (!fields.ano_letivo) setField('ano_letivo', String(new Date().getFullYear()))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Os bimestres chegam depois do primeiro render; se já havia um escolhido
+  // (documento salvo, ou o padrão do useEffect acima), carimba a data agora.
+  useEffect(() => {
+    if (!fields.bimestre || fields.data_inicio || bimestres.length === 0) return
+    const cal = calDoBimestre(fields.bimestre)
+    if (cal) {
+      setField('data_inicio', cal.dataInicio.slice(0, 10))
+      setField('data_fim',    cal.dataFim.slice(0, 10))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bimestres.length, fields.bimestre])
 
   // On open with existing identification, load curriculum once
   useEffect(() => {
@@ -140,6 +187,10 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
       : estrategiaIds.length < MAX_ESTRATEGIAS ? [...estrategiaIds, id] : estrategiaIds
     setField('estrategia_ids', next.join(','))
     setField('estrategias', buildEstrategias(next))
+    // Escolher a estratégia já marca os recursos correspondentes, como na v1.
+    // Soma ao que estiver marcado: o professor pode ter escolhido algo antes.
+    setField('recursos',  somarSugestoes(fields.recursos ?? RECURSO_OBRIGATORIO, next, 'recursos'))
+    setField('avaliacao', somarSugestoes(fields.avaliacao ?? '', next, 'avaliacao'))
   }
 
   // ── Competências BNCC ──
@@ -245,7 +296,7 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
               <div className={s.chipRow}>
                 {['1','2','3','4'].map(b => (
                   <button key={b} className={`${s.chip} ${fields.bimestre === b ? s.chipOn : ''}`}
-                    onClick={() => setField('bimestre', b)}>{b}º</button>
+                    onClick={() => escolherBimestre(b)}>{b}º</button>
                 ))}
               </div>
             </div>
@@ -259,7 +310,11 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
             </div>
             <div className={s.field}>
               <label className={s.label}>Período do bimestre</label>
-              <div className={s.periodBox}>{fields.bimestre ? `${fields.bimestre}º Bimestre: ${BIMESTRE_DATAS[fields.bimestre] ?? '—'}` : 'Selecione o bimestre'}</div>
+              <div className={s.periodBox}>
+                {fields.bimestre
+                  ? `${fields.bimestre}º Bimestre: ${periodoDoBimestre(fields.bimestre)}`
+                  : 'Selecione o bimestre'}
+              </div>
             </div>
           </div>
           {loadingAulas && <div style={{ padding: '12px 0' }}><SkeletonText lines={2} /></div>}
