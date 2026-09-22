@@ -9,7 +9,12 @@ import s from './carta.module.css'
 import { Button } from '../../_components/Button'
 import { formatName } from '@/lib/format-name'
 
-type Props = { fields: Record<string, string>; setField: (k: string, v: string) => void }
+type Props = {
+  fields: Record<string, string>
+  setField: (k: string, v: string) => void
+  /** Para gravar mais de um campo no mesmo clique — ver EditorClient. */
+  setFieldsMulti: (patch: Record<string, string>) => void
+}
 type Turma = { id: number; name: string; grade: string; ciclo: string; serie: string }
 type Disciplina = { id: number; name: string; aulasNome: string }
 type Aula = { id: number; aulaNum: number; titulo: string; conteudo?: string | null; objetivos?: string | null }
@@ -33,7 +38,7 @@ const PERIODO_OPTS = [{ v: 'por_aula', l: 'Por Aula' }, { v: 'semanal', l: 'Sema
 const TOTAL_SLIDES = 40
 const STEP_LABELS = ['Identificação', 'Aulas', 'Slides']
 
-export function CartaNauticaEditor({ fields, setField }: Props) {
+export function CartaNauticaEditor({ fields, setField, setFieldsMulti }: Props) {
   const turmasRaw = useFetch<Turma[] | { needsSchool: true }>('/api/less/turmas')
   const turmas: Turma[] = Array.isArray(turmasRaw) ? turmasRaw : []
   const selectedTurmas = fields.turmas ? fields.turmas.split(', ').filter(Boolean) : []
@@ -80,13 +85,13 @@ export function CartaNauticaEditor({ fields, setField }: Props) {
       const rows: Aula[] = await fetch(url).then(r => r.ok ? r.json() : [])
       setAulas(rows ?? [])
       if (!rows || rows.length === 0) setNoAulas(true)
-      setField('_ciclo', primaryTurma.ciclo); setField('_serie', primaryTurma.serie); setField('_aulas_nome', aulasNome)
+      setFieldsMulti({ _ciclo: primaryTurma.ciclo, _serie: primaryTurma.serie, _aulas_nome: aulasNome })
     } finally { setLoadingAulas(false) }
   }
 
   function toggleTurma(name: string) {
     const next = selectedTurmas.includes(name) ? selectedTurmas.filter(x => x !== name) : [...selectedTurmas, name]
-    setField('turma', next[0] ?? ''); setField('turmas', next.join(', '))
+    setFieldsMulti({ turma: next[0] ?? '', turmas: next.join(', ') })
   }
 
   const maxAulas = (() => {

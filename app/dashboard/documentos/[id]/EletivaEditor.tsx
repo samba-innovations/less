@@ -4,7 +4,8 @@ import { useEffect } from 'react'
 import { Check, ChevronDown, Calendar } from 'lucide-react'
 import {
   DESENVOLVIMENTO_OPTS, RECURSOS_GRUPOS, AVALIACAO_GRUPOS, RECURSO_OBRIGATORIO,
-  COMPOSICAO_MODELS, BLOCO_LABELS, BLOCO_ACCENT, REFERENCIAS_PADRAO, modelToText, type Grupo,
+  COMPOSICAO_MODELS, BLOCO_LABELS, BLOCO_ACCENT, REFERENCIAS_PADRAO, modelToText,
+  somarSugestoes, type Grupo, type Tecnica,
 } from '@/lib/guia-data'
 import g from './guia.module.css'
 import s from './eletiva.module.css'
@@ -12,7 +13,12 @@ import { GroupedChipSelector, type SelectorGroup } from '../../_components/Selec
 import { DatePicker } from '../../_components/DatePicker'
 import { Input } from '../../_components/Input'
 
-type Props = { fields: Record<string, string>; setField: (k: string, v: string) => void }
+type Props = {
+  fields: Record<string, string>
+  setField: (k: string, v: string) => void
+  /** Para gravar mais de um campo no mesmo clique — ver EditorClient. */
+  setFieldsMulti: (patch: Record<string, string>) => void
+}
 
 type AulaRow = { date: string; acao: string }
 
@@ -31,12 +37,23 @@ function GrupoCheckbox({ grupos, value, onChange, lockedItems }: {
   return <GroupedChipSelector groups={groups} value={value} onChange={onChange} lockedItems={lockedItems} />
 }
 
-export function EletivaEditor({ fields, setField }: Props) {
+export function EletivaEditor({ fields, setField, setFieldsMulti }: Props) {
   useEffect(() => {
     if (!fields.semestre)    setField('semestre', currentSemestre())
     if (!fields.referencias) setField('referencias', REFERENCIAS_PADRAO)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Escolher a metodologia ja marca os materiais e os instrumentos de avaliacao
+  // daquela tecnica, como na v1. Soma ao que estiver marcado, sem repetir: o
+  // professor pode ter escolhido algo antes.
+  function escolherMetodologia(m: Tecnica) {
+    setFieldsMulti({
+      metodologia: `${m.nome} — ${m.descritor}`,
+      materiais:   somarSugestoes(fields.materiais ?? RECURSO_OBRIGATORIO, [m.id], 'recursos'),
+      avaliacao:   somarSugestoes(fields.avaliacao ?? '', [m.id], 'avaliacao'),
+    })
+  }
 
   const metodologiaId = DESENVOLVIMENTO_OPTS.find(m => (fields.metodologia ?? '').startsWith(m.nome))?.id ?? null
   const selectedModel = COMPOSICAO_MODELS.find(m => (fields.composicao_media ?? '').startsWith(m.nome))
@@ -182,7 +199,7 @@ export function EletivaEditor({ fields, setField }: Props) {
           <div className={g.tecnicaGrid}>
             {DESENVOLVIMENTO_OPTS.map(m => (
               <button key={m.id} className={`${g.tecnica} ${metodologiaId === m.id ? g.tecnicaOn : ''}`} title={m.descritor}
-                onClick={() => setField('metodologia', `${m.nome} — ${m.descritor}`)}>
+                onClick={() => escolherMetodologia(m)}>
                 <span className={g.tecnicaNum}>{pad(m.id)}</span><span className={g.tecnicaNome}>{m.nome}</span>
               </button>
             ))}

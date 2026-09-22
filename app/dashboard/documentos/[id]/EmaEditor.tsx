@@ -4,14 +4,20 @@ import { useEffect } from 'react'
 import { Check } from 'lucide-react'
 import {
   DESENVOLVIMENTO_OPTS, RECURSOS_GRUPOS, AVALIACAO_GRUPOS, RECURSO_OBRIGATORIO,
-  COMPOSICAO_MODELS, BLOCO_LABELS, BLOCO_ACCENT, REFERENCIAS_PADRAO, modelToText, type Grupo,
+  COMPOSICAO_MODELS, BLOCO_LABELS, BLOCO_ACCENT, REFERENCIAS_PADRAO, modelToText,
+  somarSugestoes, type Grupo, type Tecnica,
 } from '@/lib/guia-data'
 import { useFetch } from '@/lib/use-fetch'
 import g from './guia.module.css'
 import { GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
 import { Input } from '../../_components/Input'
 
-type Props = { fields: Record<string, string>; setField: (k: string, v: string) => void }
+type Props = {
+  fields: Record<string, string>
+  setField: (k: string, v: string) => void
+  /** Para gravar mais de um campo no mesmo clique — ver EditorClient. */
+  setFieldsMulti: (patch: Record<string, string>) => void
+}
 type Turma = { id: number; name: string; grade: string; ciclo: string; serie: string }
 
 function currentBimestre() { const m = new Date().getMonth() + 1; return m <= 4 ? '1' : m <= 7 ? '2' : m <= 9 ? '3' : '4' }
@@ -24,7 +30,7 @@ function GrupoCheckbox({ grupos, value, onChange, lockedItems }: { grupos: Grupo
   return <GroupedChipSelector groups={groups} value={value} onChange={onChange} lockedItems={lockedItems} />
 }
 
-export function EmaEditor({ fields, setField }: Props) {
+export function EmaEditor({ fields, setField, setFieldsMulti }: Props) {
   const turmasRaw = useFetch<Turma[] | { needsSchool: true }>('/api/less/turmas')
   const turmas: Turma[] = Array.isArray(turmasRaw) ? turmasRaw : []
   const selectedTurmas = fields.turmas ? fields.turmas.split(', ').filter(Boolean) : []
@@ -34,6 +40,17 @@ export function EmaEditor({ fields, setField }: Props) {
     if (!fields.referencias) setField('referencias', REFERENCIAS_PADRAO)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Escolher a metodologia ja marca os materiais e os instrumentos de avaliacao
+  // daquela tecnica, como na v1. Soma ao que estiver marcado, sem repetir: o
+  // professor pode ter escolhido algo antes.
+  function escolherMetodologia(m: Tecnica) {
+    setFieldsMulti({
+      metodologia: `${m.nome} — ${m.descritor}`,
+      materiais:   somarSugestoes(fields.materiais ?? RECURSO_OBRIGATORIO, [m.id], 'recursos'),
+      avaliacao:   somarSugestoes(fields.avaliacao ?? '', [m.id], 'avaliacao'),
+    })
+  }
 
   const metodologiaId = DESENVOLVIMENTO_OPTS.find(m => (fields.metodologia ?? '').startsWith(m.nome))?.id ?? null
   const selectedModel = COMPOSICAO_MODELS.find(m => (fields.composicao_media ?? '').startsWith(m.nome))
@@ -108,7 +125,7 @@ export function EmaEditor({ fields, setField }: Props) {
           <label className={g.label}>Metodologia <span className={g.hint}>clique para selecionar</span></label>
           <div className={g.tecnicaGrid}>
             {DESENVOLVIMENTO_OPTS.map(m => (
-              <button key={m.id} className={`${g.tecnica} ${metodologiaId === m.id ? g.tecnicaOn : ''}`} title={m.descritor} onClick={() => setField('metodologia', `${m.nome} — ${m.descritor}`)}>
+              <button key={m.id} className={`${g.tecnica} ${metodologiaId === m.id ? g.tecnicaOn : ''}`} title={m.descritor} onClick={() => escolherMetodologia(m)}>
                 <span className={g.tecnicaNum}>{pad(m.id)}</span><span className={g.tecnicaNome}>{m.nome}</span>
               </button>
             ))}

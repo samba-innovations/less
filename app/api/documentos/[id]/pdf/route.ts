@@ -14,6 +14,21 @@ async function auth() {
   return school ? { payload: s.payload, school } : null
 }
 
+/**
+ * Ciclo e série do documento.
+ *
+ * O editor da v2 grava `_ciclo`/`_serie`; os documentos vindos da v1 trazem os
+ * mesmos valores em `ciclo`/`serie`, sem underscore. Sem este fallback, todo
+ * guia importado sai do PDF sem aulas e sem aprendizagens essenciais — a busca
+ * exige as duas chaves.
+ */
+function cicloSerie(content: Record<string, string>) {
+  return {
+    ciclo: (content._ciclo || content.ciclo || '').trim(),
+    serie: (content._serie || content.serie || '').trim(),
+  }
+}
+
 function parseIds(raw: string | undefined): number[] {
   if (!raw) return []
   try {
@@ -76,12 +91,17 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
         const disciplinaNome = content.disciplina?.trim()
 
         if (bimestreNum && disciplinaNome) {
+          const { ciclo, serie } = cicloSerie(content)
           const aesRaw = await db.lessAprendizagemEssencial.findMany({
             where: {
-              disciplinaNome: { contains: disciplinaNome, mode: 'insensitive' },
+              // Nome exato, como no editor e como manda o db/curriculo/README:
+              // "Química" e "Aprofundamento em Química" são disciplinas
+              // distintas e não podem ser fundidas. Com `contains`, o plano de
+              // Química puxava também as AEs do aprofundamento.
+              disciplinaNome: disciplinaNome,
               bimestre: bimestreNum,
-              ...(content._ciclo ? { ciclo: content._ciclo } : {}),
-              ...(content._serie ? { serie: content._serie } : {}),
+              ...(ciclo ? { ciclo } : {}),
+              ...(serie ? { serie } : {}),
             },
             orderBy: { codigo: 'asc' },
           })
@@ -94,10 +114,12 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     }
   } else if (doc.type === 'GUIA_APRENDIZAGEM' || doc.type === 'OE_GUIA_APRENDIZAGEM') {
     // Guia: todas as aulas do bimestre + aprendizagens essenciais
-    const bimestreNum    = Number(content.bimestre)
-    const aulasNome      = (content._aulas_nome || content.disciplina || '').trim()
-    const ciclo          = content._ciclo
-    const serie          = content._serie
+    const bimestreNum      = Number(content.bimestre)
+    // `disciplina_aulas_nome` é a ponte que a v1 gravava quando o nome do
+    // cadastro difere do nome do currículo ("Liderança-Oratória" x "Liderança e
+    // Oratória"); nos guias importados é ela que casa com less_aulas.
+    const aulasNome        = (content._aulas_nome || content.disciplina_aulas_nome || content.disciplina || '').trim()
+    const { ciclo, serie } = cicloSerie(content)
 
     if (bimestreNum && aulasNome && ciclo && serie) {
       const aulas = await db.lessAula.findMany({
@@ -112,7 +134,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       }))
 
       const aesRaw = await db.lessAprendizagemEssencial.findMany({
-        where:   { disciplinaNome: { contains: aulasNome, mode: 'insensitive' }, bimestre: bimestreNum, ciclo, serie },
+        where:   { disciplinaNome: aulasNome, bimestre: bimestreNum, ciclo, serie },
         orderBy: { codigo: 'asc' },
       })
       aprendizagensEssenciais = aesRaw.map(ae => ({ codigo: ae.codigo, descricao: ae.descricao }))

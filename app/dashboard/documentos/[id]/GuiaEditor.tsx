@@ -18,7 +18,14 @@ import { Chip } from '../../_components/Chip'
 
 type Turma = { id: number; name: string; grade: string; ciclo: string; serie: string }
 type Disciplina = { id: number; name: string; aulasNome: string }
-type Aula = { id: number; aulaNum: number; titulo: string; conteudo?: string; objetivos?: string; habilidadeCodigo?: string; habilidadeTexto?: string; unidadeTematica?: string }
+type Aula = {
+  id: number; aulaNum: number; titulo: string
+  conteudo?: string | null; objetivos?: string | null
+  habilidadeCodigo?: string | null; habilidadeTexto?: string | null
+  // As três colunas temáticas do currículo, em ordem de abrangência. Vêm nulas
+  // com frequência — ver temaDoCurriculo().
+  unidadeTematica?: string | null; eixo?: string | null; objetoConhecimento?: string | null
+}
 type AE = { id: number; codigo: string; descricao: string }
 
 type BimestreCal = { id: number; ano: number; numero: number; label: string; dataInicio: string; dataFim: string }
@@ -26,6 +33,12 @@ type BimestreCal = { id: number; ano: number; numero: number; label: string; dat
 type Props = {
   fields:   Record<string, string>
   setField: (key: string, value: string) => void
+  /**
+   * Para gravar mais de um campo no mesmo clique. Dois setField seguidos
+   * agendam o segundo save a partir do `fields` anterior, e o primeiro campo
+   * não chega ao banco — daqui em diante, quem escreve em par usa este.
+   */
+  setFieldsMulti: (patch: Record<string, string>) => void
   isAdmin?: boolean
 }
 
@@ -51,6 +64,60 @@ function TecnicaBadge({ item, selected, disabled, onToggle }: {
   )
 }
 
+/**
+ * O tema do guia, lido do próprio currículo — a importação que a v1 fazia.
+ *
+ * A v1 tirava o tema da unidade temática da primeira aula. Só que no currículo
+ * carregado aqui 4 de cada 5 aulas não têm unidade temática, e mais da metade
+ * dos bimestres não tem nenhuma das três colunas temáticas — daí o campo, que é
+ * obrigatório, chegar vazio à emissão. A cascata desce da coluna mais ampla
+ * (unidade temática) para a mais específica (objeto de conhecimento) e, quando
+ * o currículo não traz nenhuma, monta o rótulo que os professores já escreviam
+ * à mão nos guias da v1 ("Guia de Aprendizagem — <disciplina> — 3º bimestre").
+ * Em qualquer caso é um ponto de partida: o campo continua editável, e um tema
+ * escrito pelo professor nunca é sobrescrito.
+ */
+function temaDoCurriculo(rows: Aula[], disciplina: string, bimestre: string): string {
+  const limpar = (v?: string | null) => (v ?? '').replace(/\s+/g, ' ').trim()
+  const distintos = (vals: (string | undefined | null)[]) =>
+    [...new Set(vals.map(limpar).filter(Boolean))]
+
+  for (const coluna of [
+    rows.map(a => a.unidadeTematica),
+    rows.map(a => a.eixo),
+    rows.map(a => a.objetoConhecimento),
+  ]) {
+    const vals = distintos(coluna)
+    if (vals.length === 0) continue
+    // Um bimestre com dezenas de objetos de conhecimento viraria um parágrafo
+    // no lugar de um título; os primeiros já dizem do que o bimestre trata.
+    return vals.length > 4 ? `${vals.slice(0, 4).join(' · ')}…` : vals.join(' · ')
+  }
+
+  return `Guia de Aprendizagem — ${disciplina} — ${bimestre}º bimestre`
+}
+
+/**
+ * As aprendizagens essenciais do bimestre — ou o motivo de não haver nenhuma.
+ *
+ * A SEDUC publica AE só para as disciplinas da matriz; itinerários, eletivas e
+ * variantes ainda sem material publicado não têm. O bloco sumia calado quando a
+ * lista vinha vazia, e o professor só descobria a ausência no PDF emitido.
+ */
+function Aprendizagens({ aes, disciplina, mostrar }: { aes: AE[]; disciplina?: string; mostrar: boolean }) {
+  if (!mostrar) return null
+  return (
+    <div className={s.aesBlock}>
+      <p className={s.aesLabel}>Aprendizagens Essenciais do Bimestre</p>
+      {aes.length > 0
+        ? aes.map(ae => (
+            <div key={ae.id} className={s.aeRow}><span className={s.aeCode}>{ae.codigo}</span><span className={s.aeDesc}>{ae.descricao}</span></div>
+          ))
+        : <p className={s.empty}>Nenhuma publicada para {disciplina || 'esta disciplina'} neste bimestre — o guia sai sem esta seção.</p>}
+    </div>
+  )
+}
+
 // ─── Grupo checkbox (recursos / avaliação) — usa GroupedChipSelector unificado
 function GrupoCheckbox({ grupos, value, onChange, lockedItems }: {
   grupos: Grupo[]; value: string; onChange: (v: string) => void; lockedItems?: string[]
@@ -61,7 +128,7 @@ function GrupoCheckbox({ grupos, value, onChange, lockedItems }: {
   return <GroupedChipSelector groups={groups} value={value} onChange={onChange} lockedItems={lockedItems} />
 }
 
-export function GuiaEditor({ fields, setField, isAdmin }: Props) {
+export function GuiaEditor({ fields, setField, setFieldsMulti, isAdmin }: Props) {
   // As datas do bimestre estavam num BIMESTRE_DATAS fixo no código, que nem
   // batia com o calendário real da escola (1º bimestre: o código dizia "02/02 a
   // 22/04", o banco diz 02/02 a 01/05). E a caixa só exibia — data_inicio, que
@@ -105,18 +172,19 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
 
   /** Escolher o bimestre também carimba as datas, que saem no PDF. */
   function escolherBimestre(num: string) {
-    setField('bimestre', num)
     const cal = calDoBimestre(num)
-    if (cal) {
-      setField('data_inicio', cal.dataInicio.slice(0, 10))
-      setField('data_fim',    cal.dataFim.slice(0, 10))
-    }
+    setFieldsMulti({
+      bimestre: num,
+      ...(cal ? { data_inicio: cal.dataInicio.slice(0, 10), data_fim: cal.dataFim.slice(0, 10) } : {}),
+    })
   }
 
   useEffect(() => {
-    if (!fields.bimestre)   setField('bimestre', currentBimestre())
-    if (!fields.referencias) setField('referencias', REFERENCIAS_PADRAO)
-    if (!fields.ano_letivo) setField('ano_letivo', String(new Date().getFullYear()))
+    const inicial: Record<string, string> = {}
+    if (!fields.bimestre)    inicial.bimestre    = currentBimestre()
+    if (!fields.referencias) inicial.referencias = REFERENCIAS_PADRAO
+    if (!fields.ano_letivo)  inicial.ano_letivo  = String(new Date().getFullYear())
+    if (Object.keys(inicial).length) setFieldsMulti(inicial)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -126,8 +194,10 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
     if (!fields.bimestre || fields.data_inicio || bimestres.length === 0) return
     const cal = calDoBimestre(fields.bimestre)
     if (cal) {
-      setField('data_inicio', cal.dataInicio.slice(0, 10))
-      setField('data_fim',    cal.dataFim.slice(0, 10))
+      setFieldsMulti({
+        data_inicio: cal.dataInicio.slice(0, 10),
+        data_fim:    cal.dataFim.slice(0, 10),
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bimestres.length, fields.bimestre])
@@ -144,12 +214,12 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
   function toggleTurma(t: Turma) {
     const prev = selectedTurmas
     const next = prev.includes(t.name) ? prev.filter(x => x !== t.name) : [...prev, t.name]
-    setField('turma', next[0] ?? '')
-    setField('turmas', next.join(', '))
-    if (next[0] && next[0] !== prev[0]) {
-      const np = turmas.find(x => x.name === next[0])
-      if (np) { setField('_ciclo', np.ciclo); setField('_serie', np.serie) }
-    }
+    const np = next[0] && next[0] !== prev[0] ? turmas.find(x => x.name === next[0]) : undefined
+    setFieldsMulti({
+      turma:  next[0] ?? '',
+      turmas: next.join(', '),
+      ...(np ? { _ciclo: np.ciclo, _serie: np.serie } : {}),
+    })
   }
 
   async function loadCurriculo(turma: Turma, disciplina: string, bimStr: string, autofill = true) {
@@ -157,9 +227,7 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
     const disc = disciplinas.find(d => d.name === disciplina)
     const aulasNome = disc?.aulasNome ?? disciplina
     setLoadingAulas(true)
-    setField('_ciclo', turma.ciclo)
-    setField('_serie', turma.serie)
-    setField('_aulas_nome', aulasNome)
+    setFieldsMulti({ _ciclo: turma.ciclo, _serie: turma.serie, _aulas_nome: aulasNome })
     try {
       const base = `disciplina=${encodeURIComponent(aulasNome)}&serie=${turma.serie}&ciclo=${turma.ciclo}&bimestre=${bimStr}`
       const [rows, aeRows] = await Promise.all([
@@ -171,9 +239,17 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
       if (autofill && rows && rows.length > 0) {
         const habs  = rows.map((a: Aula) => [a.habilidadeCodigo, a.habilidadeTexto].filter(Boolean).join(' ')).filter(Boolean).join('\n')
         const conts = rows.map((a: Aula) => a.conteudo).filter(Boolean).join('\n')
-        if (habs)  setField('habilidades', habs)
-        if (conts) setField('conteudos', conts)
-        if (rows[0].unidadeTematica && !fields.tema) setField('tema', rows[0].unidadeTematica)
+        const patch: Record<string, string> = {}
+        if (habs)  patch.habilidades = habs
+        if (conts) patch.conteudos   = conts
+        // O tema é obrigatório e sai no PDF. Antes vinha só da unidade temática
+        // da primeira aula — que 4 em cada 5 aulas do currículo não têm, então
+        // o campo ficava vazio e travava a emissão.
+        if (!fields.tema) {
+          const tema = temaDoCurriculo(rows, disciplina, bimStr)
+          if (tema) patch.tema = tema
+        }
+        if (Object.keys(patch).length) setFieldsMulti(patch)
       }
     } finally { setLoadingAulas(false) }
   }
@@ -185,12 +261,14 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
     const next = estrategiaIds.includes(id)
       ? estrategiaIds.filter(x => x !== id)
       : estrategiaIds.length < MAX_ESTRATEGIAS ? [...estrategiaIds, id] : estrategiaIds
-    setField('estrategia_ids', next.join(','))
-    setField('estrategias', buildEstrategias(next))
     // Escolher a estratégia já marca os recursos correspondentes, como na v1.
     // Soma ao que estiver marcado: o professor pode ter escolhido algo antes.
-    setField('recursos',  somarSugestoes(fields.recursos ?? RECURSO_OBRIGATORIO, next, 'recursos'))
-    setField('avaliacao', somarSugestoes(fields.avaliacao ?? '', next, 'avaliacao'))
+    setFieldsMulti({
+      estrategia_ids: next.join(','),
+      estrategias:    buildEstrategias(next),
+      recursos:       somarSugestoes(fields.recursos ?? RECURSO_OBRIGATORIO, next, 'recursos'),
+      avaliacao:      somarSugestoes(fields.avaliacao ?? '', next, 'avaliacao'),
+    })
   }
 
   // ── Competências BNCC ──
@@ -340,14 +418,7 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
               ))}
             </div>
           ) : <p className={s.empty}>Nenhuma aula encontrada para esta disciplina e bimestre.</p>}
-          {aes.length > 0 && (
-            <div className={s.aesBlock}>
-              <p className={s.aesLabel}>Aprendizagens Essenciais do Bimestre</p>
-              {aes.map(ae => (
-                <div key={ae.id} className={s.aeRow}><span className={s.aeCode}>{ae.codigo}</span><span className={s.aeDesc}>{ae.descricao}</span></div>
-              ))}
-            </div>
-          )}
+          <Aprendizagens aes={aes} disciplina={fields.disciplina} mostrar={hasId && !loadingAulas} />
         </section>
       )}
 
@@ -399,12 +470,7 @@ export function GuiaEditor({ fields, setField, isAdmin }: Props) {
             <label className={s.label}>Conteúdos programáticos <span className={s.hint}>preenchido automaticamente</span></label>
             <textarea className={s.textarea} rows={4} value={fields.conteudos ?? ''} placeholder="Conteúdos do bimestre" onChange={e => setField('conteudos', e.target.value)} />
           </div>
-          {aes.length > 0 && (
-            <div className={s.aesBlock}>
-              <p className={s.aesLabel}>Aprendizagens Essenciais do Bimestre</p>
-              {aes.map(ae => <div key={ae.id} className={s.aeRow}><span className={s.aeCode}>{ae.codigo}</span><span className={s.aeDesc}>{ae.descricao}</span></div>)}
-            </div>
-          )}
+          <Aprendizagens aes={aes} disciplina={fields.disciplina} mostrar={hasId && !loadingAulas} />
         </section>
       )}
 

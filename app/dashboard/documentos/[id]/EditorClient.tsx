@@ -721,6 +721,11 @@ export function EditorClient({ doc, isAdmin }: Props) {
   function setFieldsMulti(patch: Record<string, string>) {
     setFields(prev => ({ ...prev, ...patch }))
     scheduleSave({ ...fields, ...patch })
+    // Como no setField: o campo preenchido deixa de ser cobrado. Sem isto, um
+    // campo escrito em lote — a data do bimestre, por exemplo — continuava
+    // marcado como pendente mesmo já preenchido na tela.
+    const preenchidos = Object.entries(patch).filter(([, v]) => v.trim() !== '').map(([k]) => k)
+    if (preenchidos.length > 0) setPendentes(prev => prev.filter(k => !preenchidos.includes(k)))
   }
 
   // Técnicas escritas pelo professor, por seção da sequência. Vivem num campo
@@ -799,9 +804,14 @@ export function EditorClient({ doc, isAdmin }: Props) {
       _bimestre:        String(bimestreNum ?? ''),
       bimestres:        bimestresSel.join(','),
       _aula_id:         String(aulaId ?? ''),
-      _ciclo:           ciclo,
-      _serie:           serie,
-      _aulas_nome:      aulasNome,
+      // O guia tem cascata própria (GuiaEditor) e escreve estes três direto em
+      // `fields`; a cascata daqui não é nem renderizada para ele. Escrever o
+      // estado por cima apagava os três em todo guia salvo — e o PDF do guia
+      // exige ciclo, série e nome do currículo para achar as aulas e as
+      // aprendizagens essenciais, então saía sem nenhuma das duas seções.
+      _ciclo:           ciclo     || f._ciclo      || '',
+      _serie:           serie     || f._serie      || '',
+      _aulas_nome:      aulasNome || f._aulas_nome || '',
       _aprendizagens:   JSON.stringify(selAEs),
       _instrumentos:    JSON.stringify(selInstr),
       _pei_student_id:  String(peiStudentId ?? ''),
@@ -817,7 +827,10 @@ export function EditorClient({ doc, isAdmin }: Props) {
     setCiclo(t.ciclo)
     setSerie(t.serie)
     setDisciplinaId(null); setAulasNome(''); setAulaId(null)
-    setField('_turma_nome', t.name)
+    // `_aulas_nome` sai junto: agora o buildContent preserva o que estiver em
+    // `fields` quando o estado está vazio, e sem isto o nome da disciplina
+    // anterior sobreviveria à troca de turma.
+    setFieldsMulti({ _turma_nome: t.name, _aulas_nome: '' })
   }
 
   // PLANO_AULA: multi-select turmas
@@ -881,8 +894,10 @@ export function EditorClient({ doc, isAdmin }: Props) {
     const a = aulas?.find(a => a.id === id)
     if (!a) return
     setAulaId(id)
-    setFields(prev => ({
-      ...prev,
+    // A tela recebia nove campos da aula e o save levava cinco: número da aula,
+    // texto da habilidade, unidade temática e objeto de conhecimento ficavam só
+    // na tela.
+    setFieldsMulti({
       _aula_id:            String(id),
       _aula_num:           String(a.aulaNum),
       _titulo_aula:        a.titulo,
@@ -892,14 +907,6 @@ export function EditorClient({ doc, isAdmin }: Props) {
       objeto_conhecimento: a.objetoConhecimento ?? '',
       conteudo_aula:       a.conteudo ?? '',
       objetivos_aula:      a.objetivos ?? '',
-    }))
-    scheduleSave({
-      ...fields,
-      _aula_id: String(id),
-      _titulo_aula: a.titulo,
-      habilidade_codigo: a.habilidadeCodigo ?? '',
-      conteudo_aula: a.conteudo ?? '',
-      objetivos_aula: a.objetivos ?? '',
     })
   }
 
@@ -929,8 +936,10 @@ export function EditorClient({ doc, isAdmin }: Props) {
       const contItems = parseLines(a.conteudo)
       setHabilidadeOpcoes(habLines)
       setConteudoOpcoes(contItems)
-      setFields(prev => ({
-        ...prev,
+      // O save levava só tema e aula_id: a tela mostrava os onze campos vindos
+      // da aula, mas nove nunca chegavam ao banco — quem escolhia a aula e saía
+      // perdia habilidades, conteúdo e objetivo.
+      setFieldsMulti({
         aula_id:             String(a.id),
         aula_num:            String(a.aulaNum),
         tema:                a.titulo,
@@ -942,8 +951,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
         habilidades:         habLines.join('\n'),
         conteudo:            contItems.join('\n'),
         conteudo_opcoes:     contItems.join('\n'),
-      }))
-      scheduleSave({ ...fields, tema: a.titulo, aula_id: String(a.id) })
+      })
     } else {
       const tema    = selected.map(a => a.titulo).join(' | ')
       const allHabs = [...new Set(selected.flatMap(a => parseLines(a.habilidadeTexto)))]
@@ -951,8 +959,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
       const allObj  = [...new Set(selected.flatMap(a => parseLines(a.objetivos)))]
       setHabilidadeOpcoes(allHabs)
       setConteudoOpcoes(allCont)
-      setFields(prev => ({
-        ...prev,
+      setFieldsMulti({
         aula_ids:       planoAulaIds.join(','),
         aula_nums:      selected.map(a => String(a.aulaNum)).join(', '),
         tema,
@@ -960,8 +967,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
         conteudo:       allCont.join('\n'),
         conteudo_opcoes: allCont.join('\n'),
         objetivo_geral: allObj.join('\n'),
-      }))
-      scheduleSave({ ...fields, tema, aula_ids: planoAulaIds.join(',') })
+      })
     }
 
     setPlanoStep(3)
@@ -971,16 +977,16 @@ export function EditorClient({ doc, isAdmin }: Props) {
     const p = peiStudents?.find(p => p.id === id)
     if (!p) return
     setPeiStudentId(id)
-    setFields(prev => ({
-      ...prev,
+    // Diagnóstico e profissionais do aluno ficavam de fora do save — o PEI era
+    // reaberto sem os dois, que é justamente o que se busca ao escolher o aluno.
+    setFieldsMulti({
       _pei_student_id:  String(id),
       aluno:            p.name,
       ra:               p.ra,
       turma:            p.turma,
       diagnostico_cid:  p.diagnostico ?? '',
       profissionais:    [p.profColaborativo, p.profAee].filter(Boolean).join(', '),
-    }))
-    scheduleSave({ ...fields, aluno: p.name, ra: p.ra, turma: p.turma })
+    })
   }
 
   function toggleAE(descricao: string) {
@@ -1669,8 +1675,10 @@ export function EditorClient({ doc, isAdmin }: Props) {
                             const contItems = parseLines(a.conteudo)
                             setHabilidadeOpcoes(habLines)
                             setConteudoOpcoes(contItems)
-                            setFields(prev => ({
-                              ...prev,
+                            // Mesmo caso do applyAulas: o save levava só tema e
+                            // aula_id, e os outros nove campos vindos da aula
+                            // nunca chegavam ao banco.
+                            setFieldsMulti({
                               aula_id: String(a.id),
                               aula_num: String(a.aulaNum),
                               tema: a.titulo,
@@ -1682,8 +1690,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
                               habilidades: habLines.join('\n'),
                               conteudo: contItems.join('\n'),
                               conteudo_opcoes: contItems.join('\n'),
-                            }))
-                            scheduleSave({ ...fields, tema: a.titulo, aula_id: String(a.id) })
+                            })
                             setPlanoStep(3)
                           }
                         }}
@@ -2358,17 +2365,17 @@ export function EditorClient({ doc, isAdmin }: Props) {
 
           {isPeiType(docType) && <PeiEditor fields={fields} setField={setField} isAdmin={isAdmin} />}
 
-          {(docType === 'GUIA_APRENDIZAGEM' || docType === 'OE_GUIA_APRENDIZAGEM') && <GuiaEditor fields={fields} setField={setField} isAdmin={isAdmin} />}
+          {(docType === 'GUIA_APRENDIZAGEM' || docType === 'OE_GUIA_APRENDIZAGEM') && <GuiaEditor fields={fields} setField={setField} setFieldsMulti={setFieldsMulti} isAdmin={isAdmin} />}
 
           {docType === 'PDI' && <PdiEditor fields={fields} setField={setField} />}
 
           {docType === 'PROJETO' && <ProjetoEditor fields={fields} setField={setField} />}
 
-          {docType === 'PLANO_ELETIVA' && <EletivaEditor fields={fields} setField={setField} />}
+          {docType === 'PLANO_ELETIVA' && <EletivaEditor fields={fields} setField={setField} setFieldsMulti={setFieldsMulti} />}
 
-          {docType === 'PLANO_EMA' && <EmaEditor fields={fields} setField={setField} />}
+          {docType === 'PLANO_EMA' && <EmaEditor fields={fields} setField={setField} setFieldsMulti={setFieldsMulti} />}
 
-          {docType === 'CARTA_NAUTICA' && <CartaNauticaEditor fields={fields} setField={setField} />}
+          {docType === 'CARTA_NAUTICA' && <CartaNauticaEditor fields={fields} setField={setField} setFieldsMulti={setFieldsMulti} />}
 
           {(docType === 'PLANO_AULA' || docType === 'OE_PLANO_AULA') && renderPlanoAulaWizard()}
 
