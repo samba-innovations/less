@@ -108,15 +108,31 @@ export function modelToText(m: ComposicaoModel): string {
   return `${m.nome}\n${itens}`
 }
 
+// As referencias que todo documento novo ja nasce trazendo — a lista da v1,
+// inteira. A v2 vinha com 9 das 22, e tres delas abreviadas (sem o Diario
+// Oficial, sem o subtitulo do Luckesi), o que muda a entrada ABNT.
 export const REFERENCIAS_PADRAO = `BRASIL. Base Nacional Comum Curricular. Brasília: Ministério da Educação, 2018. Disponível em: http://basenacionalcomum.mec.gov.br/. Acesso em: 5 jan. 2026.
 BRASIL. Base Nacional Comum Curricular: Ensino Médio. Brasília: Ministério da Educação, 2018.
 SÃO PAULO (Estado). Secretaria da Educação. Currículo Paulista: Ensino Médio. São Paulo: SEDUC-SP, 2020. Disponível em: https://efape.educacao.sp.gov.br/curriculopaulista/. Acesso em: 5 jan. 2026.
-BRASIL. Conselho Nacional de Educação. Resolução CNE/CEB nº 3, de 21 de novembro de 2018. Atualiza as Diretrizes Curriculares Nacionais para o Ensino Médio.
-BRASIL. Lei nº 9.394, de 20 de dezembro de 1996. Estabelece as diretrizes e bases da educação nacional.
-LUCKESI, Cipriano Carlos. Avaliação da aprendizagem escolar. 22. ed. São Paulo: Cortez, 2011.
+BRASIL. Conselho Nacional de Educação. Resolução CNE/CEB nº 3, de 21 de novembro de 2018. Atualiza as Diretrizes Curriculares Nacionais para o Ensino Médio. Diário Oficial da União: Brasília, DF, 22 nov. 2018.
+BRASIL. Lei nº 9.394, de 20 de dezembro de 1996. Estabelece as diretrizes e bases da educação nacional. Diário Oficial da União: Brasília, DF, 23 dez. 1996.
+BRASIL. Lei nº 13.415, de 16 de fevereiro de 2017. Altera a Lei nº 9.394/1996, que estabelece as bases da educação nacional. Diário Oficial da União: Brasília, DF, 17 fev. 2017.
+BRASIL. Ministério da Educação. Avaliação e aprendizagens: reflexões a partir da BNCC. Brasília: MEC, 2018.
+LUCKESI, Cipriano Carlos. Avaliação da aprendizagem escolar: estudos e proposições. 22. ed. São Paulo: Cortez, 2011.
+PERRENOUD, Philippe. Avaliação: da excelência à regulação das aprendizagens. Porto Alegre: Artmed, 1999.
 ZABALA, Antoni. A prática educativa: como ensinar. Porto Alegre: Artmed, 2010.
+HADJI, Charles. Avaliação desmistificada. Porto Alegre: Artmed, 2001.
+HERNÁNDEZ, Fernando. Transgressão e mudança na educação: os projetos de trabalho. Porto Alegre: Artmed, 1998.
 LIBÂNEO, José Carlos. Didática. São Paulo: Cortez, 2013.
-MORAN, José Manuel. Metodologias ativas para uma educação inovadora. Porto Alegre: Penso, 2018.`
+SAVIANI, Dermeval. Pedagogia histórico-crítica: primeiras aproximações. Campinas: Autores Associados, 2011.
+VASCONCELLOS, Celso dos Santos. Avaliação da aprendizagem: práticas de mudança. São Paulo: Libertad, 2008.
+HOFFMANN, Jussara. Avaliar para promover: as setas do caminho. Porto Alegre: Mediação, 2014.
+FREIRE, Paulo. Pedagogia da autonomia: saberes necessários à prática educativa. São Paulo: Paz e Terra, 1996.
+MORAN, José Manuel. Metodologias ativas para uma educação inovadora. Porto Alegre: Penso, 2018.
+BACICH, Lilian; MORAN, José (org.). Metodologias ativas para uma educação inovadora: uma abordagem teórico-prática. Porto Alegre: Penso, 2018.
+DARLING-HAMMOND, Linda et al. Preparando professores para um mundo em mudança. Porto Alegre: Penso, 2019.
+BLACK, Paul; WILIAM, Dylan. Inside the black box: raising standards through classroom assessment. London: King's College, 1998.
+WOLFF, Natály Rubert. Aprendizagem, avaliação e competência nas três versões da BNCC: conceitos em comparação. Dissertação (Mestrado). Universidade Federal de Mato Grosso do Sul, 2019.`
 
 // ─── Técnica → recursos e avaliação ───────────────────────────────────────────
 // Escolher a metodologia já marca os recursos e a avaliação correspondentes,
