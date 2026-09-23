@@ -24,6 +24,8 @@ export type FieldDef = {
   required?:   boolean
   options?:    { value: string; label: string }[]
   rows?:       number
+  /** Onde o campo está, para a mensagem: "Passo 2 — Aulas". */
+  passo?:      string
 }
 
 export type DocTypeMeta = {
@@ -102,13 +104,16 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
       { key: 'ano_letivo',      label: 'Ano Letivo',              type: 'text', required: true, placeholder: '2025' },
       { key: 'data_inicio',     label: 'Data de Início do Bimestre', type: 'date', required: true },
       { key: 'tema',            label: 'Tema / Título do Guia',   type: 'text', required: true },
-      { key: 'competencias',    label: 'Competências Gerais (BNCC)', type: 'textarea', rows: 3 },
+      // No guia estes três não são complemento: são cobrados etapa a etapa no
+      // assistente, e a emissão precisa cobrar o mesmo — senão um guia reaberto
+      // direto na etapa 3 sairia sem competências ou sem composição de média.
+      { key: 'competencias',    label: 'Competências Gerais (BNCC)', type: 'textarea', required: true, rows: 3 },
       { key: 'habilidades',     label: 'Habilidades Específicas', type: 'textarea', required: true, rows: 3 },
       { key: 'conteudos',       label: 'Conteúdos Programáticos', type: 'textarea', required: true, rows: 4 },
       { key: 'estrategias',     label: 'Estratégias Didáticas',   type: 'chips', required: true, options: METODOLOGIA_OPTS },
-      { key: 'recursos',        label: 'Recursos e Materiais',    type: 'chips', options: RECURSOS_OPTS },
+      { key: 'recursos',        label: 'Recursos e Materiais',    type: 'chips', required: true, options: RECURSOS_OPTS },
       { key: 'avaliacao',       label: 'Avaliação Bimestral',     type: 'chips', required: true, options: AVALIACAO_OPTS },
-      { key: 'composicao_media', label: 'Composição de Média',    type: 'textarea', rows: 2, placeholder: 'Ex: 60% avaliações + 40% atividades' },
+      { key: 'composicao_media', label: 'Composição de Média',    type: 'textarea', required: true, rows: 2, placeholder: 'Ex: 60% avaliações + 40% atividades' },
       { key: 'referencias',     label: 'Referências',             type: 'textarea', rows: 3 },
     ],
   },
@@ -339,7 +344,47 @@ function vazio(valor: string | undefined): boolean {
 }
 
 /**
+ * A estrutura que a v1 exige para finalizar — o que identifica o documento,
+ * e que não são campos de `DOC_TYPES` porque a tela os monta na cascata.
+ *
+ * Decisão do PO em 23/09/2026: a v2 passa a cobrar o mesmo. Fica mais rígida do
+ * que era, de propósito — plano sem aula escolhida não é plano. Espelha o
+ * `camposFaltantes` de samba-paper/lib/doc-completude.ts.
+ *
+ * `alternativas` existe porque a mesma informação tem mais de um nome conforme
+ * a origem do documento: a turma vive em `turma` ou `turmas`; a aula, em
+ * `aula_ids` (várias) ou `aula_id` (uma só). Basta uma estar preenchida.
+ */
+type RegraEstrutural = FieldDef & { alternativas: string[] }
+
+const ESTRUTURA: Partial<Record<DocType, RegraEstrutural[]>> = {
+  PLANO_AULA: [
+    { key: 'turma',      label: 'Turma',      type: 'text', passo: 'Passo 1 — Contexto', alternativas: ['turma', 'turmas'] },
+    { key: 'disciplina', label: 'Disciplina', type: 'text', passo: 'Passo 1 — Contexto', alternativas: ['disciplina'] },
+    { key: 'bimestre',   label: 'Bimestre',   type: 'text', passo: 'Passo 1 — Contexto', alternativas: ['bimestre', 'bimestres'] },
+    { key: 'aula_ids',   label: 'Aula',       type: 'text', passo: 'Passo 2 — Aulas',    alternativas: ['aula_ids', 'aula_id', 'oe_missoes_sel'] },
+  ],
+  GUIA_APRENDIZAGEM: [
+    { key: 'turma',      label: 'Turma',      type: 'text', passo: 'Passo 1 — Identificação', alternativas: ['turma', 'turmas'] },
+    { key: 'disciplina', label: 'Disciplina', type: 'text', passo: 'Passo 1 — Identificação', alternativas: ['disciplina'] },
+    { key: 'bimestre',   label: 'Bimestre',   type: 'text', passo: 'Passo 1 — Identificação', alternativas: ['bimestre', 'bimestres'] },
+  ],
+}
+
+/** O tipo base de um OE_*, que empresta campos e estrutura ao equivalente comum. */
+function tipoBase(docType: DocType): DocType {
+  return docType === 'OE_PLANO_AULA'        ? 'PLANO_AULA'
+       : docType === 'OE_GUIA_APRENDIZAGEM' ? 'GUIA_APRENDIZAGEM'
+       : docType
+}
+
+/**
  * Os campos obrigatórios que ainda estão em branco, na ordem do formulário.
+ *
+ * São duas exigências somadas: a ESTRUTURA (o que identifica o documento, regra
+ * herdada da v1) e o CONTEÚDO (as flags `required` dos campos). Antes só a
+ * segunda era cobrada, e dava para finalizar um plano sem nenhuma aula escolhida
+ * — que a v1 barra desde sempre.
  *
  * Os tipos OE_* herdam os campos do tipo equivalente: no schema eles têm
  * `fields: []` porque a tela monta o formulário deles a partir do guia/plano
@@ -349,11 +394,18 @@ export function camposFaltando(
   docType: DocType,
   fields: Record<string, string>,
 ): FieldDef[] {
-  const base: DocType =
-    docType === 'OE_PLANO_AULA'        ? 'PLANO_AULA' :
-    docType === 'OE_GUIA_APRENDIZAGEM' ? 'GUIA_APRENDIZAGEM' :
-    docType
+  const base = tipoBase(docType)
   const meta = DOC_TYPES[base]
   if (!meta) return []
-  return meta.fields.filter(f => f.required && vazio(fields[f.key]))
+
+  const estrutura = (ESTRUTURA[base] ?? [])
+    .filter(r => r.alternativas.every(k => vazio(fields[k])))
+    .map(({ alternativas: _alternativas, ...campo }) => campo)
+
+  return [...estrutura, ...meta.fields.filter(f => f.required && vazio(fields[f.key]))]
+}
+
+/** "Turma (Passo 1 — Contexto) · Aula (Passo 2 — Aulas)" */
+export function listarFaltantes(faltando: FieldDef[]): string {
+  return faltando.map(f => f.passo ? `${f.label} (${f.passo})` : f.label).join(' · ')
 }

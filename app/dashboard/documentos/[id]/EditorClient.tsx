@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { DOC_TYPES, camposFaltando, type DocType, type FieldDef } from '@/lib/doc-types'
+import { DOC_TYPES, camposFaltando, listarFaltantes, type DocType, type FieldDef } from '@/lib/doc-types'
 import type { OEMissaoFull, OEMissoesResult } from '@/lib/oe'
 import { oeTipoFromNome } from '@/lib/oe-shared'
 import {
@@ -1072,7 +1072,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
       faltando.length === 1
         ? 'falta preencher 1 campo obrigatório'
         : `faltam preencher ${faltando.length} campos obrigatórios`,
-      faltando.map(f => f.label).join(' · '),
+      listarFaltantes(faltando),
     )
     return true
   }

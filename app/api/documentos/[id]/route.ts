@@ -3,6 +3,7 @@ import { sessaoApi } from '@/lib/auth'
 import { verifyToken, isManager, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { pushToSchool } from '@/lib/sse-broadcaster'
+import { camposFaltando, listarFaltantes, type DocType } from '@/lib/doc-types'
 
 async function auth() {
   const s = await sessaoApi()
@@ -53,6 +54,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if (body.status !== undefined && !['DRAFT', 'FINAL'].includes(body.status))
     return NextResponse.json({ error: 'Status inválido' }, { status: 400 })
+
+  // Finalizar é o ponto sem volta: o documento passa a valer como entregue. A
+  // tela já barra, mas quem chama a API direto passava batido e finalizava
+  // documento vazio. Como diz a v1: o cliente avisa, o servidor garante.
+  //
+  // O conteúdo conferido é o que ESTE request deixa gravado — senão um PATCH
+  // que muda status e conteúdo de uma vez seria validado contra o conteúdo
+  // antigo.
+  if (body.status === 'FINAL') {
+    const conteudo = (body.content ?? doc.content ?? {}) as Record<string, string>
+    const faltando = camposFaltando(doc.type as DocType, conteudo)
+    if (faltando.length > 0) {
+      return NextResponse.json({
+        error: `Preencha antes de finalizar: ${listarFaltantes(faltando)}.`,
+        faltando: faltando.map(f => ({ key: f.key, label: f.label, passo: f.passo })),
+      }, { status: 422 })
+    }
+  }
 
   const updated = await db.lessDocument.update({
     where: { id: doc.id },
