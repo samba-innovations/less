@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { isManager, effectiveRole } from '@/lib/jwt'
 import { EditorClient } from './EditorClient'
+import { comNomesDaV2 } from '@/lib/legado-v1'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,7 +58,7 @@ export default async function DocumentoPage({
           id:        doc.id,
           type:      doc.type,
           title:     doc.title,
-          content:   doc.content as Record<string, string>,
+          content:   comNomesDaV2(doc.content as Record<string, string>),
           status:    doc.status,
           feedbacks: doc.feedbacks.map(f => ({
             id:          f.id,

@@ -5,7 +5,8 @@ import { sessaoApi } from '@/lib/auth'
 import { canWrite, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { generateProjetoDocx } from '@/lib/docx-projeto'
-import { camposFaltando, type DocType } from '@/lib/doc-types'
+import { camposFaltando, listarFaltantes, type DocType } from '@/lib/doc-types'
+import { comNomesDaV2 } from '@/lib/legado-v1'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -29,15 +30,16 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   // A tela já barra antes de chamar aqui, mas a regra vale na rota também: sem
   // isto, uma chamada direta à API emite documento com campo obrigatório vazio.
-  const faltando = camposFaltando(doc.type as DocType, doc.content as Record<string, string>)
+  const conteudo = comNomesDaV2((doc.content ?? {}) as Record<string, string>)
+  const faltando = camposFaltando(doc.type as DocType, conteudo)
   if (faltando.length > 0) {
     return NextResponse.json({
-      error: `Preencha antes de emitir: ${faltando.map(f => f.label).join(', ')}.`,
+      error: `Preencha antes de emitir: ${listarFaltantes(faltando)}.`,
     }, { status: 422 })
   }
 
   const user = await db.user.findUnique({ where: { id: payload.userId }, select: { name: true } })
-  const content = (doc.content ?? {}) as Record<string, string>
+  const content = conteudo
 
   const buffer = await generateProjetoDocx({
     content,

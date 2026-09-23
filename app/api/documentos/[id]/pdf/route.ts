@@ -5,7 +5,8 @@ import { db } from '@/lib/db'
 import { generatePdf } from '@/lib/pdf'
 import type { AprendizagemEssencial, AulaSelecionada } from '@/lib/pdf'
 import { notify } from '@/lib/notify'
-import { camposFaltando, type DocType } from '@/lib/doc-types'
+import { camposFaltando, listarFaltantes, type DocType } from '@/lib/doc-types'
+import { comNomesDaV2 } from '@/lib/legado-v1'
 
 async function auth() {
   const s = await sessaoApi()
@@ -58,14 +59,15 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   // A tela já barra antes de chamar aqui, mas a regra vale na rota também: sem
   // isto, uma chamada direta à API emite documento com campo obrigatório vazio.
-  const faltando = camposFaltando(doc.type as DocType, doc.content as Record<string, string>)
+  const conteudo = comNomesDaV2(doc.content as Record<string, string>)
+  const faltando = camposFaltando(doc.type as DocType, conteudo)
   if (faltando.length > 0) {
     return NextResponse.json({
-      error: `Preencha antes de emitir: ${faltando.map(f => f.label).join(', ')}.`,
+      error: `Preencha antes de emitir: ${listarFaltantes(faltando)}.`,
     }, { status: 422 })
   }
 
-  const content = doc.content as Record<string, string>
+  const content = conteudo
 
   let aprendizagensEssenciais: AprendizagemEssencial[] | undefined
   let aulasSelecionadas: AulaSelecionada[] | undefined
@@ -147,6 +149,23 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const _si = await prepareSchoolInfo(ctx.school.organization.name)
   console.log(`[pdf-route] prepared schoolInfo: officialName=${_si.officialName ?? 'null'} logoBuf=${_si.logoBuffer?.length ?? 0}`)
 
+  // Calendário do ano letivo do documento — o PDF do plano precisa dele para o
+  // intervalo do período bimestral e para a janela ao lado do bimestre.
+  const ano = Number(content.ano_letivo) || new Date().getFullYear()
+  const doAno = await db.lessBimestre.findMany({ where: { ano }, orderBy: { numero: 'asc' } })
+  // Documento sem ano letivo, ou de um ano que a escola ainda não cadastrou:
+  // usa o calendário mais recente, que é melhor do que nenhuma data.
+  const linhas = doAno.length > 0
+    ? doAno
+    : await db.lessBimestre.findMany({ orderBy: [{ ano: 'desc' }, { numero: 'asc' }], take: 4 })
+  const bimestres: Record<number, { inicio: string; fim: string }> = {}
+  for (const b of linhas) {
+    bimestres[b.numero] ??= {
+      inicio: b.dataInicio.toISOString().slice(0, 10),
+      fim:    b.dataFim.toISOString().slice(0, 10),
+    }
+  }
+
   const buffer = await generatePdf({
     type:       doc.type as DocType,
     title:      doc.title,
@@ -156,6 +175,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     createdAt:  new Date(),
     aprendizagensEssenciais,
     aulasSelecionadas,
+    bimestres,
   })
 
   const wasAlreadyFinal = doc.status === 'FINAL'
