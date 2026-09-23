@@ -60,6 +60,8 @@ export type PdfInput = {
   createdAt:  Date
   aprendizagensEssenciais?: AprendizagemEssencial[]
   aulasSelecionadas?:       AulaSelecionada[]
+  /** Calendario do ano letivo por bimestre, do less_bimestres. */
+  bimestres?: Record<number, { inicio: string; fim: string }>
 }
 
 function ensureSpace(doc: InstanceType<typeof PDFDocument>, needed: number) {
@@ -1309,6 +1311,7 @@ export function generatePdf(input: PdfInput): Promise<Buffer> {
       createdAt:  input.createdAt,
       aprendizagensEssenciais: input.aprendizagensEssenciais,
       aulasSelecionadas:       input.aulasSelecionadas,
+      bimestres:               input.bimestres,
     })
   }
   if (NEW_GUIA_TYPES.has(input.type)) {

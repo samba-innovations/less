@@ -26,6 +26,55 @@ export type AulaSelecionada = {
   conteudo: string | null; objetivos: string | null
 }
 
+/** Data por extenso: aceita ISO (2026-09-03), BR (03/09/2026) ou vazio. */
+function porExtenso(s: string | undefined, quandoVazio: string): string {
+  if (!s) return quandoVazio
+  const d = paraData(s)
+  if (!d) return s
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
+export type CalendarioBimestres = Record<number, { inicio: string; fim: string }>
+
+/**
+ * O intervalo coberto pelo plano — o `computeDataRange` da v1.
+ *
+ * Um plano semanal ou quinzenal cobre um período, não um dia, e 78% deles não
+ * têm data de fim preenchida: a v1 fecha essa lacuna somando os dias do tipo de
+ * período à data inicial, e o bimestral usa a janela do bimestre. Sem isso o
+ * PDF mostrava um dia só onde havia um intervalo.
+ *
+ * A data de fim escrita pelo professor sempre vence a conta: ela respeita dias
+ * não letivos, que a soma de dias corridos ignora.
+ */
+export function intervaloDoPlano(
+  c: Record<string, string>,
+  cal: CalendarioBimestres,
+  bimUsados: number[],
+  quandoVazio: string,
+): string {
+  const tipo = (c.periodo ?? '').trim()
+  const fim  = (c.data_fim ?? '').trim()
+  const dia  = (s: string | undefined) => porExtenso(s, quandoVazio)
+
+  if (tipo === 'bimestral' && !fim && bimUsados.length > 0) {
+    const ini = cal[bimUsados[0]], fimBim = cal[bimUsados[bimUsados.length - 1]]
+    if (ini && fimBim) return `de ${dia(ini.inicio)} a ${dia(fimBim.fim)}`
+  }
+  if (fim && fim !== c.data) return `de ${dia(c.data)} a ${dia(fim)}`
+
+  const dias = PERIODO_DIAS[tipo]
+  if (dias !== undefined && c.data) {
+    const base = paraData(c.data)
+    if (base) {
+      const ate = new Date(base)
+      ate.setDate(ate.getDate() + dias)
+      return `de ${dia(c.data)} a ${dia(ate.toISOString().slice(0, 10))}`
+    }
+  }
+  return dia(c.data)
+}
+
 export type PlanoAulaInput = {
   type:       DocType
   title:      string
@@ -35,13 +84,43 @@ export type PlanoAulaInput = {
   createdAt:  Date
   aprendizagensEssenciais?: AprendizagemEssencial[]
   aulasSelecionadas?:       AulaSelecionada[]
+  /**
+   * O calendário do ano letivo, por número de bimestre — do less_bimestres.
+   * Havia aqui uma tabela de datas fixa no código que não bate com o calendário
+   * da escola (dizia que o 1º bimestre terminava em 22/04; o banco diz 01/05).
+   */
+  bimestres?: Record<number, { inicio: string; fim: string }>
 }
 
-const BIMESTRE_DATAS: Record<number, string> = {
-  1: '02/02 a 22/04',
-  2: '23/04 a 06/07',
-  3: '24/07 a 02/10',
-  4: '05/10 a 18/12',
+/** Rótulo do período, como na v1. */
+const PERIODO_LABELS: Record<string, string> = {
+  por_aula:  'Por aula',
+  semanal:   'Semanal',
+  quinzenal: 'Quinzenal',
+  bimestral: 'Bimestral',
+}
+
+/** Dias somados à data inicial quando o professor não informou a data de fim. */
+const PERIODO_DIAS: Record<string, number> = {
+  semanal:   6,
+  quinzenal: 14,
+  bimestral: 59,
+}
+
+/** Data a partir de ISO (2026-09-03) ou BR (03/09/2026); null se não for nenhum. */
+function paraData(s: string | undefined): Date | null {
+  const v = (s ?? '').trim()
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(v)
+  if (iso) return new Date(`${iso[1]}-${iso[2]}-${iso[3]}T12:00:00`)
+  const br = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v)
+  return br ? new Date(`${br[3]}-${br[2]}-${br[1]}T12:00:00`) : null
+}
+
+/** "02/05" — dia e mês, para a janela do bimestre. */
+function ddmm(iso: string): string {
+  const d = paraData(iso)
+  if (!d) return iso
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
 type TipoAula = 'individual' | 'dupla'
@@ -172,38 +251,31 @@ export function generatePlanoAulaPdf(input: PlanoAulaInput): Promise<Buffer> {
       .split(',').map(s => Number(s.trim())).filter(n => Number.isFinite(n) && n > 0)
     const bimUsados = bimList.length > 0 ? [...new Set(bimList)].sort((a, b) => a - b)
                     : (Number(c.bimestre) > 0 ? [Number(c.bimestre)] : [])
+    const cal = input.bimestres ?? {}
+    /** "02/02 a 01/05", do calendário da escola. */
+    function janelaDoBimestre(n: number): string {
+      const b = cal[n]
+      return b ? `${ddmm(b.inicio)} a ${ddmm(b.fim)}` : ''
+    }
     const bimLabel =
       bimUsados.length === 0 ? '—'
       : bimUsados.length === 1
-        ? (BIMESTRE_DATAS[bimUsados[0]]
-            ? `${bimUsados[0]}º Bimestre — ${BIMESTRE_DATAS[bimUsados[0]]}`
+        ? (janelaDoBimestre(bimUsados[0])
+            ? `${bimUsados[0]}º Bimestre — ${janelaDoBimestre(bimUsados[0])}`
             : `${bimUsados[0]}º Bimestre`)
         : `${bimUsados.slice(0, -1).map(n => `${n}º`).join(', ')} e ${bimUsados[bimUsados.length - 1]}º Bimestres`
 
-    // Formata data: aceita ISO (2026-09-03), BR (03/09/2026) ou vazio
-    function fmtData(s: string | undefined): string {
-      if (!s) return dateLong
-      const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
-      if (iso) {
-        const d = new Date(`${iso[1]}-${iso[2]}-${iso[3]}T12:00:00`)
-        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
-      }
-      return s
-    }
-
-    /** "21 de setembro de 2026" ou "de 21 … a 3 de outubro de 2026". */
-    function periodo(inicio: string | undefined, fim: string | undefined): string {
-      if (!fim?.trim() || fim === inicio) return fmtData(inicio)
-      return `de ${fmtData(inicio)} a ${fmtData(fim)}`
-    }
 
     sectionTitle(doc, 'Identificação')
     const identificacao: string[][] = [
       ['Turma',      c.turmas || c.turma || '—'],
       ['Disciplina', c.disciplina || '—'],
       ['Bimestre',   bimLabel],
-      ['Data',       periodo(c.data, c.data_fim)],
+      ['Data',       intervaloDoPlano(c, cal, bimUsados, dateLong)],
     ]
+    // O período é o que explica o intervalo acima: "Quinzenal" diz por que a
+    // data vai até dali. Na v1 ele também sai no cabeçalho do documento.
+    if (c.periodo) identificacao.push(['Período', PERIODO_LABELS[c.periodo] ?? c.periodo])
     if (c.tema) identificacao.push(['Tema / Título da Aula', c.tema])
     dataTable(doc, ['Campo', 'Informação'], identificacao, { colWeights: [1.3, 3.7] })
 
