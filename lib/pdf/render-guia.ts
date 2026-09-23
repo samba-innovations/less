@@ -7,11 +7,11 @@
  */
 
 import PDFDocument from 'pdfkit'
-import { DOC_TYPES, type DocType, type FieldDef } from '../doc-types'
+import { DOC_TYPES, type DocType } from '../doc-types'
 import { fullHeader, miniHeader, paginate, type DocHeaderInfo } from './layout'
 import {
-  docTitle, sectionTitle, kv, paragraph, signatureLine,
-  divider, spacer, lightTable, bulletList,
+  docTitle, sectionTitle, subSectionTitle, kv, paragraph, signatureLine,
+  divider, spacer, lightTable, bulletList, referenciasAbnt,
 } from './primitives'
 import { firstPageOptions } from '@pdf'
 import type { AprendizagemEssencial, AulaSelecionada } from './render-plano-aula'
@@ -27,24 +27,37 @@ export type GuiaPdfInput = {
   aulasSelecionadas?:       AulaSelecionada[]
 }
 
-const BIMESTRE_DATAS: Record<number, string> = {
-  1: '02/02 a 22/04',
-  2: '23/04 a 06/07',
-  3: '24/07 a 02/10',
-  4: '05/10 a 18/12',
+/** dd/mm/aaaa a partir de ISO ou do que o editor gravou. */
+function dataBR(iso: string | undefined): string {
+  const v = (iso ?? '').trim()
+  if (!v) return ''
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v)
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : v
 }
 
-function formatChips(field: FieldDef, raw: string | undefined): string {
-  if (!raw?.trim()) return ''
-  let values: string[] = []
-  try {
-    const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed)) values = parsed.map(String)
-  } catch {
-    values = raw.split(',').map(s => s.trim()).filter(Boolean)
-  }
-  return values.map(v => field.options?.find(o => o.value === v)?.label ?? v).join(' · ')
+/**
+ * O período do bimestre, do calendário que o editor carimbou no documento.
+ *
+ * Existia aqui uma tabela fixa de datas, a mesma que estava no editor e que não
+ * bate com o calendário da escola. Agora as duas pontas leem o less_bimestres,
+ * via data_inicio/data_fim.
+ */
+function periodo(c: Record<string, string>): string {
+  const ini = dataBR(c.data_inicio), fim = dataBR(c.data_fim)
+  if (ini && fim) return `${ini} a ${fim}`
+  return ini
 }
+
+/** Cada linha é uma técnica ("Nome — descritor"); o campo não é lista por vírgula. */
+function linhas(raw: string | undefined): string[] {
+  return (raw ?? '').split('\n').map(l => l.trim()).filter(Boolean)
+}
+
+/** Recursos e avaliação são listas separadas por vírgula, como o seletor grava. */
+function itens(raw: string | undefined): string[] {
+  return (raw ?? '').split(',').map(x => x.trim()).filter(Boolean)
+}
+
 
 function parseJsonArray(raw: string | undefined): string[] {
   if (!raw?.trim()) return []
@@ -80,18 +93,24 @@ export function generateGuiaPdf(input: GuiaPdfInput): Promise<Buffer> {
     divider(doc)
 
     // ── Identificação ────────────────────────────────────────────────────────
-    const bimNum = c._bimestre ? Number(c._bimestre) : 0
-    const bimLabel = bimNum && BIMESTRE_DATAS[bimNum]
-      ? `${bimNum}º Bimestre — ${BIMESTRE_DATAS[bimNum]}`
-      : (c._bimestre ? `${c._bimestre}º Bimestre` : '')
+    // As chaves com underscore são as da cascata do plano de aula, e o guia não
+    // preenche nenhuma delas: ele grava turma/turmas, disciplina e bimestre sem
+    // prefixo, como na v1. Lidas só como alternativa, para o guia da OE, que vem
+    // pela outra cascata.
+    const turma      = c.turmas || c.turma || c._turma_nome || ''
+    const disciplina = c.disciplina || c._disciplina_nome || ''
+    const bim        = c.bimestre || c._bimestre || ''
+    const per        = periodo(c)
+    const bimLabel   = bim ? (per ? `${bim}º Bimestre — ${per}` : `${bim}º Bimestre`) : ''
+    // Em Projeto de Vida a escola chama o tema de projeto do bimestre.
+    const isPV       = disciplina.toLowerCase().includes('projeto de vida')
 
     sectionTitle(doc, 'Identificação')
-    if (c._turma_nome)      kv(doc, 'Turma',      c._turma_nome,      { inline: true })
-    if (c._disciplina_nome) kv(doc, 'Disciplina', c._disciplina_nome, { inline: true })
-    if (bimLabel)           kv(doc, 'Bimestre',   bimLabel,           { inline: true })
-    if (c.ano_letivo)       kv(doc, 'Ano Letivo', c.ano_letivo,       { inline: true })
-    if (c.data_inicio)      kv(doc, 'Início',     c.data_inicio,      { inline: true })
-    if (c.tema)             kv(doc, 'Tema',       c.tema,             { inline: true })
+    if (turma)        kv(doc, 'Turma(s)',   turma,        { inline: true })
+    if (disciplina)   kv(doc, 'Disciplina', disciplina,   { inline: true })
+    if (bimLabel)     kv(doc, 'Bimestre',   bimLabel,     { inline: true })
+    if (c.ano_letivo) kv(doc, 'Ano Letivo', c.ano_letivo, { inline: true })
+    if (c.tema)       kv(doc, isPV ? 'Projeto do Bimestre' : 'Tema', c.tema, { inline: true })
     spacer(doc, 'md')
 
     // ── Aprendizagens Essenciais ────────────────────────────────────────────
@@ -130,13 +149,32 @@ export function generateGuiaPdf(input: GuiaPdfInput): Promise<Buffer> {
       paragraph(doc, c.conteudos, { abnt: true })
     }
 
-    // ── Chips (estratégias, recursos, avaliação) ────────────────────────────
-    const chipFields = meta.fields.filter(f => f.type === 'chips')
-    const filledChips = chipFields.filter(f => c[f.key]?.trim())
-    if (filledChips.length > 0) {
-      sectionTitle(doc, 'Estratégias e Recursos')
-      for (const f of filledChips) {
-        kv(doc, f.label, formatChips(f, c[f.key]), { inline: true })
+    // ── Metodologia e avaliação ─────────────────────────────────────────────
+    // Estas três saíam pelo formatChips, que separa por vírgula. As estratégias
+    // são uma por linha ("Nome — descritor"), e os descritores têm vírgula: o
+    // campo saía picado no meio das frases. Cada um volta a sair no formato em
+    // que o editor grava, como na v1.
+    const estrategias = linhas(c.estrategias)
+    const recursos    = itens(c.recursos)
+    const avaliacao   = itens(c.avaliacao)
+
+    if (estrategias.length > 0 || recursos.length > 0 || avaliacao.length > 0 || c.ajustes_demanda?.trim()) {
+      sectionTitle(doc, 'Metodologia e Avaliação')
+      if (estrategias.length > 0) {
+        subSectionTitle(doc, isPV ? 'Estratégias Socioemocionais' : 'Estratégias Didáticas')
+        bulletList(doc, estrategias)
+      }
+      if (recursos.length > 0) {
+        subSectionTitle(doc, 'Recursos e Materiais')
+        bulletList(doc, recursos)
+      }
+      if (avaliacao.length > 0) {
+        subSectionTitle(doc, isPV ? 'Avaliação Socioemocional' : 'Avaliação Bimestral')
+        bulletList(doc, avaliacao)
+      }
+      if (c.ajustes_demanda?.trim()) {
+        subSectionTitle(doc, 'Ajuste(s) por Demanda')
+        paragraph(doc, c.ajustes_demanda, { abnt: true })
       }
       spacer(doc, 'md')
     }
@@ -155,9 +193,11 @@ export function generateGuiaPdf(input: GuiaPdfInput): Promise<Buffer> {
     }
 
     // ── Referências ─────────────────────────────────────────────────────────
+    // Uma entrada por linha, com autor em versalete e título em itálico — o
+    // mesmo tratamento do plano de aula, que antes era um parágrafo corrido.
     if (c.referencias?.trim()) {
       sectionTitle(doc, 'Referências')
-      paragraph(doc, c.referencias, { abnt: true, small: true })
+      referenciasAbnt(doc, c.referencias)
     }
 
     signatureLine(doc, input.authorName)

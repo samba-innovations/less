@@ -148,7 +148,7 @@ export function CartaNauticaEditor({ fields, setField, setFieldsMulti }: Props) 
             iconLeft={<ArrowLeft size={12} />}
             onClick={() => setStep((step - 1) as 1 | 2 | 3)}
           >Voltar</Button>}
-          {step === 1 && <button className={s.nextBtn} disabled={!canAdv1} onClick={() => { if (primaryTurma) { setField('_ciclo', primaryTurma.ciclo); setField('_serie', primaryTurma.serie) } setStep(2) }}>Ver aulas <ArrowRight size={12} /></button>}
+          {step === 1 && <button className={s.nextBtn} disabled={!canAdv1} onClick={() => { if (primaryTurma) setFieldsMulti({ _ciclo: primaryTurma.ciclo, _serie: primaryTurma.serie }); setStep(2) }}>Ver aulas <ArrowRight size={12} /></button>}
           {step === 2 && <button className={s.nextBtn} disabled={!canAdv2} onClick={() => { setCurrentAulaIndex(0); setStep(3) }}>Slides <ArrowRight size={12} /></button>}
         </div>
       </div>

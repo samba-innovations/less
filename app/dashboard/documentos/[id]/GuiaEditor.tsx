@@ -7,7 +7,8 @@ import { SkeletonText } from '../../_components/Skeleton'
 import {
   BNCC_COMPETENCIAS, DESENVOLVIMENTO_OPTS, RECURSOS_GRUPOS, AVALIACAO_GRUPOS,
   RECURSO_OBRIGATORIO, COMPOSICAO_MODELS, BLOCO_LABELS, BLOCO_ACCENT,
-  REFERENCIAS_PADRAO, somarSugestoes, modelToText, type Tecnica, type Grupo,
+  REFERENCIAS_PADRAO, somarSugestoes, modelToText, PACOTES_PRONTOS,
+  DESENVOLVIMENTO_TO_PACOTE, type Tecnica, type Grupo, type Pacote,
 } from '@/lib/guia-data'
 import { useFetch } from '@/lib/use-fetch'
 import { GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
@@ -44,6 +45,42 @@ type Props = {
 
 const MAX_ESTRATEGIAS = 5
 const STEP_LABELS = ['Identificação', 'Currículo', 'Objetivos', 'Metodologia', 'Finalização']
+
+/**
+ * O que cada etapa cobra para liberar a próxima.
+ *
+ * Antes só a etapa 1 era cobrada: dava para atravessar o assistente inteiro
+ * deixando campo em branco e só descobrir o que faltava na hora de emitir, com
+ * o documento já fechado — e aí era preciso refazer o caminho todo para achar
+ * a etapa do campo.
+ *
+ * A etapa 2 é só leitura (aulas e aprendizagens do currículo) e a etapa 5 é a
+ * última, então nenhuma das duas tem o que cobrar aqui; a 5 é cobrada na
+ * emissão, pelo camposFaltando. "Ajuste(s) por demanda" fica de fora de
+ * propósito: é registro eventual, e nem toda turma tem um.
+ */
+const CAMPOS_ETAPA: Record<number, { key: string; label: string }[]> = {
+  1: [
+    { key: 'turma',        label: 'turma' },
+    { key: 'disciplina',   label: 'disciplina' },
+    { key: 'bimestre',     label: 'bimestre' },
+    { key: 'ano_letivo',   label: 'ano letivo' },
+    { key: 'data_inicio',  label: 'período do bimestre' },
+  ],
+  2: [],
+  3: [
+    { key: 'tema',         label: 'tema / título do guia' },
+    { key: 'competencias', label: 'competências gerais (BNCC)' },
+    { key: 'habilidades',  label: 'habilidades específicas' },
+    { key: 'conteudos',    label: 'conteúdos programáticos' },
+  ],
+  4: [
+    { key: 'estrategias',  label: 'estratégias didáticas' },
+    { key: 'recursos',     label: 'recursos e materiais' },
+    { key: 'avaliacao',    label: 'avaliação bimestral' },
+  ],
+  5: [],
+}
 
 function currentBimestre() {
   const m = new Date().getMonth() + 1
@@ -254,8 +291,22 @@ export function GuiaEditor({ fields, setField, setFieldsMulti, isAdmin }: Props)
     } finally { setLoadingAulas(false) }
   }
 
-  function buildEstrategias(ids: number[]) {
-    return DESENVOLVIMENTO_OPTS.filter(x => ids.includes(x.id)).map(x => `${x.nome} — ${x.descritor}`).join('\n')
+  /**
+   * O campo visível é REFEITO a cada clique no catálogo, então o texto escrito
+   * pelo professor vive em `estrategia_outro` e é recomposto aqui — senão o
+   * clique seguinte apagaria o que ele escreveu. Mesma composição da v1: os
+   * cartões e, no fim, o texto próprio como observação.
+   */
+  function buildEstrategias(ids: number[], outro = fields.estrategia_outro ?? '') {
+    const cartoes = DESENVOLVIMENTO_OPTS.filter(x => ids.includes(x.id)).map(x => `${x.nome} — ${x.descritor}`)
+    return [...cartoes, ...(outro.trim() ? [`Observação: ${outro.trim()}`] : [])].join('\n')
+  }
+
+  function definirEstrategiaOutro(texto: string) {
+    setFieldsMulti({
+      estrategia_outro: texto,
+      estrategias:      buildEstrategias(estrategiaIds, texto),
+    })
   }
   function toggleEstrategia(id: number) {
     const next = estrategiaIds.includes(id)
@@ -268,6 +319,20 @@ export function GuiaEditor({ fields, setField, setFieldsMulti, isAdmin }: Props)
       estrategias:    buildEstrategias(next),
       recursos:       somarSugestoes(fields.recursos ?? RECURSO_OBRIGATORIO, next, 'recursos'),
       avaliacao:      somarSugestoes(fields.avaliacao ?? '', next, 'avaliacao'),
+    })
+  }
+
+  // ── Início rápido: os mesmos pacotes do plano de aula ──
+  // Lá o pacote troca recursos e avaliação de uma vez; aqui também, com uma
+  // diferença: os slides oficiais são recurso obrigatório do guia e ficam, senão
+  // o clique os apagaria do documento (o seletor os mostra travados, mas quem
+  // vai para o PDF é o valor do campo).
+  const pacoteSugerido = estrategiaIds[0] ? DESENVOLVIMENTO_TO_PACOTE[estrategiaIds[0]] : undefined
+
+  function aplicarPacote(p: Pacote) {
+    setFieldsMulti({
+      recursos:  [...new Set([RECURSO_OBRIGATORIO, ...p.recursos])].join(', '),
+      avaliacao: p.avaliacao.join(', '),
     })
   }
 
@@ -298,10 +363,18 @@ export function GuiaEditor({ fields, setField, setFieldsMulti, isAdmin }: Props)
   const selectedModel = COMPOSICAO_MODELS.find(m => (fields.composicao_media ?? '').startsWith(m.nome))
   const blocos = ['A', 'B', 'C', 'D', 'E']
 
-  const canStep1 = !!(selectedTurmas[0] && fields.disciplina && fields.bimestre)
+  /** O que falta preencher na etapa — a turma mora em `turmas`, não num campo. */
+  function faltantesDaEtapa(n: number) {
+    return (CAMPOS_ETAPA[n] ?? []).filter(f => {
+      const valor = f.key === 'turma' ? (selectedTurmas[0] ?? '') : (fields[f.key] ?? '')
+      return valor.trim() === ''
+    })
+  }
 
   function NavBar() {
+    const faltando = faltantesDaEtapa(step)
     return (
+      <div className={s.navwrap}>
       <div className={s.navbar}>
         <div className={s.steps}>
           {STEP_LABELS.map((label, i) => {
@@ -324,7 +397,7 @@ export function GuiaEditor({ fields, setField, setFieldsMulti, isAdmin }: Props)
             onClick={() => setStep(step - 1)}
           >Voltar</Button>}
           {step < 5 && (
-            <button className={s.nextBtn} disabled={step === 1 && !canStep1}
+            <button className={s.nextBtn} disabled={faltando.length > 0}
               onClick={() => {
                 if (step === 1 && primaryTurma) loadCurriculo(primaryTurma, fields.disciplina, fields.bimestre)
                 setStep(step + 1)
@@ -333,6 +406,14 @@ export function GuiaEditor({ fields, setField, setFieldsMulti, isAdmin }: Props)
             </button>
           )}
         </div>
+      </div>
+      {/* Dizer o que falta, e não só desligar o botão: sem isto a pessoa fica
+          clicando num botão morto sem saber qual campo está cobrando. */}
+      {faltando.length > 0 && step < 5 && (
+        <p className={s.faltando}>
+          para avançar, preencha: {faltando.map(f => f.label).join(' · ')}
+        </p>
+      )}
       </div>
     )
   }
@@ -489,8 +570,38 @@ export function GuiaEditor({ fields, setField, setFieldsMulti, isAdmin }: Props)
             </div>
           </div>
           <div className={s.field}>
+            <label className={s.label}>
+              Outra estratégia <span className={s.hint}>opcional — sai no documento como observação</span>
+            </label>
+            <textarea
+              className={s.textarea}
+              rows={2}
+              value={fields.estrategia_outro ?? ''}
+              placeholder="Descreva uma estratégia que não esteja no catálogo…"
+              onChange={e => definirEstrategiaOutro(e.target.value)}
+            />
+          </div>
+          <div className={s.field}>
             <label className={s.label}>Ajuste(s) por demanda</label>
             <textarea className={s.textarea} rows={3} value={fields.ajustes_demanda ?? ''} placeholder="Registre ajustes por demanda da coordenação..." onChange={e => setField('ajustes_demanda', e.target.value)} />
+          </div>
+          <div className={s.field}>
+            <label className={s.label}>
+              Início rápido
+              {pacoteSugerido && <span className={s.autoTag}>sugestão baseada na técnica selecionada</span>}
+            </label>
+            <div className={s.pacoteBtns}>
+              {PACOTES_PRONTOS.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`${s.pacoteBtn} ${pacoteSugerido === p.id ? s.pacoteBtnSugerido : ''}`}
+                  onClick={() => aplicarPacote(p)}
+                >
+                  {p.label}{pacoteSugerido === p.id ? ' ★' : ''}
+                </button>
+              ))}
+            </div>
           </div>
           <div className={s.field}>
             <label className={s.label}>Recursos e materiais</label>

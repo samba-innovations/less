@@ -1,12 +1,22 @@
 .wrap { display: flex; flex-direction: column; gap: 1.25rem; }
 
 /* ── Navbar / steps ── */
+/* A borda de baixo passou para o wrap: o aviso do que falta preencher fica
+   entre a barra e a linha, e não solto embaixo dela. */
+.navwrap { display: flex; flex-direction: column; border-bottom: 1px solid var(--border); }
+.faltando {
+  margin: 0;
+  padding: 0.5rem 0 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--danger);
+}
+
 .navbar {
   display: flex;
   align-items: center;
   gap: 0.875rem;
   padding-bottom: 0.875rem;
-  border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
 }
 
@@ -202,3 +212,10 @@
 .modelDesc { font-size: 0.625rem; color: var(--fg-secondary); margin: 0 0 0.3rem; }
 .modelItens { display: flex; flex-wrap: wrap; gap: 0.25rem; }
 .modelTag { font-size: 0.5625rem; font-weight: 600; padding: 0.1rem 0.35rem; border-radius: var(--radius-round); background: var(--surface); color: var(--fg-secondary); }
+
+/* ── Início rápido (pacotes prontos) — espelha o editor.module.css do plano ── */
+.autoTag { display: inline-flex; font-size: 0.4375rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--brand); background: var(--brand-alpha); border-radius: var(--radius-round); padding: 0.125rem 0.375rem; }
+.pacoteBtns { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+.pacoteBtn { display: inline-flex; align-items: center; padding: 0.3125rem 0.75rem; border-radius: var(--radius-round); border: 1.5px solid var(--border); background: var(--surface-elevated); font-size: 0.625rem; font-weight: 700; color: var(--fg); cursor: pointer; font-family: inherit; transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out); }
+.pacoteBtn:hover { border-color: var(--brand-alpha-border); background: var(--brand-alpha); color: var(--brand); }
+.pacoteBtnSugerido { border-color: var(--brand); background: var(--brand); color: #fff; box-shadow: 0 2px 6px var(--brand-alpha); }
