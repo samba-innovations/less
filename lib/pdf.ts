@@ -827,21 +827,28 @@ function renderPei(doc: InstanceType<typeof PDFDocument>, c: Record<string, stri
   ])
   if (c.diagnostico_cid) infoRow2col(doc, [{ label: 'Diagnóstico / CID', value: c.diagnostico_cid, span: 2 }])
 
+  // O PEI é lido item a item, por professor e por família: habilidades,
+  // conteúdos, eixos, objetivos e avaliação saem em lista, como na v1. Em
+  // parágrafo corrido, como estava, quinze itens viram um bloco de texto que
+  // ninguém confere na reunião.
   if (c.habilidades || c.conteudo) {
     sectionTitle(doc, 'Habilidades e Conteúdo do Currículo')
-    if (c.habilidades) textBlock(doc, 'Habilidades BNCC', c.habilidades)
+    if (c.habilidades) bulletBlock(doc, 'Habilidades BNCC', c.habilidades)
     // Regra do PEI: além da habilidade, o conteúdo específico vinculado a ela.
-    if (c.conteudo) textBlock(doc, 'Conteúdo Específico', c.conteudo)
+    if (c.conteudo) bulletBlock(doc, 'Conteúdo Específico', c.conteudo)
   }
 
   sectionTitle(doc, 'Diagnóstico Funcional')
-  if (c.diagnostico_funcional) textBlock(doc, 'Diagnóstico Funcional', c.diagnostico_funcional)
+  // "Eixos de Suporte Necessários" é como a v1 titula o bloco, e é o termo que
+  // a escola usa: o que o aluno precisa de apoio, não um laudo. Repetir
+  // "Diagnóstico Funcional" na seção e no subtítulo não dizia nada.
+  if (c.diagnostico_funcional) bulletBlock(doc, 'Eixos de Suporte Necessários', c.diagnostico_funcional)
   if (c.diagnostico_obs)       textBlock(doc, 'Observações Diagnósticas', c.diagnostico_obs)
 
   legalBasisBlock(doc)
 
   sectionTitle(doc, 'Plano de Ação')
-  if (c.objetivos) textBlock(doc, 'Objetivos Específicos', c.objetivos)
+  if (c.objetivos) bulletBlock(doc, 'Objetivos Específicos', c.objetivos)
 
   if (c.estrategias) {
     const estLines = c.estrategias.split('\n').map(l => l.trim()).filter(Boolean)
@@ -856,7 +863,7 @@ function renderPei(doc: InstanceType<typeof PDFDocument>, c: Record<string, stri
     if (outros.length) { subLabel(doc, 'Outras Estratégias');         outros.forEach(n => peiItemBlock(doc, n, undefined)) }
   }
 
-  if (c.avaliacao) textBlock(doc, 'Avaliação do Processo', c.avaliacao)
+  if (c.avaliacao) bulletBlock(doc, 'Avaliação do Processo', c.avaliacao)
 
   sectionTitle(doc, 'Profissionais e Família')
   if (c.profissionais) textBlock(doc, 'Profissionais Envolvidos', c.profissionais)
