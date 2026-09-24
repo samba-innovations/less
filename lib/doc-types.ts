@@ -232,11 +232,16 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
     fields: [
       { key: 'periodo',          label: 'Período',              type: 'text', required: true },
       { key: 'data_elaboracao',  label: 'Data de Elaboração',   type: 'date' },
-      { key: 'metas',            label: 'Metas',                type: 'textarea', required: true, rows: 4 },
-      { key: 'dimensao_planejamento', label: 'Planejamento',   type: 'textarea', required: true, rows: 4 },
-      { key: 'dimensao_praticas',     label: 'Práticas Pedagógicas', type: 'textarea', required: true, rows: 4 },
-      { key: 'dimensao_avaliacao',    label: 'Avaliação',       type: 'textarea', required: true, rows: 4 },
-      { key: 'dimensao_gestao',       label: 'Gestão e Liderança', type: 'textarea', required: true, rows: 4 },
+      // Estes cinco eram obrigatórios e o editor nunca os preencheu: o PDI da v2
+      // é montado por atividades escolhidas do catálogo (atividades_json), não
+      // por texto livre. Enquanto ninguém validava, não incomodava; com a
+      // validação de A1 valendo, nenhum PDI conseguiria ser finalizado.
+      // Continuam declarados para os documentos antigos que os trazem.
+      { key: 'metas',            label: 'Metas',                type: 'textarea', rows: 4 },
+      { key: 'dimensao_planejamento', label: 'Planejamento',   type: 'textarea', rows: 4 },
+      { key: 'dimensao_praticas',     label: 'Práticas Pedagógicas', type: 'textarea', rows: 4 },
+      { key: 'dimensao_avaliacao',    label: 'Avaliação',       type: 'textarea', rows: 4 },
+      { key: 'dimensao_gestao',       label: 'Gestão e Liderança', type: 'textarea', rows: 4 },
     ],
   },
 
@@ -359,7 +364,19 @@ function vazio(valor: string | undefined): boolean {
  * a origem do documento: a turma vive em `turma` ou `turmas`; a aula, em
  * `aula_ids` (várias) ou `aula_id` (uma só). Basta uma estar preenchida.
  */
-type RegraEstrutural = FieldDef & { alternativas: string[] }
+type RegraEstrutural = FieldDef & {
+  alternativas: string[]
+  /**
+   * Quando a presença do campo não basta. O PDI guarda as atividades como JSON,
+   * e `"[]"` é uma string preenchida que não contém atividade nenhuma.
+   */
+  vazio?: (fields: Record<string, string>) => boolean
+}
+
+/** Quantas atividades o PDI tem, tolerando JSON inválido. */
+function listaJson(raw: string | undefined): unknown[] {
+  try { const v = JSON.parse(raw || '[]'); return Array.isArray(v) ? v : [] } catch { return [] }
+}
 
 const ESTRUTURA: Partial<Record<DocType, RegraEstrutural[]>> = {
   PLANO_AULA: [
@@ -372,6 +389,16 @@ const ESTRUTURA: Partial<Record<DocType, RegraEstrutural[]>> = {
     { key: 'turma',      label: 'Turma',      type: 'text', passo: 'Passo 1 — Identificação', alternativas: ['turma', 'turmas'] },
     { key: 'disciplina', label: 'Disciplina', type: 'text', passo: 'Passo 1 — Identificação', alternativas: ['disciplina'] },
     { key: 'bimestre',   label: 'Bimestre',   type: 'text', passo: 'Passo 1 — Identificação', alternativas: ['bimestre', 'bimestres'] },
+  ],
+  // O que sustenta um PDI é ter ao menos uma atividade escolhida, como na v1 —
+  // não os textos livres que o editor nunca preencheu.
+  PDI: [
+    {
+      key: 'atividades_json', label: 'Atividade do plano', type: 'text',
+      passo: 'escolha ao menos uma atividade no catálogo',
+      alternativas: ['atividades_json'],
+      vazio: f => listaJson(f.atividades_json).length === 0,
+    },
   ],
 }
 
@@ -403,8 +430,8 @@ export function camposFaltando(
   if (!meta) return []
 
   const estrutura = (ESTRUTURA[base] ?? [])
-    .filter(r => r.alternativas.every(k => vazio(fields[k])))
-    .map(({ alternativas: _alternativas, ...campo }) => campo)
+    .filter(r => r.vazio ? r.vazio(fields) : r.alternativas.every(k => vazio(fields[k])))
+    .map(({ alternativas: _alternativas, vazio: _vazio, ...campo }) => campo)
 
   return [...estrutura, ...meta.fields.filter(f => f.required && vazio(fields[f.key]))]
 }
