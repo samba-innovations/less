@@ -14,6 +14,7 @@ import { ConfirmDialog } from '../../_components/ConfirmDialog'
 import { Fragment } from 'react'
 import { PeiEditor } from './PeiEditor'
 import { GuiaEditor } from './GuiaEditor'
+import { PainelOE } from './PainelOE'
 import { PdiEditor } from './PdiEditor'
 import { ProjetoEditor } from './ProjetoEditor'
 import { EletivaEditor } from './EletivaEditor'
@@ -1345,9 +1346,15 @@ export function EditorClient({ doc, isAdmin }: Props) {
       const objetivos = selM.map(m => m.objetivosAprendizagem).filter(Boolean).join('\n')
       const codigosDisp = new Set(selM.flatMap(m => m.habilidades.map(h => h.codigo)))
       const habsMantidas = oeHabsSel.filter(c => codigosDisp.has(c))
+      // Os descritores SAEB da missão passam a ser gravados no documento, como
+      // na v1 (estão em 7 dos 20 planos de lá). A v2 já tinha o dado e o mostrava
+      // na tela de produção, mas ele não entrava no documento nem no PDF.
+      // Sem repetição: duas missões costumam compartilhar descritor.
+      const saeb = [...new Set(selM.flatMap(m => (m.saebDescritores ?? '').split(',').map(d => d.trim()).filter(Boolean)))]
       setFieldsMulti({
         oe_missoes_sel: next.join(','),
         oe_habilidades_sel: habsMantidas.join(','),
+        saeb_descritores_oe: saeb.join(', '),
         ...(temas ? { tema: temas } : {}),
         ...(objetivos ? { objetivos, objetivo_geral: objetivos } : {}),
       })
@@ -1401,63 +1408,17 @@ export function EditorClient({ doc, isAdmin }: Props) {
 
         {/* ── Currículo OE (plano de aula OE): missão/jornada + habilidades ── */}
         {isOE && (
-          <div className={s.wizardStep} style={{ marginBottom: '0.5rem' }}>
-            <div className={s.wizardGroup}>
-              <p className={s.subLabel}>currículo OE — missão/jornada do bimestre</p>
-              {!turmaId || !disciplinaId || !bimestreNum ? (
-                <p className={s.cascadeLoading}>selecione turma, disciplina e bimestre no passo 1 para carregar o currículo OE.</p>
-              ) : oeMissoes.length === 0 ? (
-                <p className={s.cascadeLoading}>nenhuma missão OE cadastrada para esta turma/bimestre.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {oeMissoes.map(m => {
-                    const sel = oeMissoesSel.includes(m.missaoNum)
-                    return (
-                      <button
-                        key={m.id} type="button" onClick={() => toggleOeMissao(m.missaoNum)}
-                        style={{
-                          textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
-                          border: sel ? '1.5px solid #2563eb' : '1px solid var(--border)',
-                          background: sel ? 'rgba(37,99,235,0.08)' : 'var(--bg-secondary)',
-                        }}
-                      >
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {sel && <Check size={13} color="#2563eb" />}
-                          <strong style={{ fontSize: '0.8rem' }}>Missão {m.missaoNum}</strong>
-                          <span style={{ fontSize: '0.68rem', color: 'var(--fg-secondary)' }}>{m.semanasLabel} · {m.aulasLabel}</span>
-                        </span>
-                        {m.tema && <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--fg-secondary)', marginTop: 4 }}>{m.tema}</span>}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            {oeHabsDisponiveis.length > 0 && (
-              <div className={s.wizardGroup}>
-                <p className={s.subLabel}>habilidades (selecione as trabalhadas)</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {oeHabsDisponiveis.map(h => {
-                    const sel = oeHabsSel.includes(h.codigo)
-                    return (
-                      <button
-                        key={h.id} type="button" onClick={() => toggleOeHab(h.codigo)} title={h.descricao}
-                        style={{
-                          padding: '4px 9px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer',
-                          border: sel ? '1.5px solid #2563eb' : '1px solid var(--border)',
-                          background: sel ? 'rgba(37,99,235,0.12)' : 'var(--bg-secondary)',
-                          color: sel ? '#2563eb' : 'var(--fg-secondary)',
-                        }}
-                      >
-                        {h.bnccCodigo || h.codigo}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
+          <PainelOE
+            missoes={oeMissoes}
+            missoesSel={oeMissoesSel}
+            habsSel={oeHabsSel}
+            onToggleMissao={toggleOeMissao}
+            onToggleHab={toggleOeHab}
+            semContexto={!turmaId || !disciplinaId || !bimestreNum
+              ? 'selecione turma, disciplina e bimestre no passo 1 para carregar o currículo OE.'
+              : undefined}
+            classes={{ bloco: s.wizardStep, grupo: s.wizardGroup, rotulo: s.subLabel, aviso: s.cascadeLoading }}
+          />
         )}
 
         {/* ── Step 1: Período ── */}
@@ -2365,7 +2326,7 @@ export function EditorClient({ doc, isAdmin }: Props) {
 
           {isPeiType(docType) && <PeiEditor fields={fields} setField={setField} isAdmin={isAdmin} />}
 
-          {(docType === 'GUIA_APRENDIZAGEM' || docType === 'OE_GUIA_APRENDIZAGEM') && <GuiaEditor fields={fields} setField={setField} setFieldsMulti={setFieldsMulti} isAdmin={isAdmin} />}
+          {(docType === 'GUIA_APRENDIZAGEM' || docType === 'OE_GUIA_APRENDIZAGEM') && <GuiaEditor fields={fields} setField={setField} setFieldsMulti={setFieldsMulti} isAdmin={isAdmin} oe={docType === 'OE_GUIA_APRENDIZAGEM'} />}
 
           {docType === 'PDI' && <PdiEditor fields={fields} setField={setField} />}
 

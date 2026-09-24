@@ -11,6 +11,9 @@ import {
   DESENVOLVIMENTO_TO_PACOTE, type Tecnica, type Grupo, type Pacote,
 } from '@/lib/guia-data'
 import { useFetch } from '@/lib/use-fetch'
+import { oeTipoFromNome } from '@/lib/oe-shared'
+import type { OEMissoesResult } from '@/lib/oe'
+import { PainelOE } from './PainelOE'
 import { GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
 import s from './guia.module.css'
 import { Button } from '../../_components/Button'
@@ -41,6 +44,8 @@ type Props = {
    */
   setFieldsMulti: (patch: Record<string, string>) => void
   isAdmin?: boolean
+  /** Guia de Orientacao de Estudos: ganha o painel de missoes, como na v1. */
+  oe?: boolean
 }
 
 const MAX_ESTRATEGIAS = 5
@@ -165,7 +170,7 @@ function GrupoCheckbox({ grupos, value, onChange, lockedItems }: {
   return <GroupedChipSelector groups={groups} value={value} onChange={onChange} lockedItems={lockedItems} />
 }
 
-export function GuiaEditor({ fields, setField, setFieldsMulti, isAdmin }: Props) {
+export function GuiaEditor({ fields, setField, setFieldsMulti, isAdmin, oe = false }: Props) {
   // As datas do bimestre estavam num BIMESTRE_DATAS fixo no código, que nem
   // batia com o calendário real da escola (1º bimestre: o código dizia "02/02 a
   // 22/04", o banco diz 02/02 a 01/05). E a caixa só exibia — data_inicio, que
@@ -187,6 +192,36 @@ export function GuiaEditor({ fields, setField, setFieldsMulti, isAdmin }: Props)
   const [aes, setAes] = useState<AE[]>([])
   const [loadingAulas, setLoadingAulas] = useState(false)
   const initRef = useRef(false)
+
+  // ── Currículo de OE ──
+  // A v1 mostra missão, jornada e descritores também no GUIA; a v2 travava o
+  // painel no plano de aula, e quem abria um guia de OE não via missão nenhuma.
+  const oePronto = oe && !!classId && !!fields.disciplina && !!fields.bimestre
+  const oeCurriculo = useFetch<OEMissoesResult>(oePronto
+    ? `/api/less/oe-curriculo?classId=${classId}&disciplinaTipo=${oeTipoFromNome(fields.disciplina)}&bimestre=${fields.bimestre}`
+    : null)
+  const oeMissoes = oeCurriculo?.missoes ?? []
+  const oeMissoesSel = (fields.oe_missoes_sel ?? '').split(',').filter(Boolean).map(Number)
+  const oeHabsSel = (fields.oe_habilidades_sel ?? '').split(',').filter(Boolean)
+
+  function alternarMissaoOE(num: number) {
+    const next = oeMissoesSel.includes(num) ? oeMissoesSel.filter(n => n !== num) : [...oeMissoesSel, num]
+    const sel = oeMissoes.filter(m => next.includes(m.missaoNum))
+    const codigosDisp = new Set(sel.flatMap(m => m.habilidades.map(h => h.codigo)))
+    const temas = sel.map(m => m.tema).filter(Boolean).join(' · ')
+    const saeb = [...new Set(sel.flatMap(m => (m.saebDescritores ?? '').split(',').map(d => d.trim()).filter(Boolean)))]
+    setFieldsMulti({
+      oe_missoes_sel: next.join(','),
+      oe_habilidades_sel: oeHabsSel.filter(c => codigosDisp.has(c)).join(','),
+      saeb_descritores_oe: saeb.join(', '),
+      ...(temas && !fields.tema ? { tema: temas } : {}),
+    })
+  }
+
+  function alternarHabilidadeOE(codigo: string) {
+    const next = oeHabsSel.includes(codigo) ? oeHabsSel.filter(c => c !== codigo) : [...oeHabsSel, codigo]
+    setField('oe_habilidades_sel', next.join(','))
+  }
 
   const estrategiaIds = (fields.estrategia_ids ?? '').split(',').map(Number).filter(Boolean)
 
@@ -499,6 +534,17 @@ export function GuiaEditor({ fields, setField, setFieldsMulti, isAdmin }: Props)
               ))}
             </div>
           ) : <p className={s.empty}>Nenhuma aula encontrada para esta disciplina e bimestre.</p>}
+          {oe && (
+            <PainelOE
+              missoes={oeMissoes}
+              missoesSel={oeMissoesSel}
+              habsSel={oeHabsSel}
+              onToggleMissao={alternarMissaoOE}
+              onToggleHab={alternarHabilidadeOE}
+              semContexto={oePronto ? undefined : 'selecione turma, disciplina e bimestre na etapa 1 para carregar o currículo OE.'}
+              classes={{ bloco: s.section, grupo: s.field, rotulo: s.aesLabel, aviso: s.empty }}
+            />
+          )}
           <Aprendizagens aes={aes} disciplina={fields.disciplina} mostrar={hasId && !loadingAulas} />
         </section>
       )}
