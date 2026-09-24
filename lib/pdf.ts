@@ -5,13 +5,18 @@ import { fullHeader, miniHeader, paginate, type DocHeaderInfo } from './pdf/layo
 import { generateGenericPdf } from './pdf/render-generic'
 import { generatePlanoAulaPdf } from './pdf/render-plano-aula'
 import { generateGuiaPdf } from './pdf/render-guia'
+import { generateEletivaPdf } from './pdf/render-eletiva'
 
 // Tipos migrados para o novo design system (lib/pdf/*). Os demais ainda usam
 // o renderer legado abaixo — migração será incremental.
 const NEW_GENERIC_TYPES = new Set<DocType>([
   'DECLARACAO', 'COMUNICADO', 'ATESTADO',
-  'PROJETO', 'PLANO_ELETIVA', 'PLANO_EMA', 'CARTA_NAUTICA',
+  'PROJETO', 'PLANO_EMA', 'CARTA_NAUTICA',
 ])
+// A eletiva saiu do genérico: ele faz uma seção por campo de DOC_TYPES, e por
+// isso imprimia o plano desmontado e deixava de fora o que o editor coleta sem
+// declarar (habilidades e cronograma).
+const NEW_ELETIVA_TYPES = new Set<DocType>(['PLANO_ELETIVA'])
 const NEW_PLANO_AULA_TYPES = new Set<DocType>(['PLANO_AULA', 'OE_PLANO_AULA'])
 const NEW_GUIA_TYPES       = new Set<DocType>(['GUIA_APRENDIZAGEM', 'OE_GUIA_APRENDIZAGEM'])
 
@@ -1319,6 +1324,16 @@ export function generatePdf(input: PdfInput): Promise<Buffer> {
       aprendizagensEssenciais: input.aprendizagensEssenciais,
       aulasSelecionadas:       input.aulasSelecionadas,
       bimestres:               input.bimestres,
+    })
+  }
+  if (NEW_ELETIVA_TYPES.has(input.type)) {
+    return generateEletivaPdf({
+      type:       input.type,
+      title:      input.title,
+      content:    input.content,
+      schoolName: input.schoolName,
+      authorName: input.authorName,
+      createdAt:  input.createdAt,
     })
   }
   if (NEW_GUIA_TYPES.has(input.type)) {

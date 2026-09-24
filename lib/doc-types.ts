@@ -159,15 +159,19 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
         { value: 'fundamental',   label: 'Ensino Fundamental' },
       ]},
       { key: 'professor_parceiro', label: 'Professor(a) Parceiro(a)', type: 'text' },
-      { key: 'semestre',          label: 'Semestre',                 type: 'select', required: true, options: [
-        { value: '1',             label: '1º Semestre' },
-        { value: '2',             label: '2º Semestre' },
-      ]},
+      // A eletiva é organizada por bimestres, como o plano e o guia. `semestre`
+      // sai da lista, mas segue lido no PDF para os documentos já gravados.
+      { key: 'bimestres',         label: 'Bimestre(s)',              type: 'text', required: true },
       { key: 'carga_horaria',     label: 'Carga Horária Semanal',    type: 'text', required: true, placeholder: 'Ex: 2h' },
       { key: 'data_inicio',       label: 'Primeira Aula',            type: 'date' },
       { key: 'data_culminancia',  label: 'Culminância',              type: 'date' },
       { key: 'justificativa',     label: 'Justificativa',            type: 'textarea', required: true, rows: 3 },
       { key: 'ementa',            label: 'Ementa',                   type: 'textarea', required: true, rows: 3 },
+      // Os dois campos que o editor coletava sem declarar aqui: como o PDF da
+      // eletiva era montado pelo genérico, que percorre exatamente esta lista,
+      // o professor preenchia habilidades e cronograma e o papel saía sem.
+      { key: 'habilidades',       label: 'Habilidades BNCC',         type: 'textarea', rows: 3 },
+      { key: 'cronograma',        label: 'Conteúdo Programático',    type: 'textarea', rows: 3 },
       { key: 'objetivos',         label: 'Objetivos',                type: 'textarea', required: true, rows: 4 },
       { key: 'metodologia',       label: 'Metodologia',              type: 'chips', required: true, options: METODOLOGIA_OPTS },
       { key: 'avaliacao',         label: 'Avaliação',                type: 'chips', required: true, options: AVALIACAO_OPTS },
