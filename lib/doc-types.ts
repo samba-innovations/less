@@ -191,6 +191,21 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
         { value: 'musica',       label: 'Música' },
         { value: 'arte',         label: 'Arte' },
       ] },
+      // O EMA atende VÁRIAS turmas de uma vez — é por modalidade, não por turma.
+      // Daí o campo ser texto, e não o seletor do contexto curricular, que
+      // amarraria o plano a uma turma só. O editor oferece as turmas da escola
+      // em seleção múltipla e grava a escolha aqui separada por vírgula, que é
+      // a mesma forma do texto livre da v1: "2ªA" ou "9ºA, 9ºB, 9ºC".
+      //
+      // Os dois campos existiam no editor e no dado desde sempre; faltavam
+      // nesta lista, e é ela que o PDF percorre — por isso não saíam no papel.
+      { key: 'turmas',           label: 'Turmas Atendidas',         type: 'text', required: true, placeholder: 'Ex: 2ªA, 2ªB' },
+      { key: 'bimestre',         label: 'Bimestre',                 type: 'select', required: true, options: [
+        { value: '1',            label: '1º Bimestre' },
+        { value: '2',            label: '2º Bimestre' },
+        { value: '3',            label: '3º Bimestre' },
+        { value: '4',            label: '4º Bimestre' },
+      ] },
       { key: 'carga_horaria',    label: 'Carga Horária Semanal',    type: 'text', required: true, placeholder: 'Ex: 2h' },
       { key: 'tema',             label: 'Tema / Projeto do Bimestre', type: 'text', required: true },
       { key: 'objetivos',        label: 'Objetivos',                type: 'textarea', required: true, rows: 4 },
