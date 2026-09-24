@@ -10,3 +10,8 @@
 .cronoRowLast { border-color: var(--brand-alpha-border); background: var(--brand-alpha); }
 .cronoNum { font-size: 0.6875rem; font-weight: 800; color: var(--fg-secondary); text-align: center; }
 .cronoData { font-size: 0.6875rem; color: var(--fg); }
+
+/* ── Habilidades BNCC por área do conhecimento ── */
+.areaBloco { display: flex; flex-direction: column; gap: 0.3rem; margin-top: 0.4rem; }
+.areaNome { margin: 0; font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-secondary); }
+.habEscolhidas { margin: 0.6rem 0 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.6875rem; color: var(--fg-secondary); line-height: 1.4; }

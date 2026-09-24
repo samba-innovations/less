@@ -12,6 +12,7 @@ import s from './eletiva.module.css'
 import { GroupedChipSelector, type SelectorGroup } from '../../_components/Selector'
 import { DatePicker } from '../../_components/DatePicker'
 import { Input } from '../../_components/Input'
+import { useFetch } from '@/lib/use-fetch'
 
 type Props = {
   fields: Record<string, string>
@@ -22,7 +23,12 @@ type Props = {
 
 type AulaRow = { date: string; acao: string }
 
-function currentSemestre() { return (new Date().getMonth() + 1) <= 6 ? '1º Semestre' : '2º Semestre' }
+type Habilidade = { codigo: string; descricao: string; area: string }
+
+function bimestreCorrente() {
+  const m = new Date().getMonth() + 1
+  return m <= 4 ? '1' : m <= 7 ? '2' : m <= 9 ? '3' : '4'
+}
 function pad(n: number) { return String(n).padStart(2, '0') }
 function fmtBR(d: Date) { return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}` }
 function isoToBR(iso: string) { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}` }
@@ -39,10 +45,40 @@ function GrupoCheckbox({ grupos, value, onChange, lockedItems }: {
 
 export function EletivaEditor({ fields, setField, setFieldsMulti }: Props) {
   useEffect(() => {
-    if (!fields.semestre)    setField('semestre', currentSemestre())
+    // A eletiva voltou a ser organizada por bimestres, como o resto do sistema.
+    // O bimestre corrente entra como ponto de partida; `semestre` so sobrevive
+    // nos documentos antigos, que o PDF ainda sabe ler.
+    if (!fields.bimestres)   setField('bimestres', bimestreCorrente())
     if (!fields.referencias) setField('referencias', REFERENCIAS_PADRAO)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // ── Habilidades BNCC, do catalogo ──
+  // Antes era caixa de texto: o professor digitava o codigo na mao, sem
+  // validacao, e o PDF nem imprimia o campo. O catalogo e o mesmo da v1,
+  // filtrado pelo nivel de ensino da eletiva.
+  const catalogo = useFetch<Habilidade[]>(
+    fields.nivel_ensino ? `/api/less/habilidades?nivel=${fields.nivel_ensino}` : null) ?? []
+  const porArea = catalogo.reduce<Record<string, Habilidade[]>>((acc, h) => {
+    (acc[h.area] ??= []).push(h)
+    return acc
+  }, {})
+  const habLinhas = (fields.habilidades ?? '').split('\n').map(l => l.trim()).filter(Boolean)
+  const habEscolhidas = new Set(habLinhas.map(l => /^([A-Z0-9]+)/.exec(l)?.[1] ?? '').filter(Boolean))
+
+  function alternarHabilidade(h: Habilidade) {
+    const proximas = new Set(habEscolhidas)
+    proximas.has(h.codigo) ? proximas.delete(h.codigo) : proximas.add(h.codigo)
+    // Reconstroi na ordem do catalogo, para a lista nao depender da ordem dos cliques.
+    setField('habilidades', catalogo.filter(x => proximas.has(x.codigo))
+      .map(x => `${x.codigo} — ${x.descricao}`).join('\n'))
+  }
+
+  function alternarBimestre(n: string) {
+    const atuais = (fields.bimestres ?? '').split(',').map(x => x.trim()).filter(Boolean)
+    const proximos = atuais.includes(n) ? atuais.filter(x => x !== n) : [...atuais, n]
+    setField('bimestres', proximos.sort().join(','))
+  }
 
   // Escolher a metodologia ja marca os materiais e os instrumentos de avaliacao
   // daquela tecnica, como na v1. Soma ao que estiver marcado, sem repetir: o
@@ -108,11 +144,14 @@ export function EletivaEditor({ fields, setField, setFieldsMulti }: Props) {
             />
           </div>
           <div className={g.field}>
-            <label className={g.label}>Semestre</label>
+            <label className={g.label}>Bimestre(s) <span className={g.hint}>a eletiva pode atravessar mais de um</span></label>
             <div className={g.chipRow}>
-              {['1º Semestre', '2º Semestre'].map(sem => (
-                <button key={sem} className={`${g.chip} ${fields.semestre === sem ? g.chipOn : ''}`} onClick={() => setField('semestre', sem)}>{sem}</button>
-              ))}
+              {['1', '2', '3', '4'].map(n => {
+                const marcado = (fields.bimestres ?? '').split(',').map(x => x.trim()).includes(n)
+                return (
+                  <button key={n} className={`${g.chip} ${marcado ? g.chipOn : ''}`} onClick={() => alternarBimestre(n)}>{n}º</button>
+                )
+              })}
             </div>
           </div>
           <div className={g.field}>
@@ -139,8 +178,33 @@ export function EletivaEditor({ fields, setField, setFieldsMulti }: Props) {
           <textarea className={g.textarea} rows={3} value={fields.ementa ?? ''} placeholder="Descrição geral dos temas e proposta…" onChange={e => setField('ementa', e.target.value)} />
         </div>
         <div className={g.field}>
-          <label className={g.label}>Habilidades <span className={g.hint}>habilidades BNCC trabalhadas</span></label>
-          <textarea className={g.textarea} rows={3} value={fields.habilidades ?? ''} placeholder="Liste as habilidades BNCC…" onChange={e => setField('habilidades', e.target.value)} />
+          <label className={g.label}>
+            Habilidades BNCC
+            <span className={g.hint}>
+              {fields.nivel_ensino ? 'clique para incluir/excluir · passe o mouse para o descritor' : 'escolha o nível de ensino para carregar'}
+            </span>
+          </label>
+          {Object.entries(porArea).map(([area, hs]) => (
+            <div key={area} className={s.areaBloco}>
+              <p className={s.areaNome}>{area}</p>
+              <div className={g.habBadges}>
+                {hs.map(h => (
+                  <button
+                    key={h.codigo}
+                    type="button"
+                    className={`${g.habBadge} ${habEscolhidas.has(h.codigo) ? g.habOn : g.habOff}`}
+                    title={h.descricao}
+                    onClick={() => alternarHabilidade(h)}
+                  >{h.codigo}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+          {habLinhas.length > 0 && (
+            <ul className={s.habEscolhidas}>
+              {habLinhas.map(l => <li key={l}>{l}</li>)}
+            </ul>
+          )}
         </div>
         <div className={g.field}>
           <label className={g.label}>Objetivos</label>
