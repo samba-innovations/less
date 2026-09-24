@@ -208,7 +208,16 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
     description: 'Projeto interdisciplinar ou de pesquisa',
     color: '#be185d',
     fields: [
+      // Os cinco do assistente inicial. Nenhum estava declarado aqui, e como o
+      // PDF do projeto é montado pelo genérico — que percorre exatamente esta
+      // lista —, o professor escolhia área, subárea e linha de aplicação e o
+      // papel saía sem nada disso. Ficam na ordem em que a tela os pergunta.
+      { key: 'tipo_projeto',         label: 'Tipo de Projeto',       type: 'text' },
+      { key: 'grande_area',          label: 'Grande Área',           type: 'text' },
+      { key: 'subarea',              label: 'Subárea',               type: 'text' },
+      { key: 'linha_aplicacao',      label: 'Linha de Aplicação',    type: 'text' },
       { key: 'titulo',               label: 'Título',                type: 'text',     required: true },
+      { key: 'tema_sugerido',        label: 'Tema',                  type: 'text' },
       { key: 'turmas',               label: 'Turma(s)',              type: 'text' },
       { key: 'disciplinas',          label: 'Disciplinas Envolvidas', type: 'text' },
       { key: 'periodo',              label: 'Período',               type: 'text', required: true },
@@ -220,6 +229,8 @@ export const DOC_TYPES: Record<DocType, DocTypeMeta> = {
       { key: 'objetivos_especificos', label: 'Objetivos Específicos', type: 'textarea', rows: 3 },
       { key: 'metodologia',          label: 'Metodologia',           type: 'textarea', required: true, rows: 4 },
       { key: 'resultados',           label: 'Resultados Esperados',  type: 'textarea', rows: 3 },
+      // A v1 imprime o impacto; a v2 coletava e engolia.
+      { key: 'impacto',              label: 'Impacto Esperado',      type: 'textarea', rows: 3 },
       { key: 'recursos',             label: 'Recursos',              type: 'textarea', rows: 2 },
       { key: 'referencias',          label: 'Referências',           type: 'textarea', rows: 3 },
     ],
