@@ -45,6 +45,9 @@ const EMERALD = '#065f46'
 
 export type AprendizagemEssencial = { codigo: string; descricao: string }
 export type AulaSelecionada = { aulaNum: number; titulo: string; conteudo: string | null; objetivos: string | null }
+// O tipo mora no renderizador do plano, que e quem o desenha; aqui e so o reexport.
+import type { MissaoSelecionada } from './pdf/render-plano-aula'
+export type { MissaoSelecionada }
 
 type DocContent = Record<string, string>
 
@@ -70,6 +73,8 @@ export type PdfInput = {
   createdAt:  Date
   aprendizagensEssenciais?: AprendizagemEssencial[]
   aulasSelecionadas?:       AulaSelecionada[]
+  /** Missoes de OE escolhidas no documento. */
+  missoesOE?:               MissaoSelecionada[]
   /** Calendario do ano letivo por bimestre, do less_bimestres. */
   bimestres?: Record<number, { inicio: string; fim: string }>
 }
@@ -1333,6 +1338,7 @@ export function generatePdf(input: PdfInput): Promise<Buffer> {
       createdAt:  input.createdAt,
       aprendizagensEssenciais: input.aprendizagensEssenciais,
       aulasSelecionadas:       input.aulasSelecionadas,
+      missoesOE:               input.missoesOE,
       bimestres:               input.bimestres,
     })
   }

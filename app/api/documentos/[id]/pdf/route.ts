@@ -3,9 +3,11 @@ import { sessaoApi } from '@/lib/auth'
 import { verifyToken, isManager, effectiveRole } from '@/lib/jwt'
 import { db } from '@/lib/db'
 import { generatePdf } from '@/lib/pdf'
-import type { AprendizagemEssencial, AulaSelecionada } from '@/lib/pdf'
+import type { AprendizagemEssencial, AulaSelecionada, MissaoSelecionada } from '@/lib/pdf'
 import { notify } from '@/lib/notify'
 import { camposFaltando, listarFaltantes, type DocType } from '@/lib/doc-types'
+import { oeMissoesForClass } from '@/lib/oe'
+import { oeTipoFromNome } from '@/lib/oe-shared'
 import { comNomesDaV2 } from '@/lib/legado-v1'
 
 async function auth() {
@@ -71,6 +73,56 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   let aprendizagensEssenciais: AprendizagemEssencial[] | undefined
   let aulasSelecionadas: AulaSelecionada[] | undefined
+  let missoesOE: MissaoSelecionada[] | undefined
+
+  // ── Currículo de OE ───────────────────────────────────────────────────────
+  // O documento de OE não usa `aula_ids`: ele guarda as missões escolhidas em
+  // `oe_missoes_sel` e as habilidades em `oe_habilidades_sel`. A rota lia só o
+  // currículo regular, então o PDF saía sem nenhuma menção a missão — o tema e
+  // os objetivos vinham (o editor os copia para os campos comuns), mas a missão
+  // que os originou, não.
+  //
+  // A fonte é a mesma do editor, `oeMissoesForClass`, para o papel não divergir
+  // da tela: é ela que aplica a regra dos livros (6º ao 9º e 1ª série EM usam o
+  // livro do Fundamental; 2ª e 3ª, o do Médio).
+  if (doc.type === 'OE_PLANO_AULA' || doc.type === 'OE_GUIA_APRENDIZAGEM') {
+    const missoesSel = parseIds(content.oe_missoes_sel)
+    // `oeClassId` vem da v1; `classId`, de documento criado na v2.
+    const classId    = Number(content.oeClassId || content.classId || content._turma_id) || 0
+    const disciplina = (content.oeDisciplina || content.disciplina || '').trim()
+    const bimestre   = Number(content.bimestre) || undefined
+
+    if (missoesSel.length > 0 && classId && disciplina) {
+      const r = await oeMissoesForClass(ctx.school.id, classId, oeTipoFromNome(disciplina), bimestre)
+      const escolhidas = (r.missoes ?? []).filter(m => missoesSel.includes(m.missaoNum))
+
+      // Habilidades: as que a pessoa marcou; sem marcação, todas as da missão —
+      // é o mesmo padrão do editor, que só filtra quando há escolha.
+      const habsSel = new Set((content.oe_habilidades_sel ?? '').split(',').map(s => s.trim()).filter(Boolean))
+      const filtra  = (hs: { codigo: string; descricao: string }[]) =>
+        habsSel.size > 0 ? hs.filter(h => habsSel.has(h.codigo)) : hs
+
+      missoesOE = escolhidas.map(m => ({
+        missaoNum:   m.missaoNum,
+        tema:        m.tema,
+        semanasLabel: m.semanasLabel,
+        aulasLabel:  m.aulasLabel,
+        saebDescritores: m.saebDescritores,
+        objetivosAprendizagem: m.objetivosAprendizagem,
+        objetosConhecimento:   m.objetosConhecimento,
+      }))
+
+      // As habilidades do OE ocupam o lugar das aprendizagens essenciais: é o
+      // mesmo papel no documento, e a tabela do PDF já existe.
+      const habs = escolhidas.flatMap(m => filtra(m.habilidades))
+      if (habs.length > 0) {
+        const vistas = new Set<string>()
+        aprendizagensEssenciais = habs
+          .filter(h => !vistas.has(h.codigo) && vistas.add(h.codigo))
+          .map(h => ({ codigo: h.codigo, descricao: h.descricao }))
+      }
+    }
+  }
 
   if (doc.type === 'PLANO_AULA' || doc.type === 'OE_PLANO_AULA') {
     const aulaIds = parseIds(content.aula_ids ?? content.aula_id)
@@ -107,7 +159,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
             },
             orderBy: { codigo: 'asc' },
           })
-          aprendizagensEssenciais = aesRaw.map(ae => ({
+          // Um documento de OE que tenha aula_ids nao perde as habilidades do
+          // OE resolvidas acima — o curriculo regular so preenche o que falta.
+          aprendizagensEssenciais ??= aesRaw.map(ae => ({
             codigo:   ae.codigo,
             descricao: ae.descricao,
           }))
@@ -139,7 +193,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
         where:   { disciplinaNome: aulasNome, bimestre: bimestreNum, ciclo, serie },
         orderBy: { codigo: 'asc' },
       })
-      aprendizagensEssenciais = aesRaw.map(ae => ({ codigo: ae.codigo, descricao: ae.descricao }))
+      aprendizagensEssenciais ??= aesRaw.map(ae => ({ codigo: ae.codigo, descricao: ae.descricao }))
     }
   }
 
@@ -175,6 +229,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     createdAt:  new Date(),
     aprendizagensEssenciais,
     aulasSelecionadas,
+    missoesOE,
     bimestres,
   })
 
