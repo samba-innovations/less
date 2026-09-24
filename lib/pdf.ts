@@ -6,13 +6,18 @@ import { generateGenericPdf } from './pdf/render-generic'
 import { generatePlanoAulaPdf } from './pdf/render-plano-aula'
 import { generateGuiaPdf } from './pdf/render-guia'
 import { generateEletivaPdf } from './pdf/render-eletiva'
+import { generateCartaPdf } from './pdf/render-carta'
 
 // Tipos migrados para o novo design system (lib/pdf/*). Os demais ainda usam
 // o renderer legado abaixo — migração será incremental.
 const NEW_GENERIC_TYPES = new Set<DocType>([
   'DECLARACAO', 'COMUNICADO', 'ATESTADO',
-  'PROJETO', 'PLANO_EMA', 'CARTA_NAUTICA',
+  'PROJETO', 'PLANO_EMA',
 ])
+// A carta saiu do generico pelo motivo mais direto que existe: ela declara
+// `fields: []`, e o generico monta as secoes percorrendo essa lista. O PDF saia
+// com cabecalho, titulo, rodape e nada mais.
+const NEW_CARTA_TYPES = new Set<DocType>(['CARTA_NAUTICA'])
 // A eletiva saiu do genérico: ele faz uma seção por campo de DOC_TYPES, e por
 // isso imprimia o plano desmontado e deixava de fora o que o editor coleta sem
 // declarar (habilidades e cronograma).
@@ -1324,6 +1329,16 @@ export function generatePdf(input: PdfInput): Promise<Buffer> {
       aprendizagensEssenciais: input.aprendizagensEssenciais,
       aulasSelecionadas:       input.aulasSelecionadas,
       bimestres:               input.bimestres,
+    })
+  }
+  if (NEW_CARTA_TYPES.has(input.type)) {
+    return generateCartaPdf({
+      type:       input.type,
+      title:      input.title,
+      content:    input.content,
+      schoolName: input.schoolName,
+      authorName: input.authorName,
+      createdAt:  input.createdAt,
     })
   }
   if (NEW_ELETIVA_TYPES.has(input.type)) {
