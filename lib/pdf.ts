@@ -12,8 +12,12 @@ import { generateCartaPdf } from './pdf/render-carta'
 // o renderer legado abaixo — migração será incremental.
 const NEW_GENERIC_TYPES = new Set<DocType>([
   'DECLARACAO', 'COMUNICADO', 'ATESTADO',
-  'PROJETO', 'PLANO_EMA',
+  'PROJETO',
 ])
+// O EMA saiu do genérico: existe abaixo um renderPlanoEma cópia linha a linha
+// do da v1 — mesmas seções, mesmos rótulos, mesmos marcadores — e ele nunca
+// rodava, porque o desvio para o genérico vinha antes. Era código morto, e a
+// leitura do código dava o casamento como certo; só gerar o PDF mostrou.
 // A carta saiu do generico pelo motivo mais direto que existe: ela declara
 // `fields: []`, e o generico monta as secoes percorrendo essa lista. O PDF saia
 // com cabecalho, titulo, rodape e nada mais.
@@ -1259,6 +1263,10 @@ function renderPlanoEma(doc: InstanceType<typeof PDFDocument>, c: Record<string,
   sectionTitle(doc, 'Planejamento')
   if (c.objetivos)        textBlock(doc, 'Objetivos', c.objetivos)
   if (c.conteudos)        textBlock(doc, 'Conteúdos', c.conteudos)
+  // Metodologia, avaliação e materiais saem como estão gravados. O editor os
+  // escreve com `GrupoCheckbox`, que junta as escolhas por vírgula, e os
+  // documentos da v1 trazem texto livre no mesmo formato — nenhum EMA guarda
+  // array JSON aqui, nem da v1 nem da v2.
   if (c.metodologia)      textBlock(doc, 'Metodologia', c.metodologia)
   if (c.avaliacao)        bulletBlock(doc, 'Avaliação', c.avaliacao)
   if (c.materiais)        bulletBlock(doc, 'Materiais e Equipamentos', c.materiais)
