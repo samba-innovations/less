@@ -130,7 +130,15 @@ export function EmaEditor({ fields, setField, setFieldsMulti }: Props) {
               </button>
             ))}
           </div>
-          {metodologiaId !== null && (
+          {/*
+            Também aparece quando há texto sem técnica marcada. `metodologiaId`
+            sai de um `startsWith` no nome do catálogo, e o EMA vindo da v1
+            costuma ter metodologia escrita à mão — o card "Outro" de lá grava
+            texto livre. Sem esta condição o texto fica invisível e ineditável
+            no editor, embora saia no PDF: o professor abre o documento e a
+            metodologia sumiu.
+          */}
+          {(metodologiaId !== null || (fields.metodologia ?? '').trim() !== '') && (
             <textarea className={g.textarea} rows={3} value={fields.metodologia ?? ''} placeholder="Descreva como aplicará…" onChange={e => setField('metodologia', e.target.value)} />
           )}
         </div>
