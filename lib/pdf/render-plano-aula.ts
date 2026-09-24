@@ -7,7 +7,7 @@
  */
 
 import PDFDocument from 'pdfkit'
-import { DOC_TYPES, type DocType } from '../doc-types'
+import { DOC_TYPES, tipoBase, type DocType } from '../doc-types'
 import { fullHeader, miniHeader, paginate, type DocHeaderInfo } from './layout'
 import {
   sectionTitle, subSectionTitle, paragraph,
@@ -24,6 +24,22 @@ export type AprendizagemEssencial = { codigo: string; descricao: string }
 export type AulaSelecionada = {
   aulaNum: number; titulo: string
   conteudo: string | null; objetivos: string | null
+}
+
+/**
+ * A missao de OE escolhida no documento.
+ *
+ * No OE a missao ocupa o lugar da aula: e ela que organiza o bimestre, traz o
+ * tema, as semanas e os descritores SAEB. O PDF saia sem nenhuma mencao a ela.
+ */
+export type MissaoSelecionada = {
+  missaoNum: number
+  tema: string | null
+  semanasLabel: string
+  aulasLabel: string
+  saebDescritores: string | null
+  objetivosAprendizagem: string | null
+  objetosConhecimento: string | null
 }
 
 /** Data por extenso: aceita ISO (2026-09-03), BR (03/09/2026) ou vazio. */
@@ -84,6 +100,8 @@ export type PlanoAulaInput = {
   createdAt:  Date
   aprendizagensEssenciais?: AprendizagemEssencial[]
   aulasSelecionadas?:       AulaSelecionada[]
+  /** Missoes de OE — no lugar das aulas, que nao se aplicam ao OE. */
+  missoesOE?:               MissaoSelecionada[]
   /**
    * O calendário do ano letivo, por número de bimestre — do less_bimestres.
    * Havia aqui uma tabela de datas fixa no código que não bate com o calendário
@@ -236,7 +254,8 @@ export function generatePlanoAulaPdf(input: PlanoAulaInput): Promise<Buffer> {
     fullHeader(doc, info)
     doc.on('pageAdded', () => miniHeader(doc, info))
 
-    const meta = DOC_TYPES[input.type]
+    // Pelo tipo-base: os tipos de OE declaram `fields: []`.
+    const meta = DOC_TYPES[tipoBase(input.type)]
     const c    = input.content
     const dateLong = input.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 
@@ -277,7 +296,31 @@ export function generatePlanoAulaPdf(input: PlanoAulaInput): Promise<Buffer> {
     // data vai até dali. Na v1 ele também sai no cabeçalho do documento.
     if (c.periodo) identificacao.push(['Período', PERIODO_LABELS[c.periodo] ?? c.periodo])
     if (c.tema) identificacao.push(['Tema / Título da Aula', c.tema])
+    // Descritores SAEB gravados no documento — os planos de OE importados da v1
+    // os trazem, e para eles o currículo vivo pode nem resolver a missão.
+    if (c.saeb_descritores_oe?.trim()) identificacao.push(['Descritores SAEB', c.saeb_descritores_oe.trim()])
     dataTable(doc, ['Campo', 'Informação'], identificacao, { colWeights: [1.3, 3.7] })
+
+    // ── Missão de OE ─────────────────────────────────────────────────────────
+    // No OE a missão ocupa o lugar da aula: é ela que organiza o bimestre. O PDF
+    // saía sem nenhuma menção a ela — o tema e os objetivos apareciam, porque o
+    // editor os copia para os campos comuns, mas a missão que os originou não.
+    if (input.missoesOE && input.missoesOE.length > 0) {
+      sectionTitle(doc, input.missoesOE.length === 1 ? 'Missão' : 'Missões')
+      for (const m of input.missoesOE) {
+        subSectionTitle(doc, `Missão ${m.missaoNum}${m.tema ? ` — ${m.tema}` : ''}`)
+        const linhas: Array<[string, string]> = []
+        if (m.semanasLabel)          linhas.push(['Semanas', m.semanasLabel])
+        if (m.aulasLabel)            linhas.push(['Aulas', m.aulasLabel])
+        // Os descritores SAEB estão em 7 dos 20 planos da v1 e não saíam aqui.
+        if (m.saebDescritores)       linhas.push(['Descritores SAEB', m.saebDescritores])
+        if (m.objetosConhecimento)   linhas.push(['Objetos de Conhecimento', m.objetosConhecimento])
+        if (linhas.length > 0) lightTable(doc, ['Campo', 'Informação'], linhas.map(([k, v]) => [k, v]), [1.2, 3.8])
+        if (m.objetivosAprendizagem?.trim()) {
+          paragraph(doc, m.objetivosAprendizagem, { abnt: true })
+        }
+      }
+    }
 
     // ── Aulas Selecionadas ───────────────────────────────────────────────────
     if (input.aulasSelecionadas && input.aulasSelecionadas.length > 0) {

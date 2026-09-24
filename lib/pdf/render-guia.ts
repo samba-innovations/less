@@ -7,7 +7,7 @@
  */
 
 import PDFDocument from 'pdfkit'
-import { DOC_TYPES, type DocType } from '../doc-types'
+import { DOC_TYPES, tipoBase, type DocType } from '../doc-types'
 import { fullHeader, miniHeader, paginate, type DocHeaderInfo } from './layout'
 import {
   docTitle, sectionTitle, subSectionTitle, kv, paragraph, signatureLine,
@@ -84,7 +84,8 @@ export function generateGuiaPdf(input: GuiaPdfInput): Promise<Buffer> {
     fullHeader(doc, info)
     doc.on('pageAdded', () => miniHeader(doc, info))
 
-    const meta = DOC_TYPES[input.type]
+    // Pelo tipo-base: os tipos de OE declaram `fields: []`.
+    const meta = DOC_TYPES[tipoBase(input.type)]
     const c    = input.content
     const dateLong = input.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 

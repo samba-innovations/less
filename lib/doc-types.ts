@@ -401,6 +401,21 @@ const ESTRUTURA: Partial<Record<DocType, RegraEstrutural[]>> = {
     { key: 'disciplina', label: 'Disciplina', type: 'text', passo: 'Passo 1 — Identificação', alternativas: ['disciplina'] },
     { key: 'bimestre',   label: 'Bimestre',   type: 'text', passo: 'Passo 1 — Identificação', alternativas: ['bimestre', 'bimestres'] },
   ],
+  // OE: a v1 exige turma, segmento, bimestre e ao menos uma missão escolhida.
+  // Sem regra própria, o OE caía nas do plano comum, que não conhecem missão —
+  // e a mensagem mandava a pessoa para "Passo 2 — Aulas", que no OE não existe.
+  OE_PLANO_AULA: [
+    { key: 'turma',      label: 'Turma',      type: 'text', passo: 'Passo 1 — Contexto', alternativas: ['turma', 'turmas'] },
+    { key: 'disciplina', label: 'Disciplina', type: 'text', passo: 'Passo 1 — Contexto', alternativas: ['disciplina', 'oeDisciplina'] },
+    { key: 'bimestre',   label: 'Bimestre',   type: 'text', passo: 'Passo 1 — Contexto', alternativas: ['bimestre', 'bimestres'] },
+    { key: 'oe_missoes_sel', label: 'Missão', type: 'text', passo: 'escolha ao menos uma missão no painel de OE', alternativas: ['oe_missoes_sel'] },
+  ],
+  OE_GUIA_APRENDIZAGEM: [
+    { key: 'turma',      label: 'Turma',      type: 'text', passo: 'Passo 1 — Identificação', alternativas: ['turma', 'turmas'] },
+    { key: 'disciplina', label: 'Disciplina', type: 'text', passo: 'Passo 1 — Identificação', alternativas: ['disciplina', 'oeDisciplina'] },
+    { key: 'bimestre',   label: 'Bimestre',   type: 'text', passo: 'Passo 1 — Identificação', alternativas: ['bimestre', 'bimestres'] },
+    { key: 'oe_missoes_sel', label: 'Missão', type: 'text', passo: 'escolha ao menos uma missão no painel de OE', alternativas: ['oe_missoes_sel'] },
+  ],
   // O que sustenta um PDI é ter ao menos uma atividade escolhida, como na v1 —
   // não os textos livres que o editor nunca preencheu.
   PDI: [
@@ -413,8 +428,15 @@ const ESTRUTURA: Partial<Record<DocType, RegraEstrutural[]>> = {
   ],
 }
 
-/** O tipo base de um OE_*, que empresta campos e estrutura ao equivalente comum. */
-function tipoBase(docType: DocType): DocType {
+/**
+ * O tipo base de um OE_*, que empresta campos e estrutura ao equivalente comum.
+ *
+ * Os dois tipos de OE declaram `fields: []` — a tela deles monta o formulário a
+ * partir do plano/guia comum. Quem lê `DOC_TYPES[tipo].fields` precisa passar
+ * por aqui, senão toda seção guiada por metadado some em documento de OE, sem
+ * erro nenhum.
+ */
+export function tipoBase(docType: DocType): DocType {
   return docType === 'OE_PLANO_AULA'        ? 'PLANO_AULA'
        : docType === 'OE_GUIA_APRENDIZAGEM' ? 'GUIA_APRENDIZAGEM'
        : docType
@@ -440,7 +462,10 @@ export function camposFaltando(
   const meta = DOC_TYPES[base]
   if (!meta) return []
 
-  const estrutura = (ESTRUTURA[base] ?? [])
+  // A estrutura é procurada pelo tipo EXATO antes do tipo-base: o OE tem regra
+  // própria (missão no lugar de aula) e não pode cair na do plano comum. Os
+  // campos obrigatórios, esses sim, o OE herda do tipo-base.
+  const estrutura = (ESTRUTURA[docType] ?? ESTRUTURA[base] ?? [])
     .filter(r => r.vazio ? r.vazio(fields) : r.alternativas.every(k => vazio(fields[k])))
     .map(({ alternativas: _alternativas, vazio: _vazio, ...campo }) => campo)
 

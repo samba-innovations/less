@@ -11,7 +11,7 @@
  */
 
 import PDFDocument from 'pdfkit'
-import { DOC_TYPES, type DocType, type FieldDef } from '../doc-types'
+import { DOC_TYPES, tipoBase, type DocType, type FieldDef } from '../doc-types'
 import { fullHeader, miniHeader, paginate, type DocHeaderInfo } from './layout'
 import { docTitle, sectionTitle, kv, paragraph, signatureLine, divider, spacer } from './primitives'
 import { firstPageOptions } from '@pdf'
@@ -111,7 +111,8 @@ export function generateGenericPdf(input: GenericPdfInput): Promise<Buffer> {
     fullHeader(doc, info)
     doc.on('pageAdded', () => miniHeader(doc, info))
 
-    const meta = DOC_TYPES[input.type]
+    // Pelo tipo-base: os tipos de OE declaram `fields: []`.
+    const meta = DOC_TYPES[tipoBase(input.type)]
 
     // Título + subtítulo (tipo + data por extenso)
     const dateLong = input.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
