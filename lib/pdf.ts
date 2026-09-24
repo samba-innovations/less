@@ -975,6 +975,11 @@ function renderPdiTable(doc: InstanceType<typeof PDFDocument>, atividades: Recor
   const w3 = CONTENT_W - w1 - w2
   const headerH = 28
 
+  // O rótulo da terceira coluna difere da v1 de propósito: lá ele diz
+  // "PRAZO / OBJETIVOS / META / AVALIAÇÃO", mas nenhuma das duas versões
+  // imprime avaliação na célula — o conteúdo é idêntico nos dois lados. Decisão
+  // do PO em 24/09/2026: fica o rótulo que descreve o que sai. Não "alinhar"
+  // com a v1 aqui; seria copiar uma promessa que o documento não cumpre.
   function drawHeader(y: number) {
     doc.rect(MARGIN, y, w1, headerH).fill(DARK)
     doc.rect(MARGIN + w1, y, w2, headerH).fill(DARK)
