@@ -26,12 +26,23 @@ type Props = {
 }
 
 const BIMESTRES = [1, 2, 3, 4]
+const PERIODOS = [
+  { valor: 'por_aula',  rotulo: 'por aula' },
+  { valor: 'semanal',   rotulo: 'semanal' },
+  { valor: 'quinzenal', rotulo: 'quinzenal' },
+  { valor: 'bimestral', rotulo: 'bimestral' },
+]
 
 export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
   const router = useRouter()
   const [selectedDisc,  setSelectedDisc]  = useState<OEDisciplina | null>(disciplinasOE[0] ?? null)
   const [selectedTurma, setSelectedTurma] = useState<Turma | null>(disciplinasOE[0]?.turmas[0] ?? null)
   const [selectedBim,   setSelectedBim]   = useState<number>(1)
+  // A v1 pergunta periodo e datas ANTES de criar o documento; a v2 fixava
+  // 'por_aula' no plano e 'bimestral' no guia, e o professor perdia a escolha.
+  const [periodo,       setPeriodo]       = useState<string>('por_aula')
+  const [dataInicio,    setDataInicio]    = useState<string>('')
+  const [dataFim,       setDataFim]       = useState<string>('')
   const [missoes,       setMissoes]       = useState<OEMissaoFull[]>([])
   const [loading,       setLoading]       = useState(false)
   const [loaded,        setLoaded]        = useState(false)
@@ -51,7 +62,11 @@ export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
           content: {
             disciplina: selectedDisc?.name ?? '',
             bimestre:   String(selectedBim),
-            periodo:    type === 'OE_GUIA_APRENDIZAGEM' ? 'bimestral' : 'por_aula',
+            // O guia e sempre bimestral (cobre o bimestre inteiro); o plano
+            // leva o periodo escolhido na tela.
+            periodo:    type === 'OE_GUIA_APRENDIZAGEM' ? 'bimestral' : periodo,
+            ...(dataInicio ? { data: dataInicio, data_inicio: dataInicio } : {}),
+            ...(dataFim ? { data_fim: dataFim } : {}),
             // Amarra o documento à turma → o editor sabe a série e carrega o
             // currículo OE certo (regra dos livros). Ver actions.getOEMissoesForClass.
             classId:   selectedTurma?.id ?? null,
@@ -140,6 +155,30 @@ export function OEClient({ disciplinasOE, role, isAdmin }: Props) {
                     onClick={() => handleBimChange(b)}
                   >{b}º</button>
                 ))}
+              </div>
+            </div>
+
+            <div className={s.card}>
+              <span className={s.cardLabel}>periodo do plano</span>
+              <div className={s.bimRow}>
+                {PERIODOS.map(pr => (
+                  <button
+                    key={pr.valor}
+                    type="button"
+                    className={`${s.bimBtn} ${periodo === pr.valor ? s.bimBtnActive : ''}`}
+                    onClick={() => setPeriodo(pr.valor)}
+                  >{pr.rotulo}</button>
+                ))}
+              </div>
+              <div className={s.datasRow}>
+                <label className={s.dataCampo}>
+                  <span>inicio</span>
+                  <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} />
+                </label>
+                <label className={s.dataCampo}>
+                  <span>fim</span>
+                  <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} />
+                </label>
               </div>
             </div>
 
