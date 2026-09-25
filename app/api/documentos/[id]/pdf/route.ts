@@ -8,6 +8,7 @@ import { notify } from '@/lib/notify'
 import { camposFaltando, listarFaltantes, type DocType } from '@/lib/doc-types'
 import { oeMissoesForClass } from '@/lib/oe'
 import { oeTipoFromNome } from '@/lib/oe-shared'
+import { diaNoFuso } from '@/lib/tempo/fuso-escola'
 import { comNomesDaV2 } from '@/lib/legado-v1'
 
 async function auth() {
@@ -215,8 +216,10 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const bimestres: Record<number, { inicio: string; fim: string }> = {}
   for (const b of linhas) {
     bimestres[b.numero] ??= {
-      inicio: b.dataInicio.toISOString().slice(0, 10),
-      fim:    b.dataFim.toISOString().slice(0, 10),
+      // O dia é o da escola: a coluna guarda UTC e `toISOString` devolveria o
+      // dia seguinte para um bimestre que começa à meia-noite de Brasília.
+      inicio: diaNoFuso(b.dataInicio),
+      fim:    diaNoFuso(b.dataFim),
     }
   }
 

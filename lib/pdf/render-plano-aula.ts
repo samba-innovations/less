@@ -17,6 +17,7 @@ import {
   cw, cx, COLORS, FONT, SIZE, SPACE, BODY_BOTTOM_Y,
 } from './theme'
 import { firstPageOptions, addMirroredPage } from '@pdf'
+import { diaNoFuso, FUSO_PADRAO } from '@/lib/tempo/fuso-escola'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
 
@@ -47,7 +48,11 @@ function porExtenso(s: string | undefined, quandoVazio: string): string {
   if (!s) return quandoVazio
   const d = paraData(s)
   if (!d) return s
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+  // timeZone explícito: o container roda em UTC e sem isto a data vira a do dia
+  // seguinte para quem gera o documento no fim da noite.
+  return d.toLocaleDateString('pt-BR', {
+    day: '2-digit', month: 'long', year: 'numeric', timeZone: FUSO_PADRAO,
+  })
 }
 
 export type CalendarioBimestres = Record<number, { inicio: string; fim: string }>
@@ -85,7 +90,7 @@ export function intervaloDoPlano(
     if (base) {
       const ate = new Date(base)
       ate.setDate(ate.getDate() + dias)
-      return `de ${dia(c.data)} a ${dia(ate.toISOString().slice(0, 10))}`
+      return `de ${dia(c.data)} a ${dia(diaNoFuso(ate))}`
     }
   }
   return dia(c.data)
@@ -257,7 +262,9 @@ export function generatePlanoAulaPdf(input: PlanoAulaInput): Promise<Buffer> {
     // Pelo tipo-base: os tipos de OE declaram `fields: []`.
     const meta = DOC_TYPES[tipoBase(input.type)]
     const c    = input.content
-    const dateLong = input.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+    const dateLong = input.createdAt.toLocaleDateString('pt-BR', {
+      day: '2-digit', month: 'long', year: 'numeric', timeZone: FUSO_PADRAO,
+    })
 
     // O título e a data já são desenhados pelo shared/pdf renderFullHeader.
     // Aqui só damos um respiro antes do corpo iniciar.

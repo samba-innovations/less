@@ -21,6 +21,7 @@ import {
   divider, spacer, dataTable, bulletList, referenciasAbnt,
 } from './primitives'
 import { firstPageOptions } from '@pdf'
+import { FUSO_PADRAO } from '@/lib/tempo/fuso-escola'
 
 export type EletivaPdfInput = {
   type:       DocType
@@ -87,7 +88,9 @@ export function generateEletivaPdf(input: EletivaPdfInput): Promise<Buffer> {
 
     const meta = DOC_TYPES[input.type]
     const c    = input.content
-    const dateLong = input.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+    const dateLong = input.createdAt.toLocaleDateString('pt-BR', {
+      day: '2-digit', month: 'long', year: 'numeric', timeZone: FUSO_PADRAO,
+    })
 
     docTitle(doc, input.title, `${meta.label}  ·  ${dateLong}`)
     paragraph(doc, `${input.schoolName} — ${dateLong}`, { small: true })
